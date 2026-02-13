@@ -97,6 +97,7 @@ export function RegisterPage(): React.JSX.Element {
               name="firstName"
               value={firstName}
               onChange={(event) => setFirstName(event.target.value)}
+              size="small"
               className="p-inputtext-sm"
               required
             />
@@ -109,6 +110,7 @@ export function RegisterPage(): React.JSX.Element {
               name="lastName"
               value={lastName}
               onChange={(event) => setLastName(event.target.value)}
+              size="small"
               className="p-inputtext-sm"
               required
             />
@@ -123,6 +125,7 @@ export function RegisterPage(): React.JSX.Element {
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            size="small"
             className="p-inputtext-sm"
             required
           />

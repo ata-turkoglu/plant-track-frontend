@@ -30,6 +30,33 @@ export interface Business {
   updatedAt: string;
 }
 
+export interface Organization {
+  id: number;
+  code: string;
+  name: string;
+  city: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationUnit {
+  id: number;
+  organizationId: number;
+  organizationCode: string | null;
+  organizationName: string | null;
+  parentUnitId: number | null;
+  parentCode: string | null;
+  parentName: string | null;
+  code: string;
+  name: string;
+  kind: string | null;
+  city: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Factory {
   id: number;
   businessId: number;

@@ -48,6 +48,7 @@ export function ForgotPasswordPage(): React.JSX.Element {
             name="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            size="small"
             className="p-inputtext-sm"
             required
           />

@@ -5,6 +5,8 @@ import type {
   CreateTransferPayload,
   Facility,
   Factory,
+  Organization,
+  OrganizationUnit,
   OnHandRow,
   Product,
   StockTransaction,
@@ -23,6 +25,86 @@ const unwrap = <T>(payload: T | ApiEnvelope<T>): T => {
 };
 
 export const inventoryApi = {
+  async listOrganizations(): Promise<Organization[]> {
+    const response = await api.get<Organization[] | ApiEnvelope<Organization[]>>(`${API_PREFIX}/organizations`);
+    return unwrap(response.data);
+  },
+
+  async createOrganization(payload: {
+    code: string;
+    name: string;
+    city?: string;
+    isActive?: boolean;
+  }): Promise<Organization> {
+    const response = await api.post<Organization | ApiEnvelope<Organization>>(`${API_PREFIX}/organizations`, payload);
+    return unwrap(response.data);
+  },
+
+  async updateOrganization(
+    id: number,
+    payload: { code?: string; name?: string; city?: string; isActive?: boolean }
+  ): Promise<Organization> {
+    const response = await api.patch<Organization | ApiEnvelope<Organization>>(
+      `${API_PREFIX}/organizations/${id}`,
+      payload
+    );
+    return unwrap(response.data);
+  },
+
+  async deactivateOrganization(id: number): Promise<Organization> {
+    const response = await api.delete<Organization | ApiEnvelope<Organization>>(`${API_PREFIX}/organizations/${id}`);
+    return unwrap(response.data);
+  },
+
+  async listOrganizationUnits(): Promise<OrganizationUnit[]> {
+    const response = await api.get<OrganizationUnit[] | ApiEnvelope<OrganizationUnit[]>>(
+      `${API_PREFIX}/organization-units`
+    );
+    return unwrap(response.data);
+  },
+
+  async createOrganizationUnit(payload: {
+    organizationId: number;
+    parentUnitId?: number | null;
+    code: string;
+    name: string;
+    kind?: string;
+    city?: string;
+    isActive?: boolean;
+  }): Promise<OrganizationUnit> {
+    const response = await api.post<OrganizationUnit | ApiEnvelope<OrganizationUnit>>(
+      `${API_PREFIX}/organization-units`,
+      payload
+    );
+    return unwrap(response.data);
+  },
+
+  async updateOrganizationUnit(
+    id: number,
+    payload: {
+      organizationId?: number;
+      parentUnitId?: number | null;
+      code?: string;
+      name?: string;
+      kind?: string;
+      city?: string;
+      isActive?: boolean;
+    }
+  ): Promise<OrganizationUnit> {
+    const response = await api.patch<OrganizationUnit | ApiEnvelope<OrganizationUnit>>(
+      `${API_PREFIX}/organization-units/${id}`,
+      payload
+    );
+    return unwrap(response.data);
+  },
+
+  async deactivateOrganizationUnit(id: number): Promise<OrganizationUnit> {
+    const response = await api.delete<OrganizationUnit | ApiEnvelope<OrganizationUnit>>(
+      `${API_PREFIX}/organization-units/${id}`
+    );
+    return unwrap(response.data);
+  },
+
   async listBusinesses(): Promise<Business[]> {
     const response = await api.get<Business[] | ApiEnvelope<Business[]>>(`${API_PREFIX}/businesses`);
     return unwrap(response.data);

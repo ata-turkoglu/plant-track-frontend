@@ -11,7 +11,7 @@ const navItems = [
 
 export function Sidebar(): React.JSX.Element {
   return (
-    <aside className="hidden h-screen min-h-screen w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-100 shadow-sm md:flex">
+    <aside className="hidden h-screen min-h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-100 shadow-sm md:flex">
       <div className="px-5 pt-5">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 overflow-hidden rounded-xl bg-linear-to-br from-brand-500 to-brand-700 shadow-card">
@@ -47,7 +47,6 @@ export function Sidebar(): React.JSX.Element {
                         <p className="text-xs text-slate-500">{hint}</p>
                       </div>
                     </div>
-                    <ArrowUpRight className={isActive ? 'h-4 w-4 text-brand-700' : 'h-4 w-4 text-brand-600'} />
                   </div>
                 )}
               </NavLink>

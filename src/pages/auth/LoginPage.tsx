@@ -62,6 +62,7 @@ export function LoginPage(): React.JSX.Element {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="ornek@firma.com"
+            size="small"
             className="w-full p-inputtext-sm"
             required
           />
