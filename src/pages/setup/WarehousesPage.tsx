@@ -24,6 +24,7 @@ type WarehouseRow = {
   organization_id: number;
   location_id: number;
   name: string;
+  type: 'RAW_MATERIAL' | 'SPARE_PART' | 'FINISHED_GOOD';
 };
 
 type LocationOption = { label: string; value: number };
@@ -70,6 +71,7 @@ export default function WarehousesPage() {
   const [editing, setEditing] = useState<WarehouseRow | null>(null);
   const [name, setName] = useState('');
   const [locationId, setLocationId] = useState<number | null>(null);
+  const [type, setType] = useState<WarehouseRow['type']>('RAW_MATERIAL');
 
   useEffect(() => {
     if (!organizationId) return;
@@ -100,6 +102,7 @@ export default function WarehousesPage() {
     setEditing(null);
     setName('');
     setLocationId(locationOptions[0]?.value ?? null);
+    setType('RAW_MATERIAL');
     setDialogOpen(true);
   };
 
@@ -107,6 +110,7 @@ export default function WarehousesPage() {
     setEditing(row);
     setName(row.name);
     setLocationId(row.location_id);
+    setType(row.type);
     setDialogOpen(true);
   };
 
@@ -145,13 +149,15 @@ export default function WarehousesPage() {
       if (!editing) {
         const res = await api.post(`/api/organizations/${organizationId}/warehouses`, {
           name: trimmed,
-          location_id: locationId
+          location_id: locationId,
+          type
         });
         setWarehouses((prev) => [...prev, res.data.warehouse]);
       } else {
         const res = await api.patch(`/api/warehouses/${editing.id}`, {
           name: trimmed,
-          location_id: locationId
+          location_id: locationId,
+          type
         });
         const updated: WarehouseRow = res.data.warehouse;
         setWarehouses((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
@@ -185,6 +191,25 @@ export default function WarehousesPage() {
     return <span className="text-sm text-slate-700">{locationNameById.get(row.location_id) ?? '-'}</span>;
   };
 
+  const typeLabel = (t: WarehouseRow['type']) => {
+    if (t === 'RAW_MATERIAL') return 'Hammadde';
+    if (t === 'SPARE_PART') return 'Yedek Parça';
+    return 'Ürün';
+  };
+
+  const typeBody = (row: WarehouseRow) => {
+    return <span className="text-sm text-slate-700">{typeLabel(row.type)}</span>;
+  };
+
+  const typeOptions = useMemo(
+    () => [
+      { label: 'Hammadde', value: 'RAW_MATERIAL' as const },
+      { label: 'Yedek Parça', value: 'SPARE_PART' as const },
+      { label: 'Ürün', value: 'FINISHED_GOOD' as const }
+    ],
+    []
+  );
+
   if (!organizationId) {
     return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
   }
@@ -204,6 +229,7 @@ export default function WarehousesPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-3">
         <DataTable value={warehouses} loading={loading} size="small" stripedRows emptyMessage="Depo yok.">
           <Column field="name" header="Depo" />
+          <Column header="Tür" body={typeBody} style={{ width: '10rem' }} />
           <Column header="Lokasyon" body={locationBody} />
           <Column header="" body={actionsBody} style={{ width: '8rem' }} />
         </DataTable>
@@ -219,6 +245,18 @@ export default function WarehousesPage() {
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">Depo adı</span>
             <InputText value={name} onChange={(ev) => setName(ev.target.value)} className="w-full" />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700">Depo türü</span>
+            <Dropdown
+              value={type}
+              onChange={(ev) => setType(ev.value)}
+              options={typeOptions}
+              optionLabel="label"
+              optionValue="value"
+              className="w-full"
+            />
           </label>
 
           <label className="grid gap-2">
