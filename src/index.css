@@ -14,11 +14,15 @@ body,
 body {
   margin: 0;
   color: #0f172a;
-  background: #f8fafc;
 }
 
 .p-component {
   font-size: 0.875rem;
+}
+
+/* One-sided shadow for the app sidebar (right side only). */
+.sidebar-shadow-right {
+  box-shadow: 12px 0 24px -24px rgba(15, 23, 42, 0.45);
 }
 
 /* PrimeReact: keep focus ring for keyboard users, but avoid "stuck" focus glow after mouse clicks. */

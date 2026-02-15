@@ -240,7 +240,7 @@ export default function WarehousesPage() {
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <DataTable value={warehouses} loading={loading} size="small" stripedRows emptyMessage="Depo yok.">
+        <DataTable value={warehouses} loading={loading} size="small" emptyMessage="Depo yok.">
           <Column field="name" header="Depo" />
           <Column header="Tür" body={typeBody} style={{ width: '10rem' }} />
           <Column header="Lokasyon" body={locationBody} />

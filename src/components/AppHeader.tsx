@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar } from 'primereact/avatar';
@@ -7,8 +7,9 @@ import { Menu } from 'primereact/menu';
 import type { Menu as MenuType } from 'primereact/menu';
 
 import type { RootState } from '../store';
-import { toggleSidebar } from '../store/uiSlice';
+import { closeMobileSidebar, toggleMobileSidebar, toggleSidebar } from '../store/uiSlice';
 import { logout } from '../store/userSlice';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function AppHeader() {
   const dispatch = useDispatch();
@@ -16,6 +17,12 @@ export default function AppHeader() {
   const location = useLocation();
   const menuRef = useRef<MenuType>(null);
   const user = useSelector((state: RootState) => state.user);
+  const sidebarCollapsed = useSelector((state: RootState) => state.ui.sidebarCollapsed);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+
+  useEffect(() => {
+    if (isDesktop) dispatch(closeMobileSidebar());
+  }, [dispatch, isDesktop]);
 
   const pageTitle = (() => {
     const path = location.pathname;
@@ -46,15 +53,18 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-white px-4">
+    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 shadow-md">
       <div className="flex items-center gap-3">
         <Button
-          icon="pi pi-bars"
+          icon={isDesktop ? (sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left') : 'pi pi-bars'}
           rounded
           text
-          size="small"
-          aria-label="Toggle sidebar"
-          onClick={() => dispatch(toggleSidebar())}
+          aria-label={isDesktop ? 'Collapse sidebar' : 'Open menu'}
+          onClick={() => {
+            if (isDesktop) dispatch(toggleSidebar());
+            else dispatch(toggleMobileSidebar());
+          }}
+          className='cursor-pointer'
         />
         <img src="/images/logo.webp" alt="PlantTrack" className="h-8 w-8 rounded-md object-cover" />
         <span className="text-sm font-semibold text-slate-900">PlantTrack</span>
@@ -67,20 +77,25 @@ export default function AppHeader() {
       </div>
 
       <div className="flex items-center gap-3 justify-self-end">
-        <div className="text-right text-xs text-slate-600">
-          <p className="font-semibold text-slate-900">{user.name}</p>
-          <p>{user.role}</p>
-        </div>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-transparent p-0"
+          className="group border-none cursor-pointer inline-flex items-center gap-2 rounded-full bg-white/70 px-2 py-1 shadow-md transition-colors hover:bg-white hover:shadow"
           onClick={(event) => menuRef.current?.toggle(event)}
           aria-controls="user_menu"
           aria-haspopup
         >
-          <Avatar label={user.name[0]} shape="circle" className="h-8 w-8 bg-brand-500 text-white" />
+          <Avatar
+            label={(user.name?.[0] ?? 'U').toUpperCase()}
+            shape="circle"
+            className="h-8 w-8 bg-brand-500 text-white"
+          />
+          <div className="hidden min-w-0 flex-col text-left md:flex">
+            <span className="max-w-[160px] truncate text-xs font-semibold text-slate-900">{user.name}</span>
+            <span className="max-w-[160px] truncate text-[11px] text-slate-600">{user.role}</span>
+          </div>
+          <i className="pi pi-chevron-down text-[11px] text-slate-500 transition-transform group-hover:text-slate-700" />
         </button>
-        <Menu model={menuItems} popup id="user_menu" ref={menuRef} />
+        <Menu model={menuItems} popup popupAlignment="right" id="user_menu" ref={menuRef} />
       </div>
     </header>
   );

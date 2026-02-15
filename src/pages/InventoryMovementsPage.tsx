@@ -498,7 +498,6 @@ export default function InventoryMovementsPage() {
             value={filteredMovements}
             loading={loading}
             size="small"
-            stripedRows
             emptyMessage="Hareket yok."
             rowClassName={(row: MovementRow) =>
               row.movement_type === 'IN' ? 'inventory-row-in' : row.movement_type === 'OUT' ? 'inventory-row-out' : ''
@@ -679,7 +678,7 @@ export default function InventoryMovementsPage() {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-2">
-            <DataTable value={itemsList} size="small" stripedRows emptyMessage="Item yok.">
+            <DataTable value={itemsList} size="small" emptyMessage="Item yok.">
               <Column field="code" header="Kod" style={{ width: '10rem' }} />
               <Column field="name" header="Isim" />
               <Column

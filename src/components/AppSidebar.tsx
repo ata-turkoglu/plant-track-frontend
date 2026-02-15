@@ -12,15 +12,21 @@ const items = [
   { label: 'Setup', icon: 'pi pi-cog', to: '/setup' }
 ];
 
-export default function AppSidebar() {
-  const collapsed = useSelector((state: RootState) => state.ui.sidebarCollapsed);
+type AppSidebarProps = {
+  collapsedOverride?: boolean;
+  onNavigate?: () => void;
+};
+
+export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebarProps) {
+  const collapsedFromStore = useSelector((state: RootState) => state.ui.sidebarCollapsed);
   const location = useLocation();
 
-  const widthClass = useMemo(() => (collapsed ? 'w-16' : 'w-52'), [collapsed]);
+  const collapsed = collapsedOverride ?? collapsedFromStore;
+  const widthClass = useMemo(() => (collapsed ? 'w-16' : 'w-60'), [collapsed]);
 
   return (
-    <aside className={`${widthClass} border-r border-slate-200 bg-white transition-all duration-200`}>
-      <nav className="flex h-full flex-col gap-2 p-3">
+    <aside className={`${widthClass} sidebar-shadow-right border-r border-slate-200 bg-slate-50 transition-all duration-200`}>
+      <nav className="flex h-full flex-col gap-1.5 p-3">
         {items.map((item) => {
           const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
           const isBottom = item.to === '/setup';
@@ -28,14 +34,27 @@ export default function AppSidebar() {
             <Link
               key={item.to}
               to={item.to}
-              className={`no-underline flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+              title={collapsed ? item.label : undefined}
+              onClick={() => onNavigate?.()}
+              className={[
+                'group no-underline flex items-center gap-3 rounded-xl py-2 text-sm transition-all',
+                collapsed ? 'justify-center px-2' : 'px-3',
                 active
-                  ? 'bg-brand-50 text-brand-700'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-              } ${isBottom ? 'mt-auto' : ''}`}
+                  ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
+                  : 'text-slate-700 hover:bg-white/60 hover:text-slate-900',
+                isBottom ? 'mt-auto' : ''
+              ].join(' ')}
             >
-              <i className={`${item.icon} text-base`} />
-              {!collapsed && <span>{item.label}</span>}
+              <span
+                className={[
+                  'inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                  active ? 'text-brand-700' : 'text-slate-500 group-hover:text-slate-700'
+                ].join(' ')}
+                aria-hidden
+              >
+                <i className={`${item.icon} text-base`} />
+              </span>
+              {!collapsed && <span className="truncate font-medium">{item.label}</span>}
             </Link>
           );
         })}
