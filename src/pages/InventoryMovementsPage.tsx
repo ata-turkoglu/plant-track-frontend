@@ -37,7 +37,6 @@ type ItemRow = {
   type: string;
   code: string;
   name: string;
-  uom: string;
   unit_id?: number;
   active: boolean;
 };
@@ -192,9 +191,21 @@ export default function InventoryMovementsPage() {
       items
         .filter((i) => i.active)
         .filter((i) => (activeWarehouseTypeId ? i.warehouse_type_id === activeWarehouseTypeId : true))
-        .map((i) => ({ label: `${i.code} - ${i.name}`, value: i.id, uom: i.uom })),
+        .map((i) => ({ label: `${i.code} - ${i.name}`, value: i.id })),
     [items, activeWarehouseTypeId]
   );
+
+  const unitCodeById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const u of units) map.set(u.id, u.code);
+    return map;
+  }, [units]);
+
+  const itemById = useMemo(() => {
+    const map = new Map<number, ItemRow>();
+    for (const i of items) map.set(i.id, i);
+    return map;
+  }, [items]);
 
   const unitOptions = useMemo(
     () =>
@@ -220,7 +231,9 @@ export default function InventoryMovementsPage() {
     setWarehouseId(warehouseOptions[0]?.value ?? null);
     const firstItem = itemOptions[0];
     setItemId(firstItem?.value ?? null);
-    setUom(firstItem?.uom ?? '');
+    const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
+    const uomCode = firstItemRow?.unit_id ? unitCodeById.get(firstItemRow.unit_id) : '';
+    setUom(uomCode ?? '');
     setQuantity(null);
     setOccurredAt(new Date());
     setReferenceType('');
@@ -250,13 +263,7 @@ export default function InventoryMovementsPage() {
     setEditingItemId(row.id);
     setNewItemCode(row.code);
     setNewItemName(row.name);
-    const unitIdFromUom =
-      row.uom && units.length > 0
-        ? units.find((u) => u.organization_id === row.organization_id && u.code.toLowerCase() === row.uom.toLowerCase())?.id ??
-          null
-        : null;
-    // Prefer mapping from uom if unit_id is missing or inconsistent (older data may have defaulted to 'adet').
-    setNewItemUnitId(unitIdFromUom ?? row.unit_id ?? null);
+    setNewItemUnitId(row.unit_id ?? null);
     setNewItemActive(row.active);
     setItemDialogOpen(true);
   };
@@ -276,9 +283,11 @@ export default function InventoryMovementsPage() {
   };
 
   useEffect(() => {
-    const selected = itemOptions.find((o) => o.value === itemId);
-    if (selected?.uom) setUom(selected.uom);
-  }, [itemId, itemOptions]);
+    if (!itemId) return;
+    const it = itemById.get(itemId);
+    const code = it?.unit_id ? unitCodeById.get(it.unit_id) : '';
+    if (code) setUom(code);
+  }, [itemId, itemById, unitCodeById]);
 
   const submitEntry = async () => {
     if (!organizationId || !warehouseId || !itemId || !quantity || !uom.trim()) return;
@@ -341,7 +350,6 @@ export default function InventoryMovementsPage() {
         const created: ItemRow = res.data.item;
         await reloadItems();
         setItemId(created.id);
-        setUom(created.uom);
         setItemDialogOpen(false);
       } else {
         if (!editingItemId) return;
@@ -353,7 +361,6 @@ export default function InventoryMovementsPage() {
         });
         const updated: ItemRow = res.data.item;
         await reloadItems();
-        if (itemId === updated.id) setUom(updated.uom);
         setItemDialogOpen(false);
       }
       setNewItemCode('');
@@ -675,7 +682,15 @@ export default function InventoryMovementsPage() {
             <DataTable value={itemsList} size="small" stripedRows emptyMessage="Item yok.">
               <Column field="code" header="Kod" style={{ width: '10rem' }} />
               <Column field="name" header="Isim" />
-              <Column field="uom" header="Birim" style={{ width: '7rem' }} />
+              <Column
+                header="Birim"
+                body={(row: ItemRow) => (
+                  <span className="text-sm text-slate-700">
+                    {row.unit_id ? unitCodeById.get(row.unit_id) ?? '-' : '-'}
+                  </span>
+                )}
+                style={{ width: '7rem' }}
+              />
               <Column
                 header="Aktif"
                 body={(row: ItemRow) => <span className="text-sm text-slate-700">{row.active ? 'Evet' : 'Hayir'}</span>}

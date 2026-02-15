@@ -21,6 +21,15 @@ body {
   font-size: 0.875rem;
 }
 
+/* PrimeReact: keep focus ring for keyboard users, but avoid "stuck" focus glow after mouse clicks. */
+.p-button:focus:not(:focus-visible) {
+  box-shadow: none !important;
+}
+.p-button:focus-visible {
+  /* Let theme define focus style; fallback to a subtle ring. */
+  box-shadow: var(--focus-ring, 0 0 0 0.2rem rgba(59, 130, 246, 0.25)) !important;
+}
+
 /* Inventory movements: subtle row tint by movement type (PrimeReact tables set backgrounds on td). */
 tr.inventory-row-in > td {
   background-color: rgba(16, 185, 129, 0.05) !important; /* emerald */
