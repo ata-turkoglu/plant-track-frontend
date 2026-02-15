@@ -19,12 +19,23 @@ type LocationRow = {
   name: string;
 };
 
+type WarehouseTypeRow = {
+  id: number;
+  organization_id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  system: boolean;
+};
+
 type WarehouseRow = {
   id: number;
   organization_id: number;
   location_id: number;
   name: string;
-  type: 'RAW_MATERIAL' | 'SPARE_PART' | 'FINISHED_GOOD';
+  warehouse_type_id: number;
+  warehouse_type_code?: string;
+  warehouse_type_name?: string;
 };
 
 type LocationOption = { label: string; value: number };
@@ -63,6 +74,7 @@ export default function WarehousesPage() {
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
 
   const [locations, setLocations] = useState<LocationRow[]>([]);
+  const [warehouseTypes, setWarehouseTypes] = useState<WarehouseTypeRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -71,7 +83,7 @@ export default function WarehousesPage() {
   const [editing, setEditing] = useState<WarehouseRow | null>(null);
   const [name, setName] = useState('');
   const [locationId, setLocationId] = useState<number | null>(null);
-  const [type, setType] = useState<WarehouseRow['type']>('RAW_MATERIAL');
+  const [warehouseTypeId, setWarehouseTypeId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -80,11 +92,13 @@ export default function WarehousesPage() {
 
     Promise.all([
       api.get(`/api/organizations/${organizationId}/locations`),
-      api.get(`/api/organizations/${organizationId}/warehouses`)
+      api.get(`/api/organizations/${organizationId}/warehouses`),
+      api.get(`/api/organizations/${organizationId}/warehouse-types`)
     ])
-      .then(([locRes, whRes]) => {
+      .then(([locRes, whRes, wtRes]) => {
         setLocations(locRes.data.locations ?? []);
         setWarehouses(whRes.data.warehouses ?? []);
+        setWarehouseTypes(wtRes.data.warehouse_types ?? []);
       })
       .catch(() => setError('Depolar yüklenemedi.'))
       .finally(() => setLoading(false));
@@ -102,7 +116,7 @@ export default function WarehousesPage() {
     setEditing(null);
     setName('');
     setLocationId(locationOptions[0]?.value ?? null);
-    setType('RAW_MATERIAL');
+    setWarehouseTypeId(warehouseTypes[0]?.id ?? null);
     setDialogOpen(true);
   };
 
@@ -110,7 +124,7 @@ export default function WarehousesPage() {
     setEditing(row);
     setName(row.name);
     setLocationId(row.location_id);
-    setType(row.type);
+    setWarehouseTypeId(row.warehouse_type_id);
     setDialogOpen(true);
   };
 
@@ -140,7 +154,7 @@ export default function WarehousesPage() {
     if (!organizationId) return;
 
     const trimmed = name.trim();
-    if (!trimmed || !locationId) return;
+    if (!trimmed || !locationId || !warehouseTypeId) return;
 
     setLoading(true);
     setError('');
@@ -150,17 +164,28 @@ export default function WarehousesPage() {
         const res = await api.post(`/api/organizations/${organizationId}/warehouses`, {
           name: trimmed,
           location_id: locationId,
-          type
+          warehouse_type_id: warehouseTypeId
         });
-        setWarehouses((prev) => [...prev, res.data.warehouse]);
+        const created: WarehouseRow = res.data.warehouse;
+        // Enrich for UI without a refetch.
+        const wt = warehouseTypes.find((t) => t.id === created.warehouse_type_id);
+        setWarehouses((prev) => [
+          ...prev,
+          { ...created, warehouse_type_code: wt?.code, warehouse_type_name: wt?.name }
+        ]);
       } else {
         const res = await api.patch(`/api/warehouses/${editing.id}`, {
           name: trimmed,
           location_id: locationId,
-          type
+          warehouse_type_id: warehouseTypeId
         });
         const updated: WarehouseRow = res.data.warehouse;
-        setWarehouses((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+        const wt = warehouseTypes.find((t) => t.id === updated.warehouse_type_id);
+        setWarehouses((prev) =>
+          prev.map((w) =>
+            w.id === updated.id ? { ...updated, warehouse_type_code: wt?.code, warehouse_type_name: wt?.name } : w
+          )
+        );
       }
       setDialogOpen(false);
     } catch {
@@ -191,23 +216,14 @@ export default function WarehousesPage() {
     return <span className="text-sm text-slate-700">{locationNameById.get(row.location_id) ?? '-'}</span>;
   };
 
-  const typeLabel = (t: WarehouseRow['type']) => {
-    if (t === 'RAW_MATERIAL') return 'Hammadde';
-    if (t === 'SPARE_PART') return 'Yedek Parça';
-    return 'Ürün';
-  };
-
   const typeBody = (row: WarehouseRow) => {
-    return <span className="text-sm text-slate-700">{typeLabel(row.type)}</span>;
+    const name = row.warehouse_type_name ?? warehouseTypes.find((t) => t.id === row.warehouse_type_id)?.name ?? '-';
+    return <span className="text-sm text-slate-700">{name}</span>;
   };
 
   const typeOptions = useMemo(
-    () => [
-      { label: 'Hammadde', value: 'RAW_MATERIAL' as const },
-      { label: 'Yedek Parça', value: 'SPARE_PART' as const },
-      { label: 'Ürün', value: 'FINISHED_GOOD' as const }
-    ],
-    []
+    () => warehouseTypes.map((t) => ({ label: t.name, value: t.id })),
+    [warehouseTypes]
   );
 
   if (!organizationId) {
@@ -250,8 +266,8 @@ export default function WarehousesPage() {
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">Depo türü</span>
             <Dropdown
-              value={type}
-              onChange={(ev) => setType(ev.value)}
+              value={warehouseTypeId}
+              onChange={(ev) => setWarehouseTypeId(ev.value ?? null)}
               options={typeOptions}
               optionLabel="label"
               optionValue="value"
@@ -275,7 +291,13 @@ export default function WarehousesPage() {
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button label="Vazgec" size="small" text type="button" onClick={() => setDialogOpen(false)} />
-            <Button label="Kaydet" size="small" type="submit" loading={loading} disabled={!name.trim() || !locationId} />
+            <Button
+              label="Kaydet"
+              size="small"
+              type="submit"
+              loading={loading}
+              disabled={!name.trim() || !locationId || !warehouseTypeId}
+            />
           </div>
         </form>
       </Dialog>

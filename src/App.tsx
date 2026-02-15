@@ -4,6 +4,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import AppLayout from './layout/AppLayout';
 import SetupLayout from './layout/SetupLayout';
 import DashboardPage from './pages/DashboardPage';
+import InventoryMovementsPage from './pages/InventoryMovementsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -45,6 +46,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/inventory" element={<InventoryMovementsPage />} />
           <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
           <Route path="/setup" element={<SetupLayout />}>
             <Route index element={<Navigate to="/setup/organization" replace />} />

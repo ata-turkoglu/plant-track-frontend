@@ -6,6 +6,7 @@ import type { RootState } from '../store';
 
 const items = [
   { label: 'Dashboard', icon: 'pi pi-chart-line', to: '/' },
+  { label: 'Inventory', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
   { label: 'Reports', icon: 'pi pi-table', to: '/reports' },
   { label: 'Setup', icon: 'pi pi-cog', to: '/setup' }
 ];
@@ -14,7 +15,7 @@ export default function AppSidebar() {
   const collapsed = useSelector((state: RootState) => state.ui.sidebarCollapsed);
   const location = useLocation();
 
-  const widthClass = useMemo(() => (collapsed ? 'w-20' : 'w-64'), [collapsed]);
+  const widthClass = useMemo(() => (collapsed ? 'w-16' : 'w-52'), [collapsed]);
 
   return (
     <aside className={`${widthClass} border-r border-slate-200 bg-white transition-all duration-200`}>
