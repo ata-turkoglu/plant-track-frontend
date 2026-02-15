@@ -20,3 +20,17 @@ body {
 .p-component {
   font-size: 0.875rem;
 }
+
+/* Inventory movements: subtle row tint by movement type (PrimeReact tables set backgrounds on td). */
+tr.inventory-row-in > td {
+  background-color: rgba(16, 185, 129, 0.05) !important; /* emerald */
+}
+/* tr.inventory-row-in:hover > td {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+} */
+tr.inventory-row-out > td {
+  background-color: rgba(239, 68, 68, 0.05) !important; /* red */
+}
+/* tr.inventory-row-out:hover > td {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+} */

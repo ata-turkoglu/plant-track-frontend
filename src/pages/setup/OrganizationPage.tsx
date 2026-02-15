@@ -270,11 +270,6 @@ export default function OrganizationPage() {
 
   return (
     <div className="grid gap-4">
-      <div>
-        <h1 className="text-lg font-semibold text-slate-900">Organization</h1>
-        <p className="mt-1 text-sm text-slate-600">Organization ve lokasyon ağacı.</p>
-      </div>
-
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="overflow-auto rounded-xl border border-slate-200 bg-white p-4">

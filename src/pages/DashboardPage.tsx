@@ -51,8 +51,7 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-4">
       <Card className="p-component-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-slate-900">Dashboard</h1>
+        <div className="flex items-center justify-end">
           <span className="text-xs text-slate-500">Last update: {lastUpdated}</span>
         </div>
       </Card>

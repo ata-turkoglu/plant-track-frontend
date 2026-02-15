@@ -232,11 +232,8 @@ export default function WarehousesPage() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900">Warehouses (Depo)</h1>
-          <p className="mt-1 text-sm text-slate-600">Depoları lokasyonlara bağla.</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs text-slate-600">Depoları lokasyonlara bağla.</div>
         <Button label="Yeni Depo" icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 

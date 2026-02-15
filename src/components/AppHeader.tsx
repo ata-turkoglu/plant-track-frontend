@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar } from 'primereact/avatar';
 import { Button } from 'primereact/button';
 import { Menu } from 'primereact/menu';
@@ -13,8 +13,22 @@ import { logout } from '../store/userSlice';
 export default function AppHeader() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const menuRef = useRef<MenuType>(null);
   const user = useSelector((state: RootState) => state.user);
+
+  const pageTitle = (() => {
+    const path = location.pathname;
+    if (path === '/') return 'Dashboard';
+    if (path.startsWith('/inventory')) return 'Inventory';
+    if (path.startsWith('/materials')) return 'Malzemeler';
+    if (path.startsWith('/reports')) return 'Reports';
+    if (path === '/setup') return 'Setup';
+    if (path.startsWith('/setup/organization')) return 'Setup / Organization';
+    if (path.startsWith('/setup/warehouses')) return 'Setup / Warehouses';
+    if (path.startsWith('/setup')) return 'Setup';
+    return '';
+  })();
 
   const menuItems = [
     {
@@ -32,7 +46,7 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4">
+    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-white px-4">
       <div className="flex items-center gap-3">
         <Button
           icon="pi pi-bars"
@@ -46,7 +60,13 @@ export default function AppHeader() {
         <span className="text-sm font-semibold text-slate-900">PlantTrack</span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="min-w-0 text-center">
+        {pageTitle ? (
+          <span className="block truncate text-sm font-semibold text-slate-800">{pageTitle}</span>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-3 justify-self-end">
         <div className="text-right text-xs text-slate-600">
           <p className="font-semibold text-slate-900">{user.name}</p>
           <p>{user.role}</p>
