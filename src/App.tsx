@@ -2,6 +2,7 @@ import { useSelector } from 'react-redux';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import AppLayout from './layout/AppLayout';
+import AppToast from './components/AppToast';
 import SetupLayout from './layout/SetupLayout';
 import DashboardPage from './pages/DashboardPage';
 import InventoryMovementsPage from './pages/InventoryMovementsPage';
@@ -39,30 +40,33 @@ function AuthOnlyRoute() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<AuthOnlyRoute />}>
-        <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/register" element={<RegisterPage />} />
-        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-      </Route>
+    <>
+      <AppToast />
+      <Routes>
+        <Route element={<AuthOnlyRoute />}>
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/register" element={<RegisterPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        </Route>
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/inventory" element={<InventoryMovementsPage />} />
-          <Route path="/materials" element={<MaterialsPage />} />
-          <Route path="/suppliers" element={<SuppliersPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
-          <Route path="/setup" element={<SetupLayout />}>
-            <Route index element={<Navigate to="/setup/organization" replace />} />
-            <Route path="organization" element={<OrganizationPage />} />
-            <Route path="warehouses" element={<WarehousesPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/inventory" element={<InventoryMovementsPage />} />
+            <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
+            <Route path="/setup" element={<SetupLayout />}>
+              <Route index element={<Navigate to="/setup/organization" replace />} />
+              <Route path="organization" element={<OrganizationPage />} />
+              <Route path="warehouses" element={<WarehousesPage />} />
+            </Route>
           </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<Navigate to="/auth/login" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+      </Routes>
+    </>
   );
 }
