@@ -93,6 +93,7 @@ export default function OrganizationPage() {
   const [dialogName, setDialogName] = useState('');
   const [dialogTarget, setDialogTarget] = useState<{ kind: NodeKind; id: number } | null>(null);
   const [dialogParentId, setDialogParentId] = useState<number | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -175,69 +176,91 @@ export default function OrganizationPage() {
   const nodeTemplate = (node: TreeNode) => {
     const data = node.data as ChartNodeData | undefined;
     if (!data) return null;
+    const nodeKey = String(node.key ?? '');
+    const isSelected = selectedNodeKey === nodeKey;
 
     if (data.kind === 'organization') {
       return (
-        <div className="rounded-lg border border-slate-200 bg-white text-center">
+        <div
+          className={`cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
+          onClick={() => setSelectedNodeKey(nodeKey)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') setSelectedNodeKey(nodeKey);
+          }}
+        >
           <div className="flex flex-col items-center">
             <div className="max-w-[180px] truncate text-[13px] font-semibold text-slate-900">{data.name}</div>
             <div className="text-[11px] text-slate-500">Organization (root)</div>
           </div>
+          {isSelected ? (
+            <div className="mt-2 flex items-center justify-center gap-0.5">
+              <Button
+                icon="pi pi-plus"
+                size="small"
+                text
+                rounded
+                aria-label="Add location"
+                onClick={() => openAddLocation(null)}
+              />
+              <Button
+                icon="pi pi-pencil"
+                size="small"
+                text
+                rounded
+                aria-label="Edit organization"
+                onClick={openEditOrg}
+              />
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
+        onClick={() => setSelectedNodeKey(nodeKey)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') setSelectedNodeKey(nodeKey);
+        }}
+      >
+        <div className="flex flex-col items-center">
+          <div className="max-w-[180px] truncate text-[13px] font-semibold text-slate-900">{data.name}</div>
+          <div className="text-[11px] text-slate-500">Location</div>
+        </div>
+        {isSelected ? (
           <div className="mt-2 flex items-center justify-center gap-0.5">
             <Button
               icon="pi pi-plus"
               size="small"
               text
               rounded
-              aria-label="Add location"
-              onClick={() => openAddLocation(null)}
+              aria-label="Add child location"
+              onClick={() => openAddLocation(data.id)}
             />
             <Button
               icon="pi pi-pencil"
               size="small"
               text
               rounded
-              aria-label="Edit organization"
-              onClick={openEditOrg}
+              aria-label="Edit location"
+              onClick={() => openEditLocation(data.id, data.name)}
+            />
+            <Button
+              icon="pi pi-trash"
+              size="small"
+              text
+              rounded
+              severity="danger"
+              aria-label="Delete location"
+              onClick={() => onDeleteLocation(data.id)}
             />
           </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="rounded-lg border border-slate-200 bg-white text-center">
-        <div className="flex flex-col items-center">
-          <div className="max-w-[180px] truncate text-[13px] font-semibold text-slate-900">{data.name}</div>
-          <div className="text-[11px] text-slate-500">Location</div>
-        </div>
-        <div className="mt-2 flex items-center justify-center gap-0.5">
-          <Button
-            icon="pi pi-plus"
-            size="small"
-            text
-            rounded
-            aria-label="Add child location"
-            onClick={() => openAddLocation(data.id)}
-          />
-          <Button
-            icon="pi pi-pencil"
-            size="small"
-            text
-            rounded
-            aria-label="Edit location"
-            onClick={() => openEditLocation(data.id, data.name)}
-          />
-          <Button
-            icon="pi pi-trash"
-            size="small"
-            text
-            rounded
-            severity="danger"
-            aria-label="Delete location"
-            onClick={() => onDeleteLocation(data.id)}
-          />
-        </div>
+        ) : null}
       </div>
     );
   };

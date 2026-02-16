@@ -55,7 +55,7 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 shadow-md">
+    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-slate-100 px-4 shadow-sm">
       <div className="flex items-center gap-3">
         <Button
           icon={isDesktop ? (sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left') : 'pi pi-bars'}
@@ -81,7 +81,7 @@ export default function AppHeader() {
       <div className="flex items-center gap-3 justify-self-end">
         <button
           type="button"
-          className="group border-none cursor-pointer inline-flex items-center gap-2 rounded-full bg-white/70 px-2 py-1 shadow-md transition-colors hover:bg-white hover:shadow"
+          className="group border-none cursor-pointer inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 shadow-sm transition-colors hover:bg-white hover:shadow-sm"
           onClick={(event) => menuRef.current?.toggle(event)}
           aria-controls="user_menu"
           aria-haspopup
@@ -89,7 +89,7 @@ export default function AppHeader() {
           <Avatar
             label={(user.name?.[0] ?? 'U').toUpperCase()}
             shape="circle"
-            className="h-8 w-8 bg-brand-500 text-white"
+            className="h-8 w-8 bg-slate-300 text-slate-700"
           />
           <div className="hidden min-w-0 flex-col text-left md:flex">
             <span className="max-w-[160px] truncate text-xs font-semibold text-slate-900">{user.name}</span>
