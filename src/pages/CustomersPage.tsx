@@ -5,9 +5,12 @@ import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
+import type { DataTableFilterMeta } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
+import { FilterMatchMode } from 'primereact/api';
 
 import { api } from '../services/api';
 import type { RootState } from '../store';
@@ -16,6 +19,12 @@ type CustomerRow = {
   id: number;
   organization_id: number;
   name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  tax_no?: string | null;
+  contact_name?: string | null;
+  notes?: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -32,9 +41,21 @@ export default function CustomersPage() {
   const [mode, setMode] = useState<'create' | 'edit'>('create');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [taxNo, setTaxNo] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
   const [active, setActive] = useState(true);
 
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    email: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    phone: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  });
 
   const reload = async () => {
     if (!organizationId) return;
@@ -51,16 +72,18 @@ export default function CustomersPage() {
       .finally(() => setLoading(false));
   }, [organizationId]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) => row.name.toLowerCase().includes(q));
-  }, [rows, search]);
+  const globalFilterFields = useMemo(() => ['name', 'email', 'phone'], []);
 
   const openCreate = () => {
     setMode('create');
     setEditingId(null);
     setName('');
+    setEmail('');
+    setPhone('');
+    setContactName('');
+    setTaxNo('');
+    setAddress('');
+    setNotes('');
     setActive(true);
     setDialogOpen(true);
   };
@@ -69,6 +92,12 @@ export default function CustomersPage() {
     setMode('edit');
     setEditingId(row.id);
     setName(row.name);
+    setEmail(row.email ?? '');
+    setPhone(row.phone ?? '');
+    setContactName(row.contact_name ?? '');
+    setTaxNo(row.tax_no ?? '');
+    setAddress(row.address ?? '');
+    setNotes(row.notes ?? '');
     setActive(row.active);
     setDialogOpen(true);
   };
@@ -79,7 +108,16 @@ export default function CustomersPage() {
     setLoading(true);
     setError('');
     try {
-      const payload = { name: name.trim(), active };
+      const payload = {
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        contact_name: contactName.trim() || null,
+        tax_no: taxNo.trim() || null,
+        address: address.trim() || null,
+        notes: notes.trim() || null,
+        active
+      };
       if (mode === 'edit' && editingId) {
         await api.put(`/api/organizations/${organizationId}/customers/${editingId}`, payload);
       } else {
@@ -127,7 +165,11 @@ export default function CustomersPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <InputText
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSearch(v);
+            setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+          }}
           placeholder="Ara: isim"
           className="w-72"
         />
@@ -137,8 +179,21 @@ export default function CustomersPage() {
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white p-2">
-        <DataTable value={filteredRows} size="small" loading={loading} emptyMessage="Musteri yok." dataKey="id" paginator rows={12}>
-          <Column field="name" header="Isim" sortable />
+        <DataTable
+          value={rows}
+          size="small"
+          loading={loading}
+          emptyMessage="Musteri yok."
+          dataKey="id"
+          paginator
+          rows={12}
+          filters={filters}
+          onFilter={(e) => setFilters(e.filters)}
+          globalFilterFields={globalFilterFields}
+        >
+          <Column field="name" header="Isim" sortable filter />
+          <Column field="phone" header="Telefon" sortable filter style={{ width: '12rem' }} />
+          <Column field="email" header="E-posta" sortable filter style={{ width: '16rem' }} />
           <Column
             field="active"
             header="Aktif"
@@ -169,6 +224,34 @@ export default function CustomersPage() {
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">Isim</span>
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">Telefon</span>
+              <InputText value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">E-posta</span>
+              <InputText value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" />
+            </label>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">Yetkili</span>
+              <InputText value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">Vergi No</span>
+              <InputText value={taxNo} onChange={(e) => setTaxNo(e.target.value)} className="w-full" />
+            </label>
+          </div>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700">Adres</span>
+            <InputTextarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full" rows={3} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700">Not</span>
+            <InputTextarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" rows={3} />
           </label>
           <label className="flex items-center gap-2">
             <Checkbox checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
