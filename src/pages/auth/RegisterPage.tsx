@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
@@ -8,9 +9,12 @@ import { Password } from 'primereact/password';
 import { SelectButton } from 'primereact/selectbutton';
 
 import AuthShell from '../../components/AuthShell';
-import { api } from '../../services/api';
+import type { AppDispatch, RootState } from '../../store';
+import { clearAuthMessages, registerOrganization } from '../../store/authSlice';
 
 export default function RegisterPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const auth = useSelector((s: RootState) => s.auth);
   const navigate = useNavigate();
   const [organizationName, setOrganizationName] = useState('');
   const [organizationCode, setOrganizationCode] = useState('');
@@ -19,7 +23,6 @@ export default function RegisterPage() {
   const [adminPassword, setAdminPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [language, setLanguage] = useState<'tr' | 'en'>('tr');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const passwordPt = {
@@ -38,6 +41,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    dispatch(clearAuthMessages());
     setError('');
 
     if (adminPassword !== confirmPassword) {
@@ -45,21 +49,19 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
     try {
-      await api.post('/api/auth/register', {
-        organization_name: organizationName,
-        organization_code: organizationCode || undefined,
-        admin_name: adminName,
-        admin_email: adminEmail,
-        admin_password: adminPassword,
-        admin_language: language
-      });
+      await dispatch(
+        registerOrganization({
+          organizationName,
+          organizationCode,
+          adminName,
+          adminEmail,
+          adminPassword,
+          language
+        })
+      ).unwrap();
       navigate('/auth/login');
     } catch {
-      setError('Kayıt oluşturulamadı. Bilgileri kontrol ederek tekrar dene.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -148,7 +150,7 @@ export default function RegisterPage() {
               icon="pi pi-user-plus"
               size="small"
               className="w-full sm:w-auto flex-1 !border-0 !shadow-lg !shadow-brand-500/25 !bg-gradient-to-r !from-brand-600 !to-brand-500 hover:brightness-110"
-              loading={loading}
+              loading={auth.loading}
             />
             <Link
               to="/auth/login"
@@ -158,7 +160,7 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          {error && <Message severity="error" text={error} className="w-full" />}
+          {(error || auth.error) && <Message severity="error" text={error || auth.error} className="w-full" />}
         </form>
       </Card>
     </AuthShell>

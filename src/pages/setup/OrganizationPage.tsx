@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { OrganizationChart } from 'primereact/organizationchart';
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
@@ -8,8 +8,14 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import type { TreeNode } from 'primereact/treenode';
 
-import { api } from '../../services/api';
-import type { RootState } from '../../store';
+import type { AppDispatch, RootState } from '../../store';
+import {
+  createLocation,
+  deleteLocation,
+  fetchOrganizationSetup,
+  updateLocation,
+  updateOrganizationName
+} from '../../store/setupSlice';
 
 type NodeKind = 'organization' | 'location';
 
@@ -73,13 +79,14 @@ function buildTree(organizationId: number, organizationName: string, locations: 
 }
 
 export default function OrganizationPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const organizationNameFromStore = useSelector((s: RootState) => s.user.organizationName);
-
-  const [locations, setLocations] = useState<LocationRow[]>([]);
-  const [orgName, setOrgName] = useState(organizationNameFromStore);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { organizationName: setupOrganizationName, locations, loading: fetchLoading, mutating, error } = useSelector(
+    (s: RootState) => s.setup
+  );
+  const orgName = setupOrganizationName || organizationNameFromStore;
+  const loading = fetchLoading || mutating;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'edit-org' | 'add-location' | 'edit-location'>('add-location');
@@ -88,26 +95,14 @@ export default function OrganizationPage() {
   const [dialogParentId, setDialogParentId] = useState<number | null>(null);
 
   useEffect(() => {
-    setOrgName(organizationNameFromStore);
-  }, [organizationNameFromStore]);
-
-  useEffect(() => {
     if (!organizationId) return;
-    setLoading(true);
-    setError('');
-
-    Promise.all([
-      api.get(`/api/organizations/${organizationId}`),
-      api.get(`/api/organizations/${organizationId}/locations`)
-    ])
-      .then(([orgRes, locRes]) => {
-        setOrgName(orgRes.data.organization?.name ?? orgName);
-        setLocations(locRes.data.locations ?? []);
+    dispatch(
+      fetchOrganizationSetup({
+        organizationId,
+        fallbackOrganizationName: organizationNameFromStore
       })
-      .catch(() => setError('Organization bilgileri yüklenemedi.'))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId]);
+    );
+  }, [dispatch, organizationId, organizationNameFromStore]);
 
   const value = useMemo(() => {
     if (!organizationId) return [];
@@ -149,13 +144,9 @@ export default function OrganizationPage() {
       acceptClassName: 'p-button-danger p-button-sm',
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {
-        setError('');
         try {
-          await api.delete(`/api/locations/${id}`);
-          setLocations((prev) => prev.filter((l) => l.id !== id));
+          await dispatch(deleteLocation({ id })).unwrap();
         } catch {
-          // 409 = has children
-          setError('Lokasyon silinemedi. Alt lokasyonları varsa önce onları sil.');
         }
       }
     });
@@ -166,31 +157,18 @@ export default function OrganizationPage() {
     const name = dialogName.trim();
     if (!name) return;
 
-    setLoading(true);
-    setError('');
     try {
       if (dialogMode === 'edit-org') {
-        const res = await api.patch(`/api/organizations/${organizationId}`, { name });
-        setOrgName(res.data.organization?.name ?? name);
+        await dispatch(updateOrganizationName({ organizationId, name })).unwrap();
       } else if (dialogMode === 'add-location') {
-        const res = await api.post(`/api/organizations/${organizationId}/locations`, {
-          name,
-          parent_id: dialogParentId
-        });
-        const created: LocationRow = res.data.location;
-        setLocations((prev) => [...prev, created]);
+        await dispatch(createLocation({ organizationId, name, parentId: dialogParentId })).unwrap();
       } else if (dialogMode === 'edit-location') {
         const id = dialogTarget?.id;
         if (!id) return;
-        const res = await api.patch(`/api/locations/${id}`, { name });
-        const updated: LocationRow = res.data.location;
-        setLocations((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+        await dispatch(updateLocation({ id, name })).unwrap();
       }
       setDialogOpen(false);
     } catch {
-      setError('İşlem başarısız. Lütfen tekrar dene.');
-    } finally {
-      setLoading(false);
     }
   };
 

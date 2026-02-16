@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
@@ -6,27 +7,21 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 
 import AuthShell from '../../components/AuthShell';
-import { api } from '../../services/api';
+import type { AppDispatch, RootState } from '../../store';
+import { clearAuthMessages, requestPasswordReset } from '../../store/authSlice';
 
 export default function ForgotPasswordPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error, forgotPasswordSuccess } = useSelector((s: RootState) => s.auth);
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+    dispatch(clearAuthMessages());
 
     try {
-      const response = await api.post('/api/auth/forgot-password', { email });
-      setSuccess(response.data.message ?? 'Sıfırlama bağlantısı gönderildi.');
+      await dispatch(requestPasswordReset({ email })).unwrap();
     } catch {
-      setError('Şifre sıfırlama isteği gönderilemedi.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,7 +67,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           {error && <Message severity="error" text={error} className="w-full" />}
-          {success && <Message severity="success" text={success} className="w-full" />}
+          {forgotPasswordSuccess && <Message severity="success" text={forgotPasswordSuccess} className="w-full" />}
         </form>
       </Card>
     </AuthShell>

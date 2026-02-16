@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import * as echarts from 'echarts';
 import moment from 'moment';
 import { Card } from 'primereact/card';
 
-import { api } from '../services/api';
+import type { AppDispatch, RootState } from '../store';
+import { fetchHealthStatus } from '../store/dashboardSlice';
 
 export default function DashboardPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector((s: RootState) => s.dashboard.healthStatus);
   const chartRef = useRef<HTMLDivElement | null>(null);
-  const [status, setStatus] = useState('checking');
 
   const lastUpdated = useMemo(() => moment().format('DD.MM.YYYY HH:mm'), []);
 
@@ -42,11 +45,8 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    api
-      .get('/api/health')
-      .then((res) => setStatus(res.data.status ?? 'ok'))
-      .catch(() => setStatus('offline'));
-  }, []);
+    dispatch(fetchHealthStatus());
+  }, [dispatch]);
 
   return (
     <div className="grid gap-4">

@@ -6,7 +6,7 @@ interface UiState {
 }
 
 const initialState: UiState = {
-  sidebarCollapsed: false,
+  sidebarCollapsed: true,
   mobileSidebarOpen: false
 };
 

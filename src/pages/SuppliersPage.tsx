@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
@@ -13,26 +13,15 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 
-import { api } from '../services/api';
-import type { RootState } from '../store';
-
-type SupplierKind = 'SUPPLIER_EXTERNAL' | 'SUPPLIER_INTERNAL';
-
-type SupplierRow = {
-  id: number;
-  organization_id: number;
-  kind: SupplierKind;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  tax_no?: string | null;
-  contact_name?: string | null;
-  notes?: string | null;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+import type { AppDispatch, RootState } from '../store';
+import {
+  createSupplier,
+  deleteSupplier,
+  fetchSuppliers,
+  type SupplierKind,
+  type SupplierRow,
+  updateSupplier
+} from '../store/suppliersSlice';
 
 const kindOptions = [
   { label: 'Dis Tedarikci', value: 'SUPPLIER_EXTERNAL' as const },
@@ -40,11 +29,9 @@ const kindOptions = [
 ];
 
 export default function SuppliersPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-
-  const [rows, setRows] = useState<SupplierRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { rows, loading: fetchLoading, mutating, error } = useSelector((s: RootState) => s.suppliers);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
@@ -68,22 +55,13 @@ export default function SuppliersPage() {
     phone: { value: null, matchMode: FilterMatchMode.CONTAINS }
   });
 
-  const reload = async () => {
-    if (!organizationId) return;
-    const res = await api.get(`/api/organizations/${organizationId}/suppliers`);
-    setRows(res.data.suppliers ?? []);
-  };
-
   useEffect(() => {
     if (!organizationId) return;
-    setLoading(true);
-    setError('');
-    reload()
-      .catch(() => setError('Tedarikciler yuklenemedi.'))
-      .finally(() => setLoading(false));
-  }, [organizationId]);
+    dispatch(fetchSuppliers(organizationId));
+  }, [dispatch, organizationId]);
 
   const globalFilterFields = useMemo(() => ['kind', 'name', 'email', 'phone'], []);
+  const loading = fetchLoading || mutating;
 
   const openCreate = () => {
     setMode('create');
@@ -118,10 +96,9 @@ export default function SuppliersPage() {
   const submit = async () => {
     if (!organizationId || !name.trim()) return;
 
-    setLoading(true);
-    setError('');
     try {
       const payload = {
+        organizationId,
         name: name.trim(),
         kind,
         email: email.trim() || null,
@@ -133,16 +110,12 @@ export default function SuppliersPage() {
         active
       };
       if (mode === 'edit' && editingId) {
-        await api.put(`/api/organizations/${organizationId}/suppliers/${editingId}`, payload);
+        await dispatch(updateSupplier({ ...payload, id: editingId })).unwrap();
       } else {
-        await api.post(`/api/organizations/${organizationId}/suppliers`, payload);
+        await dispatch(createSupplier(payload)).unwrap();
       }
-      await reload();
       setDialogOpen(false);
     } catch {
-      setError('Kaydetme basarisiz. Isim benzersiz olmali.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -156,15 +129,9 @@ export default function SuppliersPage() {
       acceptLabel: 'Sil',
       rejectLabel: 'Vazgec',
       accept: async () => {
-        setLoading(true);
-        setError('');
         try {
-          await api.delete(`/api/organizations/${organizationId}/suppliers/${row.id}`);
-          await reload();
+          await dispatch(deleteSupplier({ organizationId, id: row.id })).unwrap();
         } catch {
-          setError('Silme basarisiz.');
-        } finally {
-          setLoading(false);
         }
       }
     });
@@ -278,7 +245,7 @@ export default function SuppliersPage() {
           </label>
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button label="Vazgec" size="small" text onClick={() => setDialogOpen(false)} />
-            <Button label="Kaydet" size="small" onClick={submit} loading={loading} disabled={!name.trim()} />
+            <Button label="Kaydet" size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
           </div>
         </div>
       </Dialog>

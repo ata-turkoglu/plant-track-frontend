@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
 import { Column } from 'primereact/column';
@@ -19,88 +19,17 @@ import { InputIcon } from 'primereact/inputicon';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 
-import { api } from '../services/api';
-import type { RootState } from '../store';
-
-type UnitRow = {
-  id: number;
-  organization_id: number;
-  code: string;
-  name: string;
-  symbol: string | null;
-  system: boolean;
-  active: boolean;
-};
-
-type ItemRow = {
-  id: number;
-  organization_id: number;
-  warehouse_type_id?: number;
-  type: string;
-  code: string;
-  name: string;
-  unit_id?: number;
-  active: boolean;
-};
-
-type WarehouseTypeRow = {
-  id: number;
-  organization_id: number;
-  code: string;
-  name: string;
-  description: string | null;
-  system: boolean;
-  active: boolean;
-};
-
-type WarehouseRow = {
-  id: number;
-  organization_id: number;
-  location_id: number;
-  name: string;
-  warehouse_type_id: number;
-  warehouse_type_name?: string;
-};
-
-type NodeRow = {
-  id: number;
-  organization_id: number;
-  node_type: 'WAREHOUSE' | 'LOCATION' | 'SUPPLIER' | 'CUSTOMER' | 'ASSET' | 'VIRTUAL';
-  ref_table: string;
-  ref_id: string;
-  code?: string | null;
-  name: string;
-  is_stocked: boolean;
-};
-
-type MovementRow = {
-  id: number;
-  organization_id: number;
-  movement_group_id?: string | null;
-  from_kind?: string | null;
-  from_ref?: string | null;
-  to_kind?: string | null;
-  to_ref?: string | null;
-  from_node_id?: number | null;
-  to_node_id?: number | null;
-  from_node_type?: string | null;
-  from_node_name?: string | null;
-  to_node_type?: string | null;
-  to_node_name?: string | null;
-  warehouse_id: number;
-  location_id: number | null;
-  item_id: number;
-  movement_type: string;
-  quantity: string | number;
-  uom: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  note: string | null;
-  occurred_at: string;
-  item_code?: string;
-  item_name?: string;
-  location_name?: string;
-};
+import type { AppDispatch, RootState } from '../store';
+import {
+  deleteInventoryItem,
+  deleteInventoryMovement,
+  fetchInventoryData,
+  type ItemRow,
+  type MovementRow,
+  type NodeRow,
+  upsertInventoryItem,
+  upsertInventoryMovement
+} from '../store/inventorySlice';
 
 type MovementDisplayRow = {
   // DataTable needs a stable key; for transfers use groupId.
@@ -118,18 +47,6 @@ type MovementDisplayRow = {
   _sourceMovementId?: number;
 };
 
-type BalanceRow = {
-  organization_id: number;
-  node_id: number;
-  node_type: string;
-  node_name: string;
-  item_id: number;
-  item_code?: string;
-  item_name?: string;
-  unit_code?: string;
-  balance_qty: string | number;
-};
-
 type EventLineDraft = {
   id: string;
   item_id: number | null;
@@ -138,19 +55,13 @@ type EventLineDraft = {
 };
 
 export default function InventoryMovementsPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
+  const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating, error } =
+    useSelector((s: RootState) => s.inventory);
   const refTooltip = useRef<Tooltip>(null);
-
-  const [units, setUnits] = useState<UnitRow[]>([]);
-  const [items, setItems] = useState<ItemRow[]>([]);
-  const [warehouseTypes, setWarehouseTypes] = useState<WarehouseTypeRow[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
-  const [nodes, setNodes] = useState<NodeRow[]>([]);
-  const [movements, setMovements] = useState<MovementRow[]>([]);
-  const [balances, setBalances] = useState<BalanceRow[]>([]);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
+  const loading = fetchLoading || mutating;
 
   const [activeWarehouseTypeId, setActiveWarehouseTypeId] = useState<number | null>(null);
   const [selectedBalanceWarehouseId, setSelectedBalanceWarehouseId] = useState<number | null>(null);
@@ -186,33 +97,8 @@ export default function InventoryMovementsPage() {
 
   useEffect(() => {
     if (!organizationId) return;
-    setLoading(true);
-    setError('');
-
-    Promise.all([
-      api.get(`/api/organizations/${organizationId}/units`),
-      api.get(`/api/organizations/${organizationId}/items`),
-      api.get(`/api/organizations/${organizationId}/warehouse-types`),
-      api.get(`/api/organizations/${organizationId}/warehouses`),
-      api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE,LOCATION,SUPPLIER,CUSTOMER`),
-      api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
-      api.get(`/api/organizations/${organizationId}/inventory-balances`)
-    ])
-      .then(([unitsRes, itemsRes, wtRes, whRes, nodesRes, movRes, balRes]) => {
-        setUnits(unitsRes.data.units ?? []);
-        setItems(itemsRes.data.items ?? []);
-        const types: WarehouseTypeRow[] = wtRes.data.warehouse_types ?? [];
-        setWarehouseTypes(types);
-        setWarehouses(whRes.data.warehouses ?? []);
-        setNodes(nodesRes.data.nodes ?? []);
-        setMovements(movRes.data.movements ?? []);
-        setBalances(balRes.data.balances ?? []);
-
-        if (types.length > 0) setActiveWarehouseTypeId((prev) => (prev === null ? types[0].id : prev));
-      })
-      .catch(() => setError('Veriler yüklenemedi.'))
-      .finally(() => setLoading(false));
-  }, [organizationId]);
+    dispatch(fetchInventoryData(organizationId));
+  }, [dispatch, organizationId]);
 
   useEffect(() => {
     if (warehouseTypes.length === 0) return;
@@ -394,12 +280,6 @@ export default function InventoryMovementsPage() {
     setEntryOpen(true);
   };
 
-  const reloadItems = async () => {
-    if (!organizationId) return;
-    const res = await api.get(`/api/organizations/${organizationId}/items`);
-    setItems(res.data.items ?? []);
-  };
-
   const openCreateItem = () => {
     setItemFormMode('create');
     setEditingItemId(null);
@@ -469,10 +349,9 @@ export default function InventoryMovementsPage() {
       }));
     if (linesPayload.length !== eventLines.length) return;
 
-    setLoading(true);
-    setError('');
+    setLocalError('');
     try {
-      const payload: any = {
+      const payload = {
         event_type: 'MOVE',
         status: 'POSTED',
         lines: linesPayload,
@@ -480,54 +359,43 @@ export default function InventoryMovementsPage() {
         occurred_at: occurredAt.toISOString()
       };
 
-      if (editingMovementId) {
-        await api.put(`/api/organizations/${organizationId}/inventory-movements/${editingMovementId}`, payload);
-      } else {
-        await api.post(`/api/organizations/${organizationId}/inventory-movements`, payload);
-      }
-
-      // Reload list to include joins (item/warehouse names)
-      const [movRes, nodesRes, balRes] = await Promise.all([
-        api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
-        api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE,LOCATION,SUPPLIER,CUSTOMER`),
-        api.get(`/api/organizations/${organizationId}/inventory-balances`)
-      ]);
-      setMovements(movRes.data.movements ?? []);
-      setNodes(nodesRes.data.nodes ?? []);
-      setBalances(balRes.data.balances ?? []);
+      await dispatch(
+        upsertInventoryMovement({
+          organizationId,
+          movementId: editingMovementId ?? undefined,
+          payload
+        })
+      ).unwrap();
       setEntryOpen(false);
       setEditingMovementId(null);
-
     } catch {
-      setError('Kaydetme basarisiz.');
-    } finally {
-      setLoading(false);
+      setLocalError('Kaydetme basarisiz.');
     }
   };
 
   const submitNewItem = async () => {
     if (!organizationId) return;
     if (!activeWarehouseTypeId) {
-      setError('Depo tipi secili degil.');
+      setLocalError('Depo tipi secili degil.');
       return;
     }
     const code = newItemCode.trim();
     const name = newItemName.trim();
     if (!code || !name || !newItemUnitId) return;
 
-    setLoading(true);
-    setError('');
+    setLocalError('');
     try {
       if (itemFormMode === 'create') {
-        const res = await api.post(`/api/organizations/${organizationId}/items`, {
-          warehouse_type_id: activeWarehouseTypeId,
-          code,
-          name,
-          unit_id: newItemUnitId,
-          active: newItemActive
-        });
-        const created: ItemRow = res.data.item;
-        await reloadItems();
+        const created = await dispatch(
+          upsertInventoryItem({
+            organizationId,
+            warehouseTypeId: activeWarehouseTypeId,
+            code,
+            name,
+            unitId: newItemUnitId,
+            active: newItemActive
+          })
+        ).unwrap();
         setEventLines((prev) =>
           prev.length > 0
             ? prev.map((line, index) =>
@@ -538,22 +406,23 @@ export default function InventoryMovementsPage() {
         setItemDialogOpen(false);
       } else {
         if (!editingItemId) return;
-        const res = await api.put(`/api/organizations/${organizationId}/items/${editingItemId}`, {
-          code,
-          name,
-          unit_id: newItemUnitId,
-          active: newItemActive
-        });
-        const updated: ItemRow = res.data.item;
-        await reloadItems();
+        await dispatch(
+          upsertInventoryItem({
+            organizationId,
+            itemId: editingItemId,
+            warehouseTypeId: activeWarehouseTypeId,
+            code,
+            name,
+            unitId: newItemUnitId,
+            active: newItemActive
+          })
+        ).unwrap();
         setItemDialogOpen(false);
       }
       setNewItemCode('');
       setNewItemName('');
     } catch {
-      setError('Urun/Malzeme eklenemedi (kod benzersiz olmali).');
-    } finally {
-      setLoading(false);
+      setLocalError('Urun/Malzeme eklenemedi (kod benzersiz olmali).');
     }
   };
 
@@ -592,20 +461,17 @@ export default function InventoryMovementsPage() {
               acceptLabel: 'Sil',
               rejectLabel: 'Vazgec',
               accept: async () => {
-                setLoading(true);
-                setError('');
+                setLocalError('');
                 try {
-                  await api.delete(`/api/organizations/${organizationId}/inventory-movements/${row._sourceMovementId}`);
-                  const [movRes, balRes] = await Promise.all([
-                    api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
-                    api.get(`/api/organizations/${organizationId}/inventory-balances`)
-                  ]);
-                  setMovements(movRes.data.movements ?? []);
-                  setBalances(balRes.data.balances ?? []);
+                  if (!row._sourceMovementId) return;
+                  await dispatch(
+                    deleteInventoryMovement({
+                      organizationId,
+                      movementId: row._sourceMovementId
+                    })
+                  ).unwrap();
                 } catch {
-                  setError('Silme basarisiz.');
-                } finally {
-                  setLoading(false);
+                  setLocalError('Silme basarisiz.');
                 }
               }
             });
@@ -676,7 +542,7 @@ export default function InventoryMovementsPage() {
         <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
       </div>
 
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
+      {localError || error ? <Message severity="error" text={localError || error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="p-3">
@@ -977,15 +843,16 @@ export default function InventoryMovementsPage() {
                           acceptLabel: 'Sil',
                           rejectLabel: 'Vazgec',
                           accept: async () => {
-                            setLoading(true);
-                            setError('');
+                            setLocalError('');
                             try {
-                              await api.delete(`/api/organizations/${organizationId}/items/${row.id}`);
-                              await reloadItems();
+                              await dispatch(
+                                deleteInventoryItem({
+                                  organizationId,
+                                  itemId: row.id
+                                })
+                              ).unwrap();
                             } catch {
-                              setError('Silme basarisiz.');
-                            } finally {
-                              setLoading(false);
+                              setLocalError('Silme basarisiz.');
                             }
                           }
                         });

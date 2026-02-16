@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
@@ -13,34 +13,15 @@ import type { DataTableFilterMeta } from 'primereact/datatable';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 
-import { api } from '../../services/api';
-import type { RootState } from '../../store';
-
-type LocationRow = {
-  id: number;
-  organization_id: number;
-  parent_id: number | null;
-  name: string;
-};
-
-type WarehouseTypeRow = {
-  id: number;
-  organization_id: number;
-  code: string;
-  name: string;
-  description: string | null;
-  system: boolean;
-};
-
-type WarehouseRow = {
-  id: number;
-  organization_id: number;
-  location_id: number;
-  name: string;
-  warehouse_type_id: number;
-  warehouse_type_code?: string;
-  warehouse_type_name?: string;
-};
+import type { AppDispatch, RootState } from '../../store';
+import {
+  createWarehouse,
+  deleteWarehouse,
+  fetchWarehousesSetup,
+  type LocationRow,
+  type WarehouseRow,
+  updateWarehouse
+} from '../../store/setupSlice';
 
 type LocationOption = { label: string; value: number };
 
@@ -75,13 +56,12 @@ function buildLocationOptions(locations: LocationRow[]): LocationOption[] {
 }
 
 export default function WarehousesPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-
-  const [locations, setLocations] = useState<LocationRow[]>([]);
-  const [warehouseTypes, setWarehouseTypes] = useState<WarehouseTypeRow[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { locations, warehouseTypes, warehouses, loading: fetchLoading, mutating, error } = useSelector(
+    (s: RootState) => s.setup
+  );
+  const loading = fetchLoading || mutating;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<WarehouseRow | null>(null);
@@ -98,22 +78,8 @@ export default function WarehousesPage() {
 
   useEffect(() => {
     if (!organizationId) return;
-    setLoading(true);
-    setError('');
-
-    Promise.all([
-      api.get(`/api/organizations/${organizationId}/locations`),
-      api.get(`/api/organizations/${organizationId}/warehouses`),
-      api.get(`/api/organizations/${organizationId}/warehouse-types`)
-    ])
-      .then(([locRes, whRes, wtRes]) => {
-        setLocations(locRes.data.locations ?? []);
-        setWarehouses(whRes.data.warehouses ?? []);
-        setWarehouseTypes(wtRes.data.warehouse_types ?? []);
-      })
-      .catch(() => setError('Depolar yüklenemedi.'))
-      .finally(() => setLoading(false));
-  }, [organizationId]);
+    dispatch(fetchWarehousesSetup(organizationId));
+  }, [dispatch, organizationId]);
 
   const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
 
@@ -149,12 +115,9 @@ export default function WarehousesPage() {
       acceptClassName: 'p-button-danger p-button-sm',
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {
-        setError('');
         try {
-          await api.delete(`/api/warehouses/${row.id}`);
-          setWarehouses((prev) => prev.filter((w) => w.id !== row.id));
+          await dispatch(deleteWarehouse({ id: row.id })).unwrap();
         } catch {
-          setError('Depo silinemedi.');
         }
       }
     });
@@ -167,42 +130,28 @@ export default function WarehousesPage() {
     const trimmed = name.trim();
     if (!trimmed || !locationId || !warehouseTypeId) return;
 
-    setLoading(true);
-    setError('');
-
     try {
       if (!editing) {
-        const res = await api.post(`/api/organizations/${organizationId}/warehouses`, {
-          name: trimmed,
-          location_id: locationId,
-          warehouse_type_id: warehouseTypeId
-        });
-        const created: WarehouseRow = res.data.warehouse;
-        // Enrich for UI without a refetch.
-        const wt = warehouseTypes.find((t) => t.id === created.warehouse_type_id);
-        setWarehouses((prev) => [
-          ...prev,
-          { ...created, warehouse_type_code: wt?.code, warehouse_type_name: wt?.name }
-        ]);
+        await dispatch(
+          createWarehouse({
+            organizationId,
+            name: trimmed,
+            locationId,
+            warehouseTypeId
+          })
+        ).unwrap();
       } else {
-        const res = await api.patch(`/api/warehouses/${editing.id}`, {
-          name: trimmed,
-          location_id: locationId,
-          warehouse_type_id: warehouseTypeId
-        });
-        const updated: WarehouseRow = res.data.warehouse;
-        const wt = warehouseTypes.find((t) => t.id === updated.warehouse_type_id);
-        setWarehouses((prev) =>
-          prev.map((w) =>
-            w.id === updated.id ? { ...updated, warehouse_type_code: wt?.code, warehouse_type_name: wt?.name } : w
-          )
-        );
+        await dispatch(
+          updateWarehouse({
+            id: editing.id,
+            name: trimmed,
+            locationId,
+            warehouseTypeId
+          })
+        ).unwrap();
       }
       setDialogOpen(false);
     } catch {
-      setError('Kaydetme başarısız.');
-    } finally {
-      setLoading(false);
     }
   };
 

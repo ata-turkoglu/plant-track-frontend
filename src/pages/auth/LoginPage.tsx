@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card } from 'primereact/card';
 import { Button } from 'primereact/button';
@@ -9,17 +9,15 @@ import { Password } from 'primereact/password';
 import { Message } from 'primereact/message';
 
 import AuthShell from '../../components/AuthShell';
-import { api } from '../../services/api';
-import { loginSuccess } from '../../store/userSlice';
+import type { AppDispatch, RootState } from '../../store';
+import { clearAuthMessages, loginUser } from '../../store/authSlice';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error } = useSelector((s: RootState) => s.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,31 +29,14 @@ export default function LoginPage() {
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
-    setError('');
+    dispatch(clearAuthMessages());
 
     try {
-      const response = await api.post('/api/auth/login', { email, password, remember });
-      const user = response.data.user;
-      const organization = response.data.organization;
-
-      dispatch(
-        loginSuccess({
-          name: user.name,
-          email: user.email,
-          role: 'Admin',
-          token: response.data.token,
-          organizationId: user.organization_id ?? null,
-          organizationName: organization?.name ?? ''
-        })
-      );
+      await dispatch(loginUser({ email, password, remember })).unwrap();
 
       const redirectTo = (location.state as { from?: string } | null)?.from ?? '/';
       navigate(redirectTo, { replace: true });
     } catch {
-      setError('Email veya şifre hatalı.');
-    } finally {
-      setLoading(false);
     }
   };
 
