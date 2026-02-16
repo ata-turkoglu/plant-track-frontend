@@ -47,3 +47,19 @@ tr.inventory-row-out > td {
 /* tr.inventory-row-out:hover > td {
   background-color: rgba(239, 68, 68, 0.1) !important;
 } */
+
+.p-column-filter-menu{
+  margin-left: unset !important;
+}
+
+/* Inventory movement dialog: prevent long dropdown values from overflowing. */
+.inventory-node-dropdown .p-dropdown-label,
+.inventory-node-dropdown .p-dropdown-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-node-dropdown .p-dropdown-panel {
+  max-width: min(36rem, 92vw);
+}

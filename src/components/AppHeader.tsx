@@ -29,6 +29,8 @@ export default function AppHeader() {
     if (path === '/') return 'Dashboard';
     if (path.startsWith('/inventory')) return 'Inventory';
     if (path.startsWith('/materials')) return 'Malzemeler';
+    if (path.startsWith('/suppliers')) return 'Suppliers';
+    if (path.startsWith('/customers')) return 'Customers';
     if (path.startsWith('/reports')) return 'Reports';
     if (path === '/setup') return 'Setup';
     if (path.startsWith('/setup/organization')) return 'Setup / Organization';

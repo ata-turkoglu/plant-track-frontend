@@ -16,6 +16,8 @@ import { confirmDialog } from 'primereact/confirmdialog';
 import { Checkbox } from 'primereact/checkbox';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
+import { FilterMatchMode } from 'primereact/api';
+import type { DataTableFilterMeta } from 'primereact/datatable';
 
 import { api } from '../services/api';
 import type { RootState } from '../store';
@@ -60,13 +62,35 @@ type WarehouseRow = {
   warehouse_type_name?: string;
 };
 
+type NodeRow = {
+  id: number;
+  organization_id: number;
+  node_type: 'WAREHOUSE' | 'LOCATION' | 'SUPPLIER' | 'CUSTOMER' | 'ASSET' | 'VIRTUAL';
+  ref_table: string;
+  ref_id: string;
+  code?: string | null;
+  name: string;
+  is_stocked: boolean;
+};
+
 type MovementRow = {
   id: number;
   organization_id: number;
+  movement_group_id?: string | null;
+  from_kind?: string | null;
+  from_ref?: string | null;
+  to_kind?: string | null;
+  to_ref?: string | null;
+  from_node_id?: number | null;
+  to_node_id?: number | null;
+  from_node_type?: string | null;
+  from_node_name?: string | null;
+  to_node_type?: string | null;
+  to_node_name?: string | null;
   warehouse_id: number;
   location_id: number | null;
   item_id: number;
-  movement_type: 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT';
+  movement_type: string;
   quantity: string | number;
   uom: string;
   reference_type: string | null;
@@ -75,8 +99,42 @@ type MovementRow = {
   occurred_at: string;
   item_code?: string;
   item_name?: string;
-  warehouse_name?: string;
   location_name?: string;
+};
+
+type MovementDisplayRow = {
+  // DataTable needs a stable key; for transfers use groupId.
+  row_key: string;
+  movement_group_id: string | null;
+  movement_type: string;
+  from_label: string;
+  to_label: string;
+  item_code: string;
+  item_name: string;
+  quantity: string | number;
+  uom: string;
+  occurred_at: string;
+  // For actions
+  _sourceMovementId?: number;
+};
+
+type BalanceRow = {
+  organization_id: number;
+  node_id: number;
+  node_type: string;
+  node_name: string;
+  item_id: number;
+  item_code?: string;
+  item_name?: string;
+  unit_code?: string;
+  balance_qty: string | number;
+};
+
+type EventLineDraft = {
+  id: string;
+  item_id: number | null;
+  quantity: number | null;
+  unit_id: number | null;
 };
 
 export default function InventoryMovementsPage() {
@@ -87,25 +145,24 @@ export default function InventoryMovementsPage() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [warehouseTypes, setWarehouseTypes] = useState<WarehouseTypeRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
+  const [nodes, setNodes] = useState<NodeRow[]>([]);
   const [movements, setMovements] = useState<MovementRow[]>([]);
+  const [balances, setBalances] = useState<BalanceRow[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [activeWarehouseTypeId, setActiveWarehouseTypeId] = useState<number | null>(null);
+  const [selectedBalanceWarehouseId, setSelectedBalanceWarehouseId] = useState<number | null>(null);
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [editingMovementId, setEditingMovementId] = useState<number | null>(null);
 
-  const [movementType, setMovementType] = useState<MovementRow['movement_type']>('IN');
-  const [warehouseId, setWarehouseId] = useState<number | null>(null);
-  const [itemId, setItemId] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState<number | null>(null);
-  const [uom, setUom] = useState('');
+  const [fromNodeId, setFromNodeId] = useState<number | null>(null);
+  const [toNodeId, setToNodeId] = useState<number | null>(null);
+  const [eventLines, setEventLines] = useState<EventLineDraft[]>([]);
   const [occurredAt, setOccurredAt] = useState<Date>(new Date());
   const [referenceType, setReferenceType] = useState('');
-  const [referenceId, setReferenceId] = useState('');
-  const [note, setNote] = useState('');
 
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [newItemCode, setNewItemCode] = useState('');
@@ -117,6 +174,15 @@ export default function InventoryMovementsPage() {
 
   const [itemsListOpen, setItemsListOpen] = useState(false);
   const [itemsSearch, setItemsSearch] = useState('');
+  const [movementSearch, setMovementSearch] = useState('');
+  const [movementFilters, setMovementFilters] = useState<DataTableFilterMeta>({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    from_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    to_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    item_code: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    item_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    uom: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  });
 
   useEffect(() => {
     if (!organizationId) return;
@@ -128,15 +194,19 @@ export default function InventoryMovementsPage() {
       api.get(`/api/organizations/${organizationId}/items`),
       api.get(`/api/organizations/${organizationId}/warehouse-types`),
       api.get(`/api/organizations/${organizationId}/warehouses`),
-      api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`)
+      api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE,LOCATION,SUPPLIER,CUSTOMER`),
+      api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
+      api.get(`/api/organizations/${organizationId}/inventory-balances`)
     ])
-      .then(([unitsRes, itemsRes, wtRes, whRes, movRes]) => {
+      .then(([unitsRes, itemsRes, wtRes, whRes, nodesRes, movRes, balRes]) => {
         setUnits(unitsRes.data.units ?? []);
         setItems(itemsRes.data.items ?? []);
         const types: WarehouseTypeRow[] = wtRes.data.warehouse_types ?? [];
         setWarehouseTypes(types);
         setWarehouses(whRes.data.warehouses ?? []);
+        setNodes(nodesRes.data.nodes ?? []);
         setMovements(movRes.data.movements ?? []);
+        setBalances(balRes.data.balances ?? []);
 
         if (types.length > 0) setActiveWarehouseTypeId((prev) => (prev === null ? types[0].id : prev));
       })
@@ -170,10 +240,21 @@ export default function InventoryMovementsPage() {
       : warehouses.filter((w) => w.warehouse_type_id === activeWarehouseTypeId);
   }, [warehouses, activeWarehouseTypeId]);
 
-  const warehouseOptions = useMemo(
-    () => warehousesByType.map((w) => ({ label: w.name, value: w.id })),
+  const balanceWarehouseOptions = useMemo(
+    () => warehousesByType.map((warehouse) => ({ label: warehouse.name, value: warehouse.id })),
     [warehousesByType]
   );
+
+  useEffect(() => {
+    if (warehousesByType.length === 0) {
+      setSelectedBalanceWarehouseId(null);
+      return;
+    }
+    setSelectedBalanceWarehouseId((prev) => {
+      if (prev && warehousesByType.some((warehouse) => warehouse.id === prev)) return prev;
+      return warehousesByType[0].id;
+    });
+  }, [warehousesByType]);
 
   const warehouseTypeByWarehouseId = useMemo(() => {
     const map = new Map<number, number>();
@@ -181,10 +262,80 @@ export default function InventoryMovementsPage() {
     return map;
   }, [warehouses]);
 
-  const filteredMovements = useMemo(() => {
+  const nodeById = useMemo(() => {
+    const map = new Map<number, NodeRow>();
+    for (const node of nodes) map.set(node.id, node);
+    return map;
+  }, [nodes]);
+
+  const nodeLabel = (node: NodeRow) => node.name;
+
+  const groupedNodeOptions = useMemo(() => {
+    const warehouseIdsForType = new Set(
+      warehousesByType.map((warehouse) => warehouse.id)
+    );
+
+    const warehouseGroup = nodes
+      .filter((node) => node.node_type === 'WAREHOUSE')
+      .filter((node) => warehouseIdsForType.has(Number(node.ref_id)))
+      .map((node) => ({ label: nodeLabel(node), value: node.id }));
+
+    const locationGroup = nodes
+      .filter((node) => node.node_type === 'LOCATION')
+      .map((node) => ({ label: nodeLabel(node), value: node.id }));
+
+    const supplierGroup = nodes
+      .filter((node) => node.node_type === 'SUPPLIER')
+      .map((node) => ({ label: nodeLabel(node), value: node.id }));
+
+    const customerGroup = nodes
+      .filter((node) => node.node_type === 'CUSTOMER')
+      .map((node) => ({ label: nodeLabel(node), value: node.id }));
+
+    const groups: { label: string; items: { label: string; value: number }[] }[] = [];
+    if (warehouseGroup.length > 0) groups.push({ label: 'Warehouses', items: warehouseGroup });
+    if (locationGroup.length > 0) groups.push({ label: 'Locations', items: locationGroup });
+    if (supplierGroup.length > 0) groups.push({ label: 'Suppliers', items: supplierGroup });
+    if (customerGroup.length > 0) groups.push({ label: 'Customers', items: customerGroup });
+    return groups;
+  }, [nodes, warehousesByType]);
+
+  const movementsForType = useMemo(() => {
     if (activeWarehouseTypeId === null) return movements;
     return movements.filter((m) => warehouseTypeByWarehouseId.get(m.warehouse_id) === activeWarehouseTypeId);
   }, [movements, activeWarehouseTypeId, warehouseTypeByWarehouseId]);
+
+  const balancesForType = useMemo(() => {
+    if (activeWarehouseTypeId === null) return balances;
+    return balances.filter((balance) => {
+      if (balance.node_type !== 'WAREHOUSE') return false;
+      const node = nodeById.get(balance.node_id);
+      if (!node || node.ref_table !== 'warehouses') return false;
+      const warehouseIdFromNode = Number(node.ref_id);
+      if (!Number.isFinite(warehouseIdFromNode)) return false;
+      if (warehouseTypeByWarehouseId.get(warehouseIdFromNode) !== activeWarehouseTypeId) return false;
+      if (selectedBalanceWarehouseId && warehouseIdFromNode !== selectedBalanceWarehouseId) return false;
+      return true;
+    });
+  }, [balances, activeWarehouseTypeId, nodeById, warehouseTypeByWarehouseId, selectedBalanceWarehouseId]);
+
+  const displayMovements = useMemo<MovementDisplayRow[]>(
+    () =>
+      movementsForType.map((m) => ({
+        row_key: `m:${m.id}`,
+        movement_group_id: m.movement_group_id ?? null,
+        movement_type: m.movement_type,
+        from_label: m.from_node_name ?? m.from_ref ?? '',
+        to_label: m.to_node_name ?? m.to_ref ?? '',
+        item_code: m.item_code ?? '',
+        item_name: m.item_name ?? '',
+        quantity: m.quantity,
+        uom: m.uom,
+        occurred_at: m.occurred_at,
+        _sourceMovementId: m.id
+      })),
+    [movementsForType]
+  );
 
   const itemOptions = useMemo(
     () =>
@@ -215,30 +366,31 @@ export default function InventoryMovementsPage() {
     [units]
   );
 
-  const movementTypeOptions = useMemo(
-    () => [
-      { label: 'Giris (IN)', value: 'IN' as const },
-      { label: 'Cikis (OUT)', value: 'OUT' as const },
-      { label: 'Transfer', value: 'TRANSFER' as const },
-      { label: 'Duzeltme', value: 'ADJUSTMENT' as const }
-    ],
-    []
-  );
+  const createDraftLine = (seed?: Partial<EventLineDraft>): EventLineDraft => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    item_id: seed?.item_id ?? null,
+    quantity: seed?.quantity ?? null,
+    unit_id: seed?.unit_id ?? null
+  });
 
   const openEntry = () => {
+    const firstFromNode = groupedNodeOptions[0]?.items[0]?.value ?? null;
+    const secondNode = groupedNodeOptions.flatMap((g) => g.items).find((node) => node.value !== firstFromNode)?.value ?? null;
+
     setEditingMovementId(null);
-    setMovementType('IN');
-    setWarehouseId(warehouseOptions[0]?.value ?? null);
+    setFromNodeId(firstFromNode);
+    setToNodeId(secondNode ?? firstFromNode);
     const firstItem = itemOptions[0];
-    setItemId(firstItem?.value ?? null);
     const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
-    const uomCode = firstItemRow?.unit_id ? unitCodeById.get(firstItemRow.unit_id) : '';
-    setUom(uomCode ?? '');
-    setQuantity(null);
+    setEventLines([
+      createDraftLine({
+        item_id: firstItem?.value ?? null,
+        quantity: null,
+        unit_id: firstItemRow?.unit_id ?? null
+      })
+    ]);
     setOccurredAt(new Date());
     setReferenceType('');
-    setReferenceId('');
-    setNote('');
     setEntryOpen(true);
   };
 
@@ -270,40 +422,61 @@ export default function InventoryMovementsPage() {
 
   const openEdit = (row: MovementRow) => {
     setEditingMovementId(row.id);
-    setMovementType(row.movement_type);
-    setWarehouseId(row.warehouse_id);
-    setItemId(row.item_id);
-    setQuantity(Number(row.quantity));
-    setUom(row.uom ?? '');
+    setFromNodeId(row.from_node_id ?? null);
+    setToNodeId(row.to_node_id ?? null);
+    const item = itemById.get(row.item_id);
+    setEventLines([
+      createDraftLine({
+        item_id: row.item_id,
+        quantity: Number(row.quantity),
+        unit_id: item?.unit_id ?? null
+      })
+    ]);
     setOccurredAt(row.occurred_at ? new Date(row.occurred_at) : new Date());
     setReferenceType(row.reference_type ?? '');
-    setReferenceId(row.reference_id ?? '');
-    setNote(row.note ?? '');
     setEntryOpen(true);
   };
 
-  useEffect(() => {
-    if (!itemId) return;
-    const it = itemById.get(itemId);
-    const code = it?.unit_id ? unitCodeById.get(it.unit_id) : '';
-    if (code) setUom(code);
-  }, [itemId, itemById, unitCodeById]);
+  const updateLine = (lineId: string, patch: Partial<EventLineDraft>) => {
+    setEventLines((prev) => prev.map((line) => (line.id === lineId ? { ...line, ...patch } : line)));
+  };
+
+  const addLine = () => {
+    const firstItem = itemOptions[0];
+    const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
+    setEventLines((prev) => [
+      ...prev,
+      createDraftLine({ item_id: firstItem?.value ?? null, unit_id: firstItemRow?.unit_id ?? null, quantity: null })
+    ]);
+  };
+
+  const removeLine = (lineId: string) => {
+    setEventLines((prev) => (prev.length <= 1 ? prev : prev.filter((line) => line.id !== lineId)));
+  };
 
   const submitEntry = async () => {
-    if (!organizationId || !warehouseId || !itemId || !quantity || !uom.trim()) return;
+    if (!organizationId || !fromNodeId || !toNodeId || fromNodeId === toNodeId) return;
+    if (eventLines.length === 0) return;
+
+    const linesPayload = eventLines
+      .filter((line) => line.item_id && line.quantity && line.unit_id)
+      .map((line) => ({
+        item_id: Number(line.item_id),
+        quantity: Number(line.quantity),
+        unit_id: Number(line.unit_id),
+        from_node_id: fromNodeId,
+        to_node_id: toNodeId
+      }));
+    if (linesPayload.length !== eventLines.length) return;
 
     setLoading(true);
     setError('');
     try {
-      const payload = {
-        warehouse_id: warehouseId,
-        item_id: itemId,
-        movement_type: movementType,
-        quantity,
-        uom,
+      const payload: any = {
+        event_type: 'MOVE',
+        status: 'POSTED',
+        lines: linesPayload,
         reference_type: referenceType || null,
-        reference_id: referenceId || null,
-        note: note || null,
         occurred_at: occurredAt.toISOString()
       };
 
@@ -314,8 +487,14 @@ export default function InventoryMovementsPage() {
       }
 
       // Reload list to include joins (item/warehouse names)
-      const movRes = await api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`);
+      const [movRes, nodesRes, balRes] = await Promise.all([
+        api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
+        api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE,LOCATION,SUPPLIER,CUSTOMER`),
+        api.get(`/api/organizations/${organizationId}/inventory-balances`)
+      ]);
       setMovements(movRes.data.movements ?? []);
+      setNodes(nodesRes.data.nodes ?? []);
+      setBalances(balRes.data.balances ?? []);
       setEntryOpen(false);
       setEditingMovementId(null);
 
@@ -349,7 +528,13 @@ export default function InventoryMovementsPage() {
         });
         const created: ItemRow = res.data.item;
         await reloadItems();
-        setItemId(created.id);
+        setEventLines((prev) =>
+          prev.length > 0
+            ? prev.map((line, index) =>
+                index === 0 ? { ...line, item_id: created.id, unit_id: created.unit_id ?? line.unit_id } : line
+              )
+            : [createDraftLine({ item_id: created.id, unit_id: created.unit_id ?? null, quantity: null })]
+        );
         setItemDialogOpen(false);
       } else {
         if (!editingItemId) return;
@@ -377,10 +562,20 @@ export default function InventoryMovementsPage() {
     return <span className="text-sm text-slate-700">{date.toLocaleString()}</span>;
   };
 
-  const actionsBody = (row: MovementRow) => {
+  const actionsBody = (row: MovementDisplayRow) => {
     return (
       <div className="flex items-center justify-end gap-1">
-        <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label="Duzelt" />
+        <Button
+          icon="pi pi-pencil"
+          size="small"
+          text
+          rounded
+          onClick={() => {
+            const src = movements.find((m) => m.id === row._sourceMovementId);
+            if (src) openEdit(src);
+          }}
+          aria-label="Duzelt"
+        />
         <Button
           icon="pi pi-trash"
           size="small"
@@ -400,9 +595,13 @@ export default function InventoryMovementsPage() {
                 setLoading(true);
                 setError('');
                 try {
-                  await api.delete(`/api/organizations/${organizationId}/inventory-movements/${row.id}`);
-                  const movRes = await api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`);
+                  await api.delete(`/api/organizations/${organizationId}/inventory-movements/${row._sourceMovementId}`);
+                  const [movRes, balRes] = await Promise.all([
+                    api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
+                    api.get(`/api/organizations/${organizationId}/inventory-balances`)
+                  ]);
                   setMovements(movRes.data.movements ?? []);
+                  setBalances(balRes.data.balances ?? []);
                 } catch {
                   setError('Silme basarisiz.');
                 } finally {
@@ -417,32 +616,6 @@ export default function InventoryMovementsPage() {
     );
   };
 
-  const movementTypeBody = (row: MovementRow) => {
-    const iconSrc =
-      row.movement_type === 'IN'
-        ? '/icons/warehouse_in.svg'
-        : row.movement_type === 'OUT'
-          ? '/icons/warehouse_out.svg'
-          : null;
-
-    return (
-      <span className="flex items-center gap-2">
-        {iconSrc ? (
-          <img
-            src={iconSrc}
-            alt={row.movement_type === 'IN' ? 'Giris' : 'Cikis'}
-            className="h-8 w-8 opacity-95 border border-slate-200"
-            title={row.movement_type === 'IN' ? 'Giris' : 'Cikis'}
-          />
-        ) : (
-          <span className="text-sm text-slate-700">
-            {row.movement_type === 'TRANSFER' ? 'TRANSFER' : row.movement_type === 'ADJUSTMENT' ? 'ADJUSTMENT' : row.movement_type}
-          </span>
-        )}
-      </span>
-    );
-  };
-
   if (!organizationId) {
     return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
   }
@@ -454,7 +627,7 @@ export default function InventoryMovementsPage() {
   }));
 
   const activeIndex = Math.max(0, warehouseTypes.findIndex((t) => t.id === activeWarehouseTypeId));
-  const canCreateMovement = activeWarehouseTypeId !== null && warehouseOptions.length > 0;
+  const canCreateMovement = activeWarehouseTypeId !== null && groupedNodeOptions.some((group) => group.items.length > 0);
 
   const activeWarehouseTypeName = activeWarehouseTypeId ? warehouseTypeNameById.get(activeWarehouseTypeId) ?? '-' : '-';
   const itemsForActiveType = activeWarehouseTypeId ? items.filter((i) => i.warehouse_type_id === activeWarehouseTypeId) : [];
@@ -487,6 +660,19 @@ export default function InventoryMovementsPage() {
           onClick={() => setItemsListOpen(true)}
           disabled={!activeWarehouseTypeId}
         />
+        <IconField iconPosition="left">
+          <InputIcon className="pi pi-search text-slate-400" />
+          <InputText
+            value={movementSearch}
+            onChange={(e) => {
+              const v = e.target.value;
+              setMovementSearch(v);
+              setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+            }}
+            placeholder="Ara: kod, urun, depo..."
+            className="w-72"
+          />
+        </IconField>
         <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
       </div>
 
@@ -495,22 +681,50 @@ export default function InventoryMovementsPage() {
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="p-3">
           <DataTable
-            value={filteredMovements}
+            value={displayMovements}
             loading={loading}
             size="small"
             emptyMessage="Hareket yok."
-            rowClassName={(row: MovementRow) =>
-              row.movement_type === 'IN' ? 'inventory-row-in' : row.movement_type === 'OUT' ? 'inventory-row-out' : ''
-            }
+            removableSort
+            sortMode="multiple"
+            sortField="occurred_at"
+            sortOrder={-1}
+            filters={movementFilters}
+            onFilter={(e) => setMovementFilters(e.filters)}
+            globalFilterFields={['from_label', 'to_label', 'item_code', 'item_name', 'uom']}
+            dataKey="row_key"
           >
-            <Column header="Tip" body={movementTypeBody} style={{ width: '10rem' }} />
-            <Column field="item_code" header="Kod" style={{ width: '10rem' }} />
-            <Column field="item_name" header="Urun" />
-            <Column field="warehouse_name" header="Depo" style={{ width: '12rem' }} />
-            <Column field="quantity" header="Miktar" style={{ width: '8rem' }} />
-            <Column field="uom" header="Birim" style={{ width: '6rem' }} />
-            <Column header="Tarih" body={occurredAtBody} style={{ width: '13rem' }} />
-            <Column header="" body={actionsBody} style={{ width: '7rem' }} />
+            <Column field="item_code" header="Kod" sortable filter filterPlaceholder="Ara" />
+            <Column field="item_name" header="Urun" sortable filter filterPlaceholder="Ara" />
+            <Column field="from_label" header="Nereden" sortable filter filterPlaceholder="Ara" />
+            <Column field="to_label" header="Nereye" sortable filter filterPlaceholder="Ara" />
+            <Column field="quantity" header="Miktar" sortable style={{ width: '8rem' }} />
+            <Column field="uom" header="Birim" sortable filter filterPlaceholder="Ara"/>
+            <Column header="Tarih" body={occurredAtBody} sortField="occurred_at" sortable/>
+            <Column header="" body={actionsBody} />
+          </DataTable>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="p-3">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-slate-700">Stok Bilgisi</span>
+            <Dropdown
+              value={selectedBalanceWarehouseId}
+              onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
+              options={balanceWarehouseOptions}
+              className="w-72"
+              placeholder="Depo sec"
+              filter
+              disabled={balanceWarehouseOptions.length === 0}
+            />
+          </div>
+          <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12}>
+            <Column field="item_code" header="Kod" sortable />
+            <Column field="item_name" header="Urun" sortable />
+            <Column field="balance_qty" header="Bakiye" sortable/>
+            <Column field="unit_code" header="Birim" sortable />
           </DataTable>
         </div>
       </div>
@@ -525,64 +739,96 @@ export default function InventoryMovementsPage() {
         className="w-full max-w-2xl"
       >
         <div className="grid gap-3">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700">Tarih</span>
+            <Calendar value={occurredAt} onChange={(e) => setOccurredAt(e.value ?? new Date())} showTime className="w-full" />
+          </label>
+
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Tip</span>
-              <Dropdown value={movementType} onChange={(e) => setMovementType(e.value)} options={movementTypeOptions} className="w-full" />
+              <span className="text-sm font-medium text-slate-700">From Node</span>
+              <Dropdown
+                value={fromNodeId}
+                onChange={(e) => setFromNodeId(e.value ?? null)}
+                options={groupedNodeOptions}
+                optionGroupLabel="label"
+                optionGroupChildren="items"
+                className="w-full inventory-node-dropdown"
+                filter
+                placeholder="Kaynak node sec"
+              />
             </label>
-
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Tarih</span>
-              <Calendar value={occurredAt} onChange={(e) => setOccurredAt(e.value ?? new Date())} showTime className="w-full" />
+              <span className="text-sm font-medium text-slate-700">To Node</span>
+              <Dropdown
+                value={toNodeId}
+                onChange={(e) => setToNodeId(e.value ?? null)}
+                options={groupedNodeOptions}
+                optionGroupLabel="label"
+                optionGroupChildren="items"
+                className="w-full inventory-node-dropdown"
+                filter
+                placeholder="Hedef node sec"
+              />
             </label>
           </div>
 
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Depo</span>
-            <Dropdown value={warehouseId} onChange={(e) => setWarehouseId(e.value ?? null)} options={warehouseOptions} className="w-full" filter />
-          </label>
-
-          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Urun/Malzeme</span>
-              <Dropdown value={itemId} onChange={(e) => setItemId(e.value ?? null)} options={itemOptions} className="w-full" filter />
-            </label>
-            <div className="flex items-end">
-              <Button label="Yeni Item" icon="pi pi-plus" size="small" outlined onClick={openCreateItem} />
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium text-slate-700">Hareket Satirlari</span>
+              <div className="flex items-center gap-2">
+                <Button label="Yeni Item" icon="pi pi-plus" size="small" outlined onClick={openCreateItem} />
+                <Button label="Satir Ekle" icon="pi pi-plus" size="small" onClick={addLine} />
+              </div>
             </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Miktar</span>
-              <InputNumber value={quantity} onValueChange={(e) => setQuantity(e.value ?? null)} className="w-full" min={0} />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Birim</span>
-              <InputText value={uom} readOnly className="w-full" />
-            </label>
-            <label className="grid gap-2">
-              <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                Referans
-                <i
-                  id="inventory-ref-info"
-                  className="pi pi-info-circle cursor-help text-xs text-slate-400 hover:text-slate-700"
-                  aria-label="Referans aciklamasi"
-                  tabIndex={0}
-                />
-              </span>
-              <InputText value={referenceType} onChange={(e) => setReferenceType(e.target.value)} placeholder="PO, WO, ..." className="w-full" />
-            </label>
+            {eventLines.map((line) => {
+              const unitCode = line.unit_id ? unitCodeById.get(line.unit_id) ?? '-' : '-';
+              return (
+                <div key={line.id} className="grid gap-2 rounded-lg border border-slate-200 py-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_auto]">
+                  <Dropdown
+                    value={line.item_id}
+                    onChange={(e) => {
+                      const nextItemId = e.value ?? null;
+                      const nextItem = nextItemId ? itemById.get(nextItemId) : undefined;
+                      updateLine(line.id, { item_id: nextItemId, unit_id: nextItem?.unit_id ?? null });
+                    }}
+                    options={itemOptions}
+                    className="w-full min-w-0"
+                    filter
+                    placeholder="Urun/Malzeme"
+                  />
+                  <InputNumber
+                    value={line.quantity}
+                    onValueChange={(e) => updateLine(line.id, { quantity: e.value ?? null })}
+                    className="w-fit min-w-0"
+                    min={0}
+                    placeholder="Miktar"
+                  />
+                  <InputText value={unitCode} readOnly className="w-fit min-w-0" />
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    severity="danger"
+                    onClick={() => removeLine(line.id)}
+                    disabled={eventLines.length <= 1}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Referans ID</span>
-            <InputText value={referenceId} onChange={(e) => setReferenceId(e.target.value)} className="w-full" />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Not</span>
-            <InputText value={note} onChange={(e) => setNote(e.target.value)} className="w-full" />
+            <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              Referans
+              <i
+                id="inventory-ref-info"
+                className="pi pi-info-circle cursor-help text-xs text-slate-400 hover:text-slate-700"
+                aria-label="Referans aciklamasi"
+                tabIndex={0}
+              />
+            </span>
+            <InputText value={referenceType} onChange={(e) => setReferenceType(e.target.value)} placeholder="PO, WO, ..." className="w-full" />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -592,7 +838,13 @@ export default function InventoryMovementsPage() {
               size="small"
               onClick={submitEntry}
               loading={loading}
-              disabled={!warehouseId || !itemId || !quantity || !uom.trim()}
+              disabled={
+                !fromNodeId ||
+                !toNodeId ||
+                fromNodeId === toNodeId ||
+                eventLines.length === 0 ||
+                eventLines.some((line) => !line.item_id || !line.quantity || !line.unit_id)
+              }
             />
           </div>
         </div>
@@ -678,9 +930,15 @@ export default function InventoryMovementsPage() {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-2">
-            <DataTable value={itemsList} size="small" emptyMessage="Item yok.">
-              <Column field="code" header="Kod" style={{ width: '10rem' }} />
-              <Column field="name" header="Isim" />
+            <DataTable
+              value={itemsList}
+              size="small"
+              emptyMessage="Item yok."
+              removableSort
+              sortMode="multiple"
+            >
+              <Column field="code" header="Kod" sortable style={{ width: '10rem' }} />
+              <Column field="name" header="Isim" sortable />
               <Column
                 header="Birim"
                 body={(row: ItemRow) => (
@@ -688,11 +946,14 @@ export default function InventoryMovementsPage() {
                     {row.unit_id ? unitCodeById.get(row.unit_id) ?? '-' : '-'}
                   </span>
                 )}
+                sortField="unit_id"
                 style={{ width: '7rem' }}
               />
               <Column
                 header="Aktif"
                 body={(row: ItemRow) => <span className="text-sm text-slate-700">{row.active ? 'Evet' : 'Hayir'}</span>}
+                sortField="active"
+                sortable
                 style={{ width: '6rem' }}
               />
               <Column

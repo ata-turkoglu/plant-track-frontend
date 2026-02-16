@@ -8,6 +8,10 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
+import { FilterMatchMode } from 'primereact/api';
+import type { DataTableFilterMeta } from 'primereact/datatable';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 
 import { api } from '../../services/api';
 import type { RootState } from '../../store';
@@ -84,6 +88,13 @@ export default function WarehousesPage() {
   const [name, setName] = useState('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [warehouseTypeId, setWarehouseTypeId] = useState<number | null>(null);
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    warehouse_type_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    location_label: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  });
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (!organizationId) return;
@@ -221,6 +232,14 @@ export default function WarehousesPage() {
     return <span className="text-sm text-slate-700">{name}</span>;
   };
 
+  const warehousesView = useMemo(() => {
+    return warehouses.map((w) => ({
+      ...w,
+      warehouse_type_label: w.warehouse_type_name ?? warehouseTypes.find((t) => t.id === w.warehouse_type_id)?.name ?? '',
+      location_label: locationNameById.get(w.location_id) ?? ''
+    }));
+  }, [warehouses, warehouseTypes, locationNameById]);
+
   const typeOptions = useMemo(
     () => warehouseTypes.map((t) => ({ label: t.name, value: t.id })),
     [warehouseTypes]
@@ -240,10 +259,36 @@ export default function WarehousesPage() {
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <DataTable value={warehouses} loading={loading} size="small" emptyMessage="Depo yok.">
-          <Column field="name" header="Depo" />
-          <Column header="Tür" body={typeBody} style={{ width: '10rem' }} />
-          <Column header="Lokasyon" body={locationBody} />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <IconField iconPosition="left">
+            <InputIcon className="pi pi-search text-slate-400" />
+            <InputText
+              value={search}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSearch(v);
+                setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+              }}
+              placeholder="Ara: depo, tur, lokasyon"
+              className="w-72"
+            />
+          </IconField>
+        </div>
+
+        <DataTable
+          value={warehousesView}
+          loading={loading}
+          size="small"
+          emptyMessage="Depo yok."
+          removableSort
+          sortMode="multiple"
+          filters={filters}
+          onFilter={(e) => setFilters(e.filters)}
+          globalFilterFields={['name', 'warehouse_type_label', 'location_label']}
+        >
+          <Column field="name" header="Depo" sortable filter filterPlaceholder="Ara" />
+          <Column field="warehouse_type_label" header="Tür" sortable filter filterPlaceholder="Ara" style={{ width: '12rem' }} />
+          <Column field="location_label" header="Lokasyon" sortable filter filterPlaceholder="Ara" />
           <Column header="" body={actionsBody} style={{ width: '8rem' }} />
         </DataTable>
       </div>

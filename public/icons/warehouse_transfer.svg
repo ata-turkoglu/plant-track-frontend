@@ -1,0 +1,34 @@
+<svg width="40" height="40" viewBox="0 -10 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <mask id="cut-in">
+      <rect x="0" y="-10" width="40" height="50" fill="white"/>
+      
+      <!-- Top arrow knockout (left head only) -->
+      <path d="M34 24H6" stroke="black" stroke-width="8" stroke-linecap="round"/>
+      <path d="M12.8 17.6L6 24" stroke="black" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- Bottom arrow knockout (right head only) -->
+      <path d="M34 30H6" stroke="black" stroke-width="8" stroke-linecap="round"/>
+      <path d="M34 30L27.2 36.4" stroke="black" stroke-width="8" stroke-linecap="round"/>
+    </mask>
+  </defs>
+
+  <!-- Warehouse (masked) -->
+  <g mask="url(#cut-in)">
+    <path d="M5 12L20 3L35 12" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M7.5 12V35H32.5V12" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M10.5 14V35M29.5 14V35" stroke="#6B7280" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M14 20H26V35H14V20Z" stroke="#374151" stroke-width="2.0" stroke-linejoin="round"/>
+    <path d="M15.2 23.3H24.8M15.2 26.9H24.8M15.2 30.5H24.8" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Top Arrow (Green, left head only) -->
+  <path d="M34 24H6" stroke="#16A34A" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M12.8 17.6L6 24" stroke="#16A34A" stroke-width="3.6" stroke-linecap="round"/>
+
+  <!-- Bottom Arrow (Red, right head only) -->
+  <path d="M34 30H6" stroke="#DC2626" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M34 30L27.2 36.4" stroke="#DC2626" stroke-width="3.6" stroke-linecap="round"/>
+
+</svg>
