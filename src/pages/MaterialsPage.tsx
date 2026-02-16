@@ -194,7 +194,7 @@ function MaterialsPageImpl() {
     <div className="grid gap-3">
       <div className="rounded-xl border border-slate-200 bg-white p-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="max-w-full overflow-x-auto">
             {tabItems.length > 0 ? (
               <TabMenu model={tabItems} activeIndex={activeTabIndex} />
             ) : (
@@ -214,13 +214,13 @@ function MaterialsPageImpl() {
             setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
           }}
           placeholder="Ara: kod veya isim"
-          className="w-72"
+          className="w-full sm:w-72"
         />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
         <DataTable
           value={rows}
           size="small"
@@ -232,6 +232,7 @@ function MaterialsPageImpl() {
           filters={filters}
           onFilter={(e) => setFilters(e.filters)}
           globalFilterFields={globalFilterFields}
+          tableStyle={{ minWidth: '48rem' }}
         >
           <Column field="code" header="Kod" sortable filter style={{ width: '12rem' }} />
           <Column field="name" header="Urun" sortable filter />

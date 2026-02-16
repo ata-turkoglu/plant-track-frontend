@@ -140,14 +140,14 @@ export default function CustomersPage() {
             setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
           }}
           placeholder="Ara: isim"
-          className="w-72"
+          className="w-full sm:w-72"
         />
         <Button label="Yeni Musteri" icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
         <DataTable
           value={rows}
           size="small"
@@ -159,6 +159,7 @@ export default function CustomersPage() {
           filters={filters}
           onFilter={(e) => setFilters(e.filters)}
           globalFilterFields={globalFilterFields}
+          tableStyle={{ minWidth: '48rem' }}
         >
           <Column field="name" header="Isim" sortable filter />
           <Column field="phone" header="Telefon" sortable filter style={{ width: '12rem' }} />

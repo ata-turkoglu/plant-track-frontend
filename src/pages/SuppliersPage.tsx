@@ -152,14 +152,14 @@ export default function SuppliersPage() {
             setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
           }}
           placeholder="Ara: isim veya tip"
-          className="w-72"
+          className="w-full sm:w-72"
         />
         <Button label="Yeni Tedarikci" icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
         <DataTable
           value={rows}
           size="small"
@@ -171,6 +171,7 @@ export default function SuppliersPage() {
           filters={filters}
           onFilter={(e) => setFilters(e.filters)}
           globalFilterFields={globalFilterFields}
+          tableStyle={{ minWidth: '52rem' }}
         >
           <Column field="kind" header="Tip" sortable filter style={{ width: '14rem' }} />
           <Column field="name" header="Isim" sortable filter />

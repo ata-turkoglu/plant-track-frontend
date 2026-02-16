@@ -513,7 +513,7 @@ export default function InventoryMovementsPage() {
         content="Bu stok hareketi hangi belge/isten kaynaklandi? Ornek: PO (Satin Alma), WO (Is Emri), SO (Satis), INV (Fatura)."
       />
 
-      <div className="rounded-xl border border-slate-200 bg-white px-2 py-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white px-2 py-2">
         <TabMenu model={tabItems} activeIndex={activeIndex} className="p-component-sm" />
       </div>
 
@@ -526,7 +526,7 @@ export default function InventoryMovementsPage() {
           onClick={() => setItemsListOpen(true)}
           disabled={!activeWarehouseTypeId}
         />
-        <IconField iconPosition="left">
+        <IconField iconPosition="left" className="w-full sm:w-auto">
           <InputIcon className="pi pi-search text-slate-400" />
           <InputText
             value={movementSearch}
@@ -536,7 +536,7 @@ export default function InventoryMovementsPage() {
               setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
             }}
             placeholder="Ara: kod, urun, depo..."
-            className="w-72"
+            className="w-full sm:w-72"
           />
         </IconField>
         <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
@@ -545,7 +545,7 @@ export default function InventoryMovementsPage() {
       {localError || error ? <Message severity="error" text={localError || error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="p-3">
+        <div className="overflow-x-auto p-3">
           <DataTable
             value={displayMovements}
             loading={loading}
@@ -559,6 +559,7 @@ export default function InventoryMovementsPage() {
             onFilter={(e) => setMovementFilters(e.filters)}
             globalFilterFields={['from_label', 'to_label', 'item_code', 'item_name', 'uom']}
             dataKey="row_key"
+            tableStyle={{ minWidth: '70rem' }}
           >
             <Column field="item_code" header="Kod" sortable filter filterPlaceholder="Ara" />
             <Column field="item_name" header="Urun" sortable filter filterPlaceholder="Ara" />
@@ -580,18 +581,20 @@ export default function InventoryMovementsPage() {
               value={selectedBalanceWarehouseId}
               onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
               options={balanceWarehouseOptions}
-              className="w-72"
+              className="w-full sm:w-72"
               placeholder="Depo sec"
               filter
               disabled={balanceWarehouseOptions.length === 0}
             />
           </div>
-          <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12}>
-            <Column field="item_code" header="Kod" sortable />
-            <Column field="item_name" header="Urun" sortable />
-            <Column field="balance_qty" header="Bakiye" sortable/>
-            <Column field="unit_code" header="Birim" sortable />
-          </DataTable>
+          <div className="overflow-x-auto">
+            <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
+              <Column field="item_code" header="Kod" sortable />
+              <Column field="item_name" header="Urun" sortable />
+              <Column field="balance_qty" header="Bakiye" sortable/>
+              <Column field="unit_code" header="Birim" sortable />
+            </DataTable>
+          </div>
         </div>
       </div>
 
@@ -783,25 +786,26 @@ export default function InventoryMovementsPage() {
       >
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <IconField iconPosition="left">
+            <IconField iconPosition="left" className="w-full sm:w-auto">
               <InputIcon className="pi pi-search text-slate-400" />
               <InputText
                 value={itemsSearch}
                 onChange={(e) => setItemsSearch(e.target.value)}
                 placeholder="Ara: kod veya isim"
-                className="w-72"
+                className="w-full sm:w-72"
               />
             </IconField>
             <Button label="Yeni Item" icon="pi pi-plus" size="small" onClick={openCreateItem} disabled={!activeWarehouseTypeId} />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-2">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
             <DataTable
               value={itemsList}
               size="small"
               emptyMessage="Item yok."
               removableSort
               sortMode="multiple"
+              tableStyle={{ minWidth: '44rem' }}
             >
               <Column field="code" header="Kod" sortable style={{ width: '10rem' }} />
               <Column field="name" header="Isim" sortable />

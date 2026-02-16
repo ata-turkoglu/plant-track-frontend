@@ -209,7 +209,7 @@ export default function WarehousesPage() {
 
       <div className="rounded-xl border border-slate-200 bg-white p-3">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <IconField iconPosition="left">
+          <IconField iconPosition="left" className="w-full sm:w-auto">
             <InputIcon className="pi pi-search text-slate-400" />
             <InputText
               value={search}
@@ -219,27 +219,30 @@ export default function WarehousesPage() {
                 setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
               }}
               placeholder="Ara: depo, tur, lokasyon"
-              className="w-72"
+              className="w-full sm:w-72"
             />
           </IconField>
         </div>
 
-        <DataTable
-          value={warehousesView}
-          loading={loading}
-          size="small"
-          emptyMessage="Depo yok."
-          removableSort
-          sortMode="multiple"
-          filters={filters}
-          onFilter={(e) => setFilters(e.filters)}
-          globalFilterFields={['name', 'warehouse_type_label', 'location_label']}
-        >
-          <Column field="name" header="Depo" sortable filter filterPlaceholder="Ara" />
-          <Column field="warehouse_type_label" header="Tür" sortable filter filterPlaceholder="Ara" style={{ width: '12rem' }} />
-          <Column field="location_label" header="Lokasyon" sortable filter filterPlaceholder="Ara" />
-          <Column header="" body={actionsBody} style={{ width: '8rem' }} />
-        </DataTable>
+        <div className="overflow-x-auto">
+          <DataTable
+            value={warehousesView}
+            loading={loading}
+            size="small"
+            emptyMessage="Depo yok."
+            removableSort
+            sortMode="multiple"
+            filters={filters}
+            onFilter={(e) => setFilters(e.filters)}
+            globalFilterFields={['name', 'warehouse_type_label', 'location_label']}
+            tableStyle={{ minWidth: '52rem' }}
+          >
+            <Column field="name" header="Depo" sortable filter filterPlaceholder="Ara" />
+            <Column field="warehouse_type_label" header="Tür" sortable filter filterPlaceholder="Ara" style={{ width: '12rem' }} />
+            <Column field="location_label" header="Lokasyon" sortable filter filterPlaceholder="Ara" />
+            <Column header="" body={actionsBody} style={{ width: '8rem' }} />
+          </DataTable>
+        </div>
       </div>
 
       <Dialog
