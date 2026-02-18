@@ -110,12 +110,12 @@ export default function CustomersPage() {
   const remove = (row: CustomerRow) => {
     if (!organizationId) return;
     confirmDialog({
-      message: `${row.name} kaydini silmek istiyor musun?`,
-      header: 'Silme Onayi',
+      message: `${row.name} kaydını silmek istiyor musun?`,
+      header: 'Silme Onayı',
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
       acceptLabel: 'Sil',
-      rejectLabel: 'Vazgec',
+      rejectLabel: 'Vazgeç',
       accept: async () => {
         try {
           await dispatch(deleteCustomer({ organizationId, id: row.id })).unwrap();
@@ -126,7 +126,7 @@ export default function CustomersPage() {
   };
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadi. Lutfen tekrar giris yap." className="w-full" />;
+    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
   }
 
   return (
@@ -142,7 +142,7 @@ export default function CustomersPage() {
           placeholder="Ara: isim"
           className="w-full sm:w-72"
         />
-        <Button label="Yeni Musteri" icon="pi pi-plus" size="small" onClick={openCreate} />
+        <Button label="Yeni Müşteri" icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
@@ -152,7 +152,7 @@ export default function CustomersPage() {
           value={rows}
           size="small"
           loading={loading}
-          emptyMessage="Musteri yok."
+          emptyMessage="Müşteri yok."
           dataKey="id"
           paginator
           rows={12}
@@ -161,7 +161,7 @@ export default function CustomersPage() {
           globalFilterFields={globalFilterFields}
           tableStyle={{ minWidth: '48rem' }}
         >
-          <Column field="name" header="Isim" sortable filter />
+          <Column field="name" header="İsim" sortable filter />
           <Column field="phone" header="Telefon" sortable filter style={{ width: '12rem' }} />
           <Column field="email" header="E-posta" sortable filter style={{ width: '16rem' }} />
           <Column
@@ -169,7 +169,7 @@ export default function CustomersPage() {
             header="Aktif"
             sortable
             style={{ width: '7rem' }}
-            body={(row: CustomerRow) => <span>{row.active ? 'Evet' : 'Hayir'}</span>}
+            body={(row: CustomerRow) => <span>{row.active ? 'Evet' : 'Hayır'}</span>}
           />
           <Column
             header=""
@@ -185,14 +185,14 @@ export default function CustomersPage() {
       </div>
 
       <Dialog
-        header={mode === 'edit' ? 'Musteri Duzenle' : 'Yeni Musteri'}
+        header={mode === 'edit' ? 'Müşteri Düzenle' : 'Yeni Müşteri'}
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         className="w-full max-w-lg"
       >
         <div className="grid gap-3">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Isim</span>
+            <span className="text-sm font-medium text-slate-700">İsim</span>
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -228,7 +228,7 @@ export default function CustomersPage() {
             <span className="text-sm text-slate-700">Aktif</span>
           </label>
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgec" size="small" text onClick={() => setDialogOpen(false)} />
+            <Button label="Vazgeç" size="small" text onClick={() => setDialogOpen(false)} />
             <Button label="Kaydet" size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
           </div>
         </div>

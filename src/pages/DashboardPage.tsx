@@ -81,7 +81,7 @@ export default function DashboardPage() {
     <div className="grid gap-4">
       <Card className="p-component-sm">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-700">Uretim depolari / FINISHED_GOOD stok trendi</div>
+          <div className="text-sm text-slate-700">Üretim depolari / FINISHED_GOOD stok trendi</div>
           <span className="text-xs text-slate-500">Last update: {lastUpdated}</span>
         </div>
       </Card>
@@ -98,17 +98,17 @@ export default function DashboardPage() {
             <div ref={chartRef} className="h-80 w-full" />
           ) : (
             <div className="flex h-80 items-center justify-center text-xs text-slate-500">
-              {productionLoading ? 'Yukleniyor...' : 'Grafik icin veri bulunamadi.'}
+              {productionLoading ? 'Yükleniyor...' : 'Grafik için veri bulunamadı.'}
             </div>
           )}
         </Card>
 
         <Card className="p-component-sm">
           <div className="grid gap-2 text-sm text-slate-700">
-            <div className="font-medium text-slate-900">Uretim Stok Ozeti</div>
+            <div className="font-medium text-slate-900">Üretim Stok Ozeti</div>
             <div>Guncel toplam stok: {latestTotal.toLocaleString('tr-TR')}</div>
-            <div>Depo tipi filtre: production / uretim / finished / mamul</div>
-            <div>Urun filtre: sadece `items.type = FINISHED_GOOD`</div>
+            <div>Depo tipi filtre: production / üretim / finished / mamul</div>
+            <div>Ürün filtre: sadece `items.type = FINISHED_GOOD`</div>
             <div>Periyot: son 7 gun (gun sonu bakiye)</div>
           </div>
         </Card>

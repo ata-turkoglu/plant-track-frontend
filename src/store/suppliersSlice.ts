@@ -57,7 +57,7 @@ export const fetchSuppliers = createAsyncThunk<SupplierRow[], number, { rejectVa
       const response = await api.get(`/api/organizations/${organizationId}/suppliers`);
       return response.data.suppliers ?? [];
     } catch {
-      return thunkApi.rejectWithValue('Tedarikciler yuklenemedi.');
+      return thunkApi.rejectWithValue('Tedarikçiler yüklenemedi.');
     }
   }
 );
@@ -70,7 +70,7 @@ export const createSupplier = createAsyncThunk<void, UpsertSupplierPayload, { re
       // Islem sonrasi state'in server ile uyumlu kalmasi icin refetch.
       await thunkApi.dispatch(fetchSuppliers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Isim benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. İsim benzersiz olmali.');
     }
   }
 );
@@ -79,14 +79,14 @@ export const updateSupplier = createAsyncThunk<void, UpsertSupplierPayload, { re
   'suppliers/update',
   async ({ organizationId, id, ...payload }, thunkApi) => {
     if (!id) {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Kayit secilmedi.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
     try {
       await api.put(`/api/organizations/${organizationId}/suppliers/${id}`, payload);
       // Lokal merge mantigini sade tutmak icin yeniden fetch.
       await thunkApi.dispatch(fetchSuppliers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Isim benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. İsim benzersiz olmali.');
     }
   }
 );
@@ -99,7 +99,7 @@ export const deleteSupplier = createAsyncThunk<void, { organizationId: number; i
       // Silme sonrasi tabloyu dogru sekilde yenile.
       await thunkApi.dispatch(fetchSuppliers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Silme basarisiz.');
+      return thunkApi.rejectWithValue('Silme başarısız.');
     }
   }
 );
@@ -130,7 +130,7 @@ const suppliersSlice = createSlice({
       })
       .addCase(fetchSuppliers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Tedarikciler yuklenemedi.';
+        state.error = action.payload ?? 'Tedarikçiler yüklenemedi.';
       })
       .addCase(createSupplier.pending, (state) => {
         state.mutating = true;
@@ -141,7 +141,7 @@ const suppliersSlice = createSlice({
       })
       .addCase(createSupplier.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(updateSupplier.pending, (state) => {
         state.mutating = true;
@@ -152,7 +152,7 @@ const suppliersSlice = createSlice({
       })
       .addCase(updateSupplier.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(deleteSupplier.pending, (state) => {
         state.mutating = true;
@@ -163,7 +163,7 @@ const suppliersSlice = createSlice({
       })
       .addCase(deleteSupplier.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Silme basarisiz.';
+        state.error = action.payload ?? 'Silme başarısız.';
       });
   }
 });

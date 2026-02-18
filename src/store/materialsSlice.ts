@@ -90,7 +90,7 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
         items: itemsRes.data.items ?? []
       };
     } catch {
-      return thunkApi.rejectWithValue('Malzemeler yuklenemedi.');
+      return thunkApi.rejectWithValue('Malzemeler yüklenemedi.');
     }
   }
 );
@@ -99,7 +99,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
   'materials/createItem',
   async ({ organizationId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
     if (!warehouseTypeId) {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Depo tipi secilmedi.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Depo tipi seçilmedi.');
     }
     try {
       await api.post(`/api/organizations/${organizationId}/items`, {
@@ -116,7 +116,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       // Mutasyon sonrasi listeyi tek kaynaktan taze tutuyoruz.
       await thunkApi.dispatch(fetchMaterialsData(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Kod benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Kod benzersiz olmali.');
     }
   }
 );
@@ -125,7 +125,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
   'materials/updateItem',
   async ({ organizationId, itemId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
     if (!itemId) {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Kayit secilmedi.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
     try {
       await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
@@ -141,7 +141,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       // Sayfada lokal patch yerine server truth yeniden cekiliyor.
       await thunkApi.dispatch(fetchMaterialsData(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Kod benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Kod benzersiz olmali.');
     }
   }
 );
@@ -156,7 +156,7 @@ export const deleteMaterialItem = createAsyncThunk<
     // Silme sonrasi tablo tutarliligi icin yeniden fetch.
     await thunkApi.dispatch(fetchMaterialsData(organizationId));
   } catch {
-    return thunkApi.rejectWithValue('Silme basarisiz.');
+    return thunkApi.rejectWithValue('Silme başarısız.');
   }
 });
 
@@ -190,7 +190,7 @@ const materialsSlice = createSlice({
       })
       .addCase(fetchMaterialsData.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Malzemeler yuklenemedi.';
+        state.error = action.payload ?? 'Malzemeler yüklenemedi.';
       })
       .addCase(createMaterialItem.pending, (state) => {
         state.mutating = true;
@@ -201,7 +201,7 @@ const materialsSlice = createSlice({
       })
       .addCase(createMaterialItem.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(updateMaterialItem.pending, (state) => {
         state.mutating = true;
@@ -212,7 +212,7 @@ const materialsSlice = createSlice({
       })
       .addCase(updateMaterialItem.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(deleteMaterialItem.pending, (state) => {
         state.mutating = true;
@@ -223,7 +223,7 @@ const materialsSlice = createSlice({
       })
       .addCase(deleteMaterialItem.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Silme basarisiz.';
+        state.error = action.payload ?? 'Silme başarısız.';
       });
   }
 });

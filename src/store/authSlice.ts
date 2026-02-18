@@ -110,7 +110,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Giris basarisiz.';
+        state.error = action.payload ?? 'Giris başarısız.';
       })
       .addCase(registerOrganization.pending, (state) => {
         state.loading = true;
@@ -121,7 +121,7 @@ const authSlice = createSlice({
       })
       .addCase(registerOrganization.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Kayit basarisiz.';
+        state.error = action.payload ?? 'Kayıt başarısız.';
       })
       .addCase(requestPasswordReset.pending, (state) => {
         state.loading = true;
@@ -134,7 +134,7 @@ const authSlice = createSlice({
       })
       .addCase(requestPasswordReset.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Sifre sifirlama basarisiz.';
+        state.error = action.payload ?? 'Şifre sıfırlama başarısız.';
       });
   }
 });

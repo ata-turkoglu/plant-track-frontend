@@ -69,7 +69,7 @@ export default function ItemsTable({
       sortMode="multiple"
     >
       <Column field="code" header="Kod" sortable filter={showFilters} filterPlaceholder={showFilters ? 'Ara' : undefined} style={{ width: '12rem' }} />
-      <Column field="name" header="Urun" sortable filter={showFilters} filterPlaceholder={showFilters ? 'Ara' : undefined} />
+      <Column field="name" header="Ürün" sortable filter={showFilters} filterPlaceholder={showFilters ? 'Ara' : undefined} />
       <Column
         field="brand"
         header="Marka"
@@ -90,7 +90,7 @@ export default function ItemsTable({
       />
       <Column
         field="size_spec"
-        header="Olcu"
+        header="Ölçü"
         sortable
         filter={showFilters}
         filterPlaceholder={showFilters ? 'Ara' : undefined}
@@ -113,7 +113,7 @@ export default function ItemsTable({
         header="Aktif"
         sortable
         style={{ width: '7rem' }}
-        body={(row: ItemTableRow) => <span>{row.active ? 'Evet' : 'Hayir'}</span>}
+        body={(row: ItemTableRow) => <span>{row.active ? 'Evet' : 'Hayır'}</span>}
       />
       {actionBody ? <Column header="" style={actionStyle ?? { width: '7rem' }} body={actionBody} /> : null}
     </DataTable>

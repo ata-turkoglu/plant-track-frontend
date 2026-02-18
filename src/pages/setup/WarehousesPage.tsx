@@ -111,7 +111,7 @@ export default function WarehousesPage() {
       message: 'Bu depoyu silmek istiyor musun?',
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Sil',
-      rejectLabel: 'Vazgec',
+      rejectLabel: 'Vazgeç',
       acceptClassName: 'p-button-danger p-button-sm',
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {
@@ -278,13 +278,13 @@ export default function WarehousesPage() {
               optionLabel="label"
               optionValue="value"
               className="w-full"
-              placeholder="Lokasyon sec"
+              placeholder="Lokasyon seç"
               filter
             />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgec" size="small" text type="button" onClick={() => setDialogOpen(false)} />
+            <Button label="Vazgeç" size="small" text type="button" onClick={() => setDialogOpen(false)} />
             <Button
               label="Kaydet"
               size="small"

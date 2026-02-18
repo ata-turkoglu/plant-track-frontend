@@ -21,7 +21,7 @@ type CustomersState = {
   rows: CustomerRow[];
   // Liste ilk acilis ve refresh durumu.
   loading: boolean;
-  // Ekle/guncelle/sil islemleri icin ayrik loading.
+  // Ekle/güncelle/sil islemleri icin ayrik loading.
   mutating: boolean;
   error: string;
 };
@@ -53,7 +53,7 @@ export const fetchCustomers = createAsyncThunk<CustomerRow[], number, { rejectVa
       const response = await api.get(`/api/organizations/${organizationId}/customers`);
       return response.data.customers ?? [];
     } catch {
-      return thunkApi.rejectWithValue('Musteriler yuklenemedi.');
+      return thunkApi.rejectWithValue('Müşteriler yüklenemedi.');
     }
   }
 );
@@ -66,7 +66,7 @@ export const createCustomer = createAsyncThunk<void, UpsertCustomerPayload, { re
       // Mutasyonlardan sonra liste kaynagini backend ile senkronluyoruz.
       await thunkApi.dispatch(fetchCustomers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Isim benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. İsim benzersiz olmali.');
     }
   }
 );
@@ -75,14 +75,14 @@ export const updateCustomer = createAsyncThunk<void, UpsertCustomerPayload, { re
   'customers/update',
   async ({ organizationId, id, ...payload }, thunkApi) => {
     if (!id) {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Kayit secilmedi.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
     try {
       await api.put(`/api/organizations/${organizationId}/customers/${id}`, payload);
-      // Karma lokal state guncellemesi yerine listeyi yeniden cekiyoruz.
+      // Karma lokal state güncellemesi yerine listeyi yeniden cekiyoruz.
       await thunkApi.dispatch(fetchCustomers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz. Isim benzersiz olmali.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız. İsim benzersiz olmali.');
     }
   }
 );
@@ -92,10 +92,10 @@ export const deleteCustomer = createAsyncThunk<void, { organizationId: number; i
   async ({ organizationId, id }, thunkApi) => {
     try {
       await api.delete(`/api/organizations/${organizationId}/customers/${id}`);
-      // Silme sonrasi guncel snapshot.
+      // Silme sonrasi güncel snapshot.
       await thunkApi.dispatch(fetchCustomers(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Silme basarisiz.');
+      return thunkApi.rejectWithValue('Silme başarısız.');
     }
   }
 );
@@ -126,7 +126,7 @@ const customersSlice = createSlice({
       })
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Musteriler yuklenemedi.';
+        state.error = action.payload ?? 'Müşteriler yüklenemedi.';
       })
       .addCase(createCustomer.pending, (state) => {
         state.mutating = true;
@@ -137,7 +137,7 @@ const customersSlice = createSlice({
       })
       .addCase(createCustomer.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(updateCustomer.pending, (state) => {
         state.mutating = true;
@@ -148,7 +148,7 @@ const customersSlice = createSlice({
       })
       .addCase(updateCustomer.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(deleteCustomer.pending, (state) => {
         state.mutating = true;
@@ -159,7 +159,7 @@ const customersSlice = createSlice({
       })
       .addCase(deleteCustomer.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Silme basarisiz.';
+        state.error = action.payload ?? 'Silme başarısız.';
       });
   }
 });

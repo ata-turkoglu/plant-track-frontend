@@ -141,7 +141,7 @@ export default function OrganizationPage() {
       message: 'Bu lokasyonu silmek istiyor musun?',
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Sil',
-      rejectLabel: 'Vazgec',
+      rejectLabel: 'Vazgeç',
       acceptClassName: 'p-button-danger p-button-sm',
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {

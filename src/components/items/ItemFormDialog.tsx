@@ -47,7 +47,7 @@ export default function ItemFormDialog({
 
   return (
     <Dialog
-      header={mode === 'edit' ? 'Malzeme Duzenle' : 'Yeni Malzeme'}
+      header={mode === 'edit' ? 'Malzeme Düzenle' : 'Yeni Malzeme'}
       visible={visible}
       onHide={onHide}
       className="w-full max-w-lg"
@@ -61,12 +61,12 @@ export default function ItemFormDialog({
             options={warehouseTypeOptions}
             className="w-full"
             disabled={warehouseTypeDisabled}
-            placeholder="Depo tipi sec"
+            placeholder="Depo tipi seç"
           />
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm font-medium text-slate-700">Isim</span>
+          <span className="text-sm font-medium text-slate-700">İsim</span>
           <InputText value={draft.name} onChange={(e) => onDraftChange({ ...draft, name: e.target.value })} className="w-full" />
         </label>
 
@@ -99,7 +99,7 @@ export default function ItemFormDialog({
 
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Olcu / Spec</span>
+            <span className="text-sm font-medium text-slate-700">Ölçü / Spec</span>
             <InputText
               value={draft.sizeSpec}
               onChange={(e) => onDraftChange({ ...draft, sizeSpec: e.target.value })}
@@ -107,7 +107,7 @@ export default function ItemFormDialog({
             />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Olcu Birimi</span>
+            <span className="text-sm font-medium text-slate-700">Ölçü Birimi</span>
             <Dropdown
               value={draft.sizeUnitId}
               onChange={(e) => onDraftChange({ ...draft, sizeUnitId: e.value ?? null })}
@@ -124,7 +124,7 @@ export default function ItemFormDialog({
         </label>
 
         <div className="flex items-center justify-end gap-2">
-          <Button label="Vazgec" text onClick={onHide} />
+          <Button label="Vazgeç" text onClick={onHide} />
           <Button label="Kaydet" onClick={onSubmit} loading={loading} disabled={submitDisabled} />
         </div>
       </div>

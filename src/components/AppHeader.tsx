@@ -55,7 +55,7 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-slate-200 px-4 shadow-sm">
+    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-neutral-200 px-4 shadow-sm">
       <div className="flex items-center gap-3">
         <Button
           icon={isDesktop ? (sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left') : 'pi pi-bars'}

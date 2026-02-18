@@ -27,7 +27,7 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
   const widthClass = useMemo(() => (collapsed ? 'w-16' : 'w-60'), [collapsed]);
 
   return (
-    <aside className={`${widthClass} sidebar-shadow-right border-r border-slate-300 bg-slate-200 transition-all duration-200`}>
+    <aside className={`${widthClass} sidebar-shadow-right border-r border-slate-300 bg-neutral-200 transition-all duration-200`}>
       <nav className="flex h-full flex-col gap-1.5 p-3">
         {items.map((item) => {
           const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);

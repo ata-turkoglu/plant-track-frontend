@@ -106,8 +106,8 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
       const nodes: NodeRow[] = nodesRes.data.nodes ?? [];
       const items: ItemRow[] = itemsRes.data.items ?? [];
 
-      // Uretim depolarini kod/isim anahtar kelimeleriyle seciyoruz.
-      const productionKeywords = ['production', 'uretim', 'üretim', 'finished', 'mamul', 'product', 'finished_good'];
+      // Üretim depolarini kod/isim anahtar kelimeleriyle seciyoruz.
+      const productionKeywords = ['production', 'üretim', 'üretim', 'finished', 'mamul', 'product', 'finished_good'];
       const productionTypeIds = new Set(
         warehouseTypes
           .filter((warehouseType) => {
@@ -173,7 +173,7 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
           total += qty;
           const itemLabel = row.item_code
             ? `${row.item_code}${row.item_name ? ` - ${row.item_name}` : ''}`
-            : row.item_name ?? 'Bilinmeyen Urun';
+            : row.item_name ?? 'Bilinmeyen Ürün';
           itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
         }
         dailyItemMaps.push(itemMap);
@@ -194,7 +194,7 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
 
       return { labels, totals, itemSeries };
     } catch {
-      return thunkApi.rejectWithValue('Uretim stok verileri yuklenemedi.');
+      return thunkApi.rejectWithValue('Üretim stok verileri yüklenemedi.');
     }
   }
 );
@@ -229,7 +229,7 @@ const dashboardSlice = createSlice({
       .addCase(fetchProductionDailyStock.rejected, (state, action) => {
         state.productionLoading = false;
         state.productionDailyStock = { labels: [], totals: [], itemSeries: [] };
-        state.error = action.payload ?? 'Uretim stok verileri yuklenemedi.';
+        state.error = action.payload ?? 'Üretim stok verileri yüklenemedi.';
       });
   }
 });

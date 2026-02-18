@@ -2,7 +2,8 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --app-font: 'Noto Sans', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: var(--app-font);
 }
 
 html,
@@ -14,10 +15,19 @@ body,
 body {
   margin: 0;
   color: #0f172a;
+  font-family: var(--app-font);
 }
 
 .p-component {
   font-size: 0.875rem;
+  font-family: var(--app-font);
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: var(--app-font);
 }
 
 /* One-sided shadow for the app sidebar (right side only). */
@@ -62,4 +72,10 @@ tr.inventory-row-out > td {
 
 .inventory-node-dropdown .p-dropdown-panel {
   max-width: min(36rem, 92vw);
+}
+
+/* DataTable headers: slightly softer background across pages. */
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #cbd5e1 !important;
 }

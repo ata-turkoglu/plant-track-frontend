@@ -22,6 +22,22 @@ import {
   updateMaterialItem
 } from '../store/materialsSlice';
 
+function normalizeWarehouseLabel(name: string) {
+  if (name === 'Urun') return 'Ürün';
+  if (name === 'Yedek Parca') return 'Yedek Parça';
+  return name;
+}
+
+function warehouseIconByType(name: string, code: string) {
+  const key = `${code} ${name}`.toLowerCase();
+  if (key.includes('hammadde') || key.includes('raw')) return 'pi pi-circle-fill';
+  if (key.includes('yedek') || key.includes('spare')) return 'pi pi-cog';
+  if (key.includes('ürün') || key.includes('urun') || key.includes('product') || key.includes('finished')) {
+    return 'pi pi-box';
+  }
+  return 'pi pi-tag';
+}
+
 const emptyDraft: ItemFormDraft = {
   warehouseTypeId: null,
   code: '',
@@ -75,8 +91,19 @@ function MaterialsPageImpl() {
   const tabItems = useMemo<MenuItem[]>(
     () =>
       warehouseTypes.map((wt) => ({
-        label: wt.name,
-        command: () => setActiveWarehouseTypeId(wt.id)
+        label: normalizeWarehouseLabel(wt.name),
+        command: () => setActiveWarehouseTypeId(wt.id),
+        template: (item, options) => {
+          const iconClass = warehouseIconByType(wt.name, wt.code);
+          return (
+            <a className={options.className} onClick={options.onClick}>
+              <div className="flex items-center gap-2">
+                <i className={`${iconClass} text-sm text-slate-600`} aria-hidden />
+                <span>{item.label}</span>
+              </div>
+            </a>
+          );
+        }
       })),
     [warehouseTypes]
   );
@@ -177,12 +204,12 @@ function MaterialsPageImpl() {
   const remove = (row: ItemTableRow) => {
     if (!organizationId) return;
     confirmDialog({
-      message: `${row.code} - ${row.name} kaydini pasif etmek istiyor musun?`,
-      header: 'Silme Onayi',
+      message: `${row.code} - ${row.name} kaydını pasif etmek istiyor musun?`,
+      header: 'Silme Onayı',
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
       acceptLabel: 'Pasif Et',
-      rejectLabel: 'Vazgec',
+      rejectLabel: 'Vazgeç',
       accept: async () => {
         try {
           await dispatch(
@@ -200,7 +227,7 @@ function MaterialsPageImpl() {
   const globalFilterFields = useMemo(() => ['code', 'name', 'brand', 'model', 'size_spec'], []);
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadi. Lutfen tekrar giris yap." className="w-full" />;
+    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
   }
 
   return (
@@ -211,7 +238,7 @@ function MaterialsPageImpl() {
             {tabItems.length > 0 ? (
               <TabMenu model={tabItems} activeIndex={activeTabIndex} />
             ) : (
-              <span className="text-sm text-slate-500">Depo tipi bulunamadi.</span>
+              <span className="text-sm text-slate-500">Depo tipi bulunamadı.</span>
             )}
           </div>
           <Button label="Yeni Malzeme" icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />

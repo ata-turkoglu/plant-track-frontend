@@ -33,6 +33,22 @@ import {
   upsertInventoryMovement
 } from '../store/inventorySlice';
 
+function normalizeWarehouseLabel(name: string) {
+  if (name === 'Urun') return 'Ürün';
+  if (name === 'Yedek Parca') return 'Yedek Parça';
+  return name;
+}
+
+function warehouseIconByType(name: string, code: string) {
+  const key = `${code} ${name}`.toLowerCase();
+  if (key.includes('hammadde') || key.includes('raw')) return 'pi pi-circle-fill';
+  if (key.includes('yedek') || key.includes('spare')) return 'pi pi-cog';
+  if (key.includes('ürün') || key.includes('urun') || key.includes('product') || key.includes('finished')) {
+    return 'pi pi-box';
+  }
+  return 'pi pi-tag';
+}
+
 type MovementDisplayRow = {
   // DataTable needs a stable key; for transfers use groupId.
   row_key: string;
@@ -97,6 +113,7 @@ export default function InventoryMovementsPage() {
   const [itemsListOpen, setItemsListOpen] = useState(false);
   const [itemsSearch, setItemsSearch] = useState('');
   const [movementSearch, setMovementSearch] = useState('');
+  const [contentTab, setContentTab] = useState<'movements' | 'balances'>('movements');
   const [movementFilters, setMovementFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     from_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -401,7 +418,7 @@ export default function InventoryMovementsPage() {
       setEntryOpen(false);
       setEditingMovementId(null);
     } catch {
-      setLocalError('Kaydetme basarisiz.');
+      setLocalError('Kaydetme başarısız.');
     }
   };
 
@@ -409,7 +426,7 @@ export default function InventoryMovementsPage() {
     if (!organizationId) return;
     const warehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!warehouseTypeId) {
-      setLocalError('Depo tipi secili degil.');
+      setLocalError('Depo tipi seçili değil.');
       return;
     }
     const code = itemDraft.code.trim();
@@ -462,7 +479,7 @@ export default function InventoryMovementsPage() {
       }
       setItemDraft(emptyItemDraft);
     } catch {
-      setLocalError('Urun/Malzeme eklenemedi (kod benzersiz olmali).');
+      setLocalError('Ürün/Malzeme eklenemedi (kod benzersiz olmali).');
     }
   };
 
@@ -495,11 +512,11 @@ export default function InventoryMovementsPage() {
             if (!organizationId) return;
             confirmDialog({
               message: 'Bu stok hareketini silmek istiyor musun?',
-              header: 'Silme Onayi',
+              header: 'Silme Onayı',
               icon: 'pi pi-exclamation-triangle',
               acceptClassName: 'p-button-danger p-button-sm',
               acceptLabel: 'Sil',
-              rejectLabel: 'Vazgec',
+              rejectLabel: 'Vazgeç',
               accept: async () => {
                 setLocalError('');
                 try {
@@ -511,7 +528,7 @@ export default function InventoryMovementsPage() {
                     })
                   ).unwrap();
                 } catch {
-                  setLocalError('Silme basarisiz.');
+                  setLocalError('Silme başarısız.');
                 }
               }
             });
@@ -527,12 +544,27 @@ export default function InventoryMovementsPage() {
   }
 
   const tabItems: MenuItem[] = warehouseTypes.map((wt) => ({
-    label: wt.name,
-    icon: 'pi pi-box',
-    command: () => setActiveWarehouseTypeId(wt.id)
+    label: normalizeWarehouseLabel(wt.name),
+    command: () => setActiveWarehouseTypeId(wt.id),
+    template: (item, options) => {
+      const iconClass = warehouseIconByType(wt.name, wt.code);
+      return (
+        <a className={options.className} onClick={options.onClick}>
+          <div className="flex items-center gap-2">
+            <i className={`${iconClass} text-sm text-slate-600`} aria-hidden />
+            <span>{item.label}</span>
+          </div>
+        </a>
+      );
+    }
   }));
+  const contentTabItems: MenuItem[] = [
+    { label: 'Hareketler', icon: 'pi pi-arrow-right-arrow-left', command: () => setContentTab('movements') },
+    { label: 'Stok', icon: 'pi pi-table', command: () => setContentTab('balances') }
+  ];
 
   const activeIndex = Math.max(0, warehouseTypes.findIndex((t) => t.id === activeWarehouseTypeId));
+  const contentActiveIndex = contentTab === 'movements' ? 0 : 1;
   const canCreateMovement = activeWarehouseTypeId !== null && groupedNodeOptions.some((group) => group.items.length > 0);
 
   const activeWarehouseTypeName = activeWarehouseTypeId ? warehouseTypeNameById.get(activeWarehouseTypeId) ?? '-' : '-';
@@ -553,97 +585,120 @@ export default function InventoryMovementsPage() {
         content="Bu stok hareketi hangi belge/isten kaynaklandi? Ornek: PO (Satin Alma), WO (Is Emri), SO (Satis), INV (Fatura)."
       />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white pb-2">
-        <TabMenu model={tabItems} activeIndex={activeIndex} className="p-component-sm" />
+      <div className="rounded-xl border border-slate-200 bg-white pb-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-0 flex-1 overflow-x-auto">
+            <TabMenu model={tabItems} activeIndex={activeIndex} className="p-component-sm" />
+          </div>
+          <div className="hidden h-8 w-px bg-slate-200 lg:block" />
+          <div className="overflow-x-auto">
+            <TabMenu model={contentTabItems} activeIndex={contentActiveIndex} className="p-component-sm" />
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button
-          label={`Malzemeler (${activeWarehouseTypeName})`}
-          icon="pi pi-list"
-          size="small"
-          outlined
-          onClick={() => setItemsListOpen(true)}
-          disabled={!activeWarehouseTypeId}
-        />
-        <IconField iconPosition="left" className="w-full sm:w-auto">
-          <InputIcon className="pi pi-search text-slate-400" />
-          <InputText
-            value={movementSearch}
-            onChange={(e) => {
-              const v = e.target.value;
-              setMovementSearch(v);
-              setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-            }}
-            placeholder="Ara: kod, urun, depo..."
-            className="w-full sm:w-72"
+      {contentTab === 'movements' ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            label={`Malzemeler (${activeWarehouseTypeName})`}
+            icon="pi pi-list"
+            size="small"
+            outlined
+            onClick={() => setItemsListOpen(true)}
+            disabled={!activeWarehouseTypeId}
           />
-        </IconField>
-        <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
-      </div>
+          <IconField iconPosition="left" className="w-full sm:w-auto">
+            <InputIcon className="pi pi-search text-slate-400" />
+            <InputText
+              value={movementSearch}
+              onChange={(e) => {
+                const v = e.target.value;
+                setMovementSearch(v);
+                setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+              }}
+              placeholder="Ara: kod, ürün, depo..."
+              className="w-full sm:w-72"
+            />
+          </IconField>
+          <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            label={`Malzemeler (${activeWarehouseTypeName})`}
+            icon="pi pi-list"
+            size="small"
+            outlined
+            onClick={() => setItemsListOpen(true)}
+            disabled={!activeWarehouseTypeId}
+          />
+          <Dropdown
+            value={selectedBalanceWarehouseId}
+            onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
+            options={balanceWarehouseOptions}
+            className="w-full sm:w-72"
+            placeholder="Depo seç"
+            filter
+            disabled={balanceWarehouseOptions.length === 0}
+          />
+        </div>
+      )}
 
       {localError || error ? <Message severity="error" text={localError || error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="overflow-x-auto py-3">
-          <DataTable
-            value={displayMovements}
-            loading={loading}
-            size="small"
-            emptyMessage="Hareket yok."
-            removableSort
-            sortMode="multiple"
-            sortField="occurred_at"
-            sortOrder={-1}
-            filters={movementFilters}
-            onFilter={(e) => setMovementFilters(e.filters)}
-            globalFilterFields={['from_label', 'to_label', 'item_code', 'item_name', 'uom']}
-            dataKey="row_key"
-            tableStyle={{ minWidth: '70rem' }}
-          >
-            <Column field="item_code" header="Kod" sortable filter filterPlaceholder="Ara" />
-            <Column field="item_name" header="Urun" sortable filter filterPlaceholder="Ara" />
-            <Column field="from_label" header="Nereden" sortable filter filterPlaceholder="Ara" />
-            <Column field="to_label" header="Nereye" sortable filter filterPlaceholder="Ara" />
-            <Column field="quantity" header="Miktar" sortable style={{ width: '8rem' }} />
-            <Column field="uom" header="Birim" sortable filter filterPlaceholder="Ara"/>
-            <Column header="Tarih" body={occurredAtBody} sortField="occurred_at" sortable/>
-            <Column header="" body={actionsBody} />
-          </DataTable>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="py-3">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-slate-700">Stok Bilgisi</span>
-            <Dropdown
-              value={selectedBalanceWarehouseId}
-              onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
-              options={balanceWarehouseOptions}
-              className="w-full sm:w-72"
-              placeholder="Depo sec"
-              filter
-              disabled={balanceWarehouseOptions.length === 0}
-            />
-          </div>
-          <div className="overflow-x-auto">
-            <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
-              <Column field="item_code" header="Kod" sortable />
-              <Column field="item_name" header="Urun" sortable />
-              <Column field="balance_qty" header="Bakiye" sortable/>
-              <Column
-                field="unit_code"
-                header="Birim"
-                sortable
-                body={(row: { unit_code?: string | null }) =>
-                  row.unit_code ? unitLabelByCode.get(row.unit_code.toLowerCase()) ?? row.unit_code : '-'
-                }
-              />
+      {contentTab === 'movements' ? (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto py-3">
+            <DataTable
+              value={displayMovements}
+              loading={loading}
+              size="small"
+              emptyMessage="Hareket yok."
+              removableSort
+              sortMode="multiple"
+              sortField="occurred_at"
+              sortOrder={-1}
+              filters={movementFilters}
+              onFilter={(e) => setMovementFilters(e.filters)}
+              globalFilterFields={['from_label', 'to_label', 'item_code', 'item_name', 'uom']}
+              dataKey="row_key"
+              tableStyle={{ minWidth: '70rem' }}
+            >
+              <Column field="item_code" header="Kod" sortable filter filterPlaceholder="Ara" />
+              <Column field="item_name" header="Ürün" sortable filter filterPlaceholder="Ara" />
+              <Column field="from_label" header="Nereden" sortable filter filterPlaceholder="Ara" />
+              <Column field="to_label" header="Nereye" sortable filter filterPlaceholder="Ara" />
+              <Column field="quantity" header="Miktar" sortable style={{ width: '8rem' }} />
+              <Column field="uom" header="Birim" sortable filter filterPlaceholder="Ara" />
+              <Column header="Tarih" body={occurredAtBody} sortField="occurred_at" sortable />
+              <Column header="" body={actionsBody} />
             </DataTable>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="py-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Stok Bilgisi</span>
+            </div>
+            <div className="overflow-x-auto">
+              <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
+                <Column field="item_code" header="Kod" sortable />
+                <Column field="item_name" header="Ürün" sortable />
+                <Column field="balance_qty" header="Bakiye" sortable />
+                <Column
+                  field="unit_code"
+                  header="Birim"
+                  sortable
+                  body={(row: { unit_code?: string | null }) =>
+                    row.unit_code ? unitLabelByCode.get(row.unit_code.toLowerCase()) ?? row.unit_code : '-'
+                  }
+                />
+              </DataTable>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog
         header={editingMovementId ? 'Stok Hareketi Duzelt' : 'Yeni Stok Hareketi'}
@@ -671,7 +726,7 @@ export default function InventoryMovementsPage() {
                 optionGroupChildren="items"
                 className="w-full inventory-node-dropdown"
                 filter
-                placeholder="Kaynak node sec"
+                placeholder="Kaynak node seç"
               />
             </label>
             <label className="grid gap-2">
@@ -684,7 +739,7 @@ export default function InventoryMovementsPage() {
                 optionGroupChildren="items"
                 className="w-full inventory-node-dropdown"
                 filter
-                placeholder="Hedef node sec"
+                placeholder="Hedef node seç"
               />
             </label>
           </div>
@@ -714,7 +769,7 @@ export default function InventoryMovementsPage() {
                     options={itemOptions}
                     className="w-full min-w-0"
                     filter
-                    placeholder="Urun/Malzeme"
+                    placeholder="Ürün/Malzeme"
                   />
                   <InputNumber
                     value={line.quantity}
@@ -752,7 +807,7 @@ export default function InventoryMovementsPage() {
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgec" size="small" text onClick={() => setEntryOpen(false)} />
+            <Button label="Vazgeç" size="small" text onClick={() => setEntryOpen(false)} />
             <Button
               label="Kaydet"
               size="small"
@@ -812,7 +867,7 @@ export default function InventoryMovementsPage() {
               tableStyle={{ minWidth: '62rem' }}
               actionBody={(row) => (
                 <div className="flex items-center justify-end gap-1">
-                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label="Duzenle" />
+                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label="Düzenle" />
                   <Button
                     icon="pi pi-trash"
                     size="small"
@@ -823,11 +878,11 @@ export default function InventoryMovementsPage() {
                       if (!organizationId) return;
                       confirmDialog({
                         message: 'Bu item silinsin mi? (Pasife alinacak)',
-                        header: 'Silme Onayi',
+                        header: 'Silme Onayı',
                         icon: 'pi pi-exclamation-triangle',
                         acceptClassName: 'p-button-danger p-button-sm',
                         acceptLabel: 'Sil',
-                        rejectLabel: 'Vazgec',
+                        rejectLabel: 'Vazgeç',
                         accept: async () => {
                           setLocalError('');
                           try {
@@ -838,7 +893,7 @@ export default function InventoryMovementsPage() {
                               })
                             ).unwrap();
                           } catch {
-                            setLocalError('Silme basarisiz.');
+                            setLocalError('Silme başarısız.');
                           }
                         }
                       });

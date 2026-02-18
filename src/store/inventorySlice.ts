@@ -234,7 +234,7 @@ export const refreshInventoryItems = createAsyncThunk<ItemRow[], number, { rejec
       const response = await api.get(`/api/organizations/${organizationId}/items`);
       return response.data.items ?? [];
     } catch {
-      return thunkApi.rejectWithValue('Urunler yuklenemedi.');
+      return thunkApi.rejectWithValue('Ürünler yüklenemedi.');
     }
   }
 );
@@ -249,10 +249,10 @@ export const upsertInventoryMovement = createAsyncThunk<void, UpsertMovementPayl
         await api.post(`/api/organizations/${organizationId}/inventory-movements`, payload);
       }
 
-      // Hareket sonrasi join alanlari guncel kalmasi icin dinamik veriler tazelenir.
+      // Hareket sonrasi join alanlari güncel kalmasi icin dinamik veriler tazelenir.
       await thunkApi.dispatch(refreshInventoryDynamicData(organizationId));
     } catch {
-      return thunkApi.rejectWithValue('Kaydetme basarisiz.');
+      return thunkApi.rejectWithValue('Kaydetme başarısız.');
     }
   }
 );
@@ -266,7 +266,7 @@ export const deleteInventoryMovement = createAsyncThunk<
     await api.delete(`/api/organizations/${organizationId}/inventory-movements/${movementId}`);
     await thunkApi.dispatch(refreshInventoryDynamicData(organizationId));
   } catch {
-    return thunkApi.rejectWithValue('Silme basarisiz.');
+    return thunkApi.rejectWithValue('Silme başarısız.');
   }
 });
 
@@ -301,7 +301,7 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
       await thunkApi.dispatch(refreshInventoryItems(organizationId));
       return item;
     } catch {
-      return thunkApi.rejectWithValue('Urun/Malzeme eklenemedi (kod benzersiz olmali).');
+      return thunkApi.rejectWithValue('Ürün/Malzeme eklenemedi (kod benzersiz olmali).');
     }
   }
 );
@@ -315,7 +315,7 @@ export const deleteInventoryItem = createAsyncThunk<
     await api.delete(`/api/organizations/${organizationId}/items/${itemId}`);
     await thunkApi.dispatch(refreshInventoryItems(organizationId));
   } catch {
-    return thunkApi.rejectWithValue('Silme basarisiz.');
+    return thunkApi.rejectWithValue('Silme başarısız.');
   }
 });
 
@@ -366,7 +366,7 @@ const inventorySlice = createSlice({
         state.items = action.payload;
       })
       .addCase(refreshInventoryItems.rejected, (state, action) => {
-        state.error = action.payload ?? 'Urunler yuklenemedi.';
+        state.error = action.payload ?? 'Ürünler yüklenemedi.';
       })
       .addCase(upsertInventoryMovement.pending, (state) => {
         state.mutating = true;
@@ -377,7 +377,7 @@ const inventorySlice = createSlice({
       })
       .addCase(upsertInventoryMovement.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Kaydetme basarisiz.';
+        state.error = action.payload ?? 'Kaydetme başarısız.';
       })
       .addCase(deleteInventoryMovement.pending, (state) => {
         state.mutating = true;
@@ -388,7 +388,7 @@ const inventorySlice = createSlice({
       })
       .addCase(deleteInventoryMovement.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Silme basarisiz.';
+        state.error = action.payload ?? 'Silme başarısız.';
       })
       .addCase(upsertInventoryItem.pending, (state) => {
         state.mutating = true;
@@ -399,7 +399,7 @@ const inventorySlice = createSlice({
       })
       .addCase(upsertInventoryItem.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Urun/Malzeme eklenemedi.';
+        state.error = action.payload ?? 'Ürün/Malzeme eklenemedi.';
       })
       .addCase(deleteInventoryItem.pending, (state) => {
         state.mutating = true;
@@ -410,7 +410,7 @@ const inventorySlice = createSlice({
       })
       .addCase(deleteInventoryItem.rejected, (state, action) => {
         state.mutating = false;
-        state.error = action.payload ?? 'Silme basarisiz.';
+        state.error = action.payload ?? 'Silme başarısız.';
       });
   }
 });
