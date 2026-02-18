@@ -55,7 +55,7 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-200 bg-slate-100 px-4 shadow-sm">
+    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-slate-200 px-4 shadow-sm">
       <div className="flex items-center gap-3">
         <Button
           icon={isDesktop ? (sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left') : 'pi pi-bars'}
@@ -74,7 +74,7 @@ export default function AppHeader() {
 
       <div className="min-w-0 text-center">
         {pageTitle ? (
-          <span className="block truncate text-sm font-semibold text-slate-800">{pageTitle}</span>
+          <span className="block truncate text-md font-semibold text-slate-800">{pageTitle}</span>
         ) : null}
       </div>
 
