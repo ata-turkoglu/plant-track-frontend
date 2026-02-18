@@ -1,108 +1,57 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import * as echarts from 'echarts';
 import moment from 'moment';
 import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 
+import StockBar3DChart from '../components/dashboard/StockBar3DChart';
 import type { AppDispatch, RootState } from '../store';
-import { fetchHealthStatus, fetchProductionDailyStock } from '../store/dashboardSlice';
+import { fetchProductionDailyStock, fetchRawMaterialDailyStock } from '../store/dashboardSlice';
 
 export default function DashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { healthStatus, productionDailyStock, productionLoading, error } = useSelector((s: RootState) => s.dashboard);
-  const chartRef = useRef<HTMLDivElement | null>(null);
+  const { productionDailyStock, rawMaterialDailyStock, productionLoading, rawMaterialLoading, error } = useSelector(
+    (s: RootState) => s.dashboard
+  );
 
   const lastUpdated = useMemo(() => moment().format('DD.MM.YYYY HH:mm'), []);
   const latestTotal = productionDailyStock.totals[productionDailyStock.totals.length - 1] ?? 0;
+  const latestRawTotal = rawMaterialDailyStock.totals[rawMaterialDailyStock.totals.length - 1] ?? 0;
 
   useEffect(() => {
-    if (!chartRef.current) return;
-
-    const chart = echarts.init(chartRef.current);
-    const series = [
-      {
-        name: 'Toplam',
-        type: 'bar',
-        barMaxWidth: 28,
-        itemStyle: { color: '#94a3b8' },
-        data: productionDailyStock.totals
-      },
-      ...productionDailyStock.itemSeries.map((item, index) => ({
-        name: item.name,
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        yAxisIndex: 1,
-        lineStyle: { width: 2 },
-        data: item.data,
-        color: ['#64748b', '#475569', '#334155'][index % 3]
-      }))
-    ];
-
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: {
-        type: 'scroll',
-        textStyle: { color: '#475569', fontSize: 11 }
-      },
-      grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: productionDailyStock.labels,
-        axisLabel: { color: '#64748b' }
-      },
-      yAxis: [
-        { type: 'value', axisLabel: { color: '#64748b' } },
-        { type: 'value', axisLabel: { color: '#64748b' } }
-      ],
-      series
-    });
-
-    const onResize = () => chart?.resize();
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      window.removeEventListener('resize', onResize);
-      chart.dispose();
-    };
-  }, [productionDailyStock]);
-
-  useEffect(() => {
-    dispatch(fetchHealthStatus());
     if (organizationId) {
       dispatch(fetchProductionDailyStock(organizationId));
+      dispatch(fetchRawMaterialDailyStock(organizationId));
     }
   }, [dispatch, organizationId]);
 
   return (
     <div className="grid gap-4">
-      <Card className="p-component-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-700">Üretim depolari / FINISHED_GOOD stok trendi</div>
-          <span className="text-xs text-slate-500">Last update: {lastUpdated}</span>
-        </div>
-      </Card>
-
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-component-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">7 Gunluk Stok</h2>
-            <span className="text-xs text-slate-600">API: {healthStatus}</span>
-          </div>
-          {productionDailyStock.labels.length > 0 ? (
-            <div ref={chartRef} className="h-80 w-full" />
-          ) : (
-            <div className="flex h-80 items-center justify-center text-xs text-slate-500">
-              {productionLoading ? 'Yükleniyor...' : 'Grafik için veri bulunamadı.'}
-            </div>
-          )}
+          <div className="mb-3 text-sm font-semibold text-slate-900">Hammadde Stoku</div>
+          <StockBar3DChart data={rawMaterialDailyStock} loading={rawMaterialLoading} />
         </Card>
 
+        <Card className="p-component-sm">
+          <div className="mb-3 text-sm font-semibold text-slate-900">Üretim Stoku</div>
+          <StockBar3DChart data={productionDailyStock} loading={productionLoading} />
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-component-sm">
+          <div className="grid gap-2 text-sm text-slate-700">
+            <div className="font-medium text-slate-900">Hammadde Stok Ozeti</div>
+            <div>Guncel toplam stok: {latestRawTotal.toLocaleString('tr-TR')}</div>
+            <div>Depo tipi filtre: raw / hammadde</div>
+            <div>Ürün filtre: sadece `items.type = RAW_MATERIAL`</div>
+            <div>Periyot: son 7 gun (gun sonu bakiye)</div>
+          </div>
+        </Card>
         <Card className="p-component-sm">
           <div className="grid gap-2 text-sm text-slate-700">
             <div className="font-medium text-slate-900">Üretim Stok Ozeti</div>

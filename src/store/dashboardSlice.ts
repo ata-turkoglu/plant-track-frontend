@@ -49,7 +49,9 @@ type DashboardState = {
   healthStatus: string;
   healthLoading: boolean;
   productionLoading: boolean;
+  rawMaterialLoading: boolean;
   productionDailyStock: ProductionDailyStock;
+  rawMaterialDailyStock: ProductionDailyStock;
   error: string;
 };
 
@@ -57,7 +59,13 @@ const initialState: DashboardState = {
   healthStatus: 'checking',
   healthLoading: false,
   productionLoading: false,
+  rawMaterialLoading: false,
   productionDailyStock: {
+    labels: [],
+    totals: [],
+    itemSeries: []
+  },
+  rawMaterialDailyStock: {
     labels: [],
     totals: [],
     itemSeries: []
@@ -199,6 +207,111 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
   }
 );
 
+export const fetchRawMaterialDailyStock = createAsyncThunk<ProductionDailyStock, number, { rejectValue: string }>(
+  'dashboard/fetchRawMaterialDailyStock',
+  async (organizationId, thunkApi) => {
+    try {
+      const [warehouseTypesRes, warehousesRes, nodesRes, itemsRes] = await Promise.all([
+        api.get(`/api/organizations/${organizationId}/warehouse-types`),
+        api.get(`/api/organizations/${organizationId}/warehouses`),
+        api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE`),
+        api.get(`/api/organizations/${organizationId}/items`)
+      ]);
+
+      const warehouseTypes: WarehouseTypeRow[] = warehouseTypesRes.data.warehouse_types ?? [];
+      const warehouses: WarehouseRow[] = warehousesRes.data.warehouses ?? [];
+      const nodes: NodeRow[] = nodesRes.data.nodes ?? [];
+      const items: ItemRow[] = itemsRes.data.items ?? [];
+
+      const rawMaterialKeywords = ['raw', 'raw_material', 'hammadde', 'ham madde'];
+      const rawMaterialTypeIds = new Set(
+        warehouseTypes
+          .filter((warehouseType) => {
+            const haystack = `${warehouseType.code} ${warehouseType.name}`.toLowerCase();
+            return rawMaterialKeywords.some((keyword) => haystack.includes(keyword));
+          })
+          .map((warehouseType) => warehouseType.id)
+      );
+
+      const rawMaterialWarehouses = warehouses.filter((warehouse) => rawMaterialTypeIds.has(warehouse.warehouse_type_id));
+
+      const warehouseNodeByRefId = new Map<number, number>();
+      for (const node of nodes) {
+        if (node.node_type !== 'WAREHOUSE' || node.ref_table !== 'warehouses') continue;
+        const warehouseId = Number(node.ref_id);
+        if (!Number.isFinite(warehouseId)) continue;
+        warehouseNodeByRefId.set(warehouseId, node.id);
+      }
+
+      const rawMaterialNodeIds = rawMaterialWarehouses
+        .map((warehouse) => warehouseNodeByRefId.get(warehouse.id))
+        .filter((nodeId): nodeId is number => Number.isFinite(nodeId));
+
+      const rawMaterialItemIds = items.filter((item) => item.type === 'RAW_MATERIAL').map((item) => item.id);
+
+      if (rawMaterialNodeIds.length === 0 || rawMaterialItemIds.length === 0) {
+        return { labels: [], totals: [], itemSeries: [] };
+      }
+
+      const labels: string[] = [];
+      const dailyItemMaps: Array<Map<string, number>> = [];
+      const dayEndDates: Date[] = [];
+
+      for (let offset = 6; offset >= 0; offset -= 1) {
+        const day = new Date();
+        day.setDate(day.getDate() - offset);
+        day.setHours(23, 59, 59, 999);
+        dayEndDates.push(day);
+        labels.push(formatDayLabel(day));
+      }
+
+      const dailyBalances = await Promise.all(
+        dayEndDates.map(async (dayEndDate) => {
+          const response = await api.get(`/api/organizations/${organizationId}/inventory-balances`, {
+            params: {
+              node_ids: rawMaterialNodeIds.join(','),
+              item_ids: rawMaterialItemIds.join(','),
+              statuses: 'POSTED',
+              to_date: dayEndDate.toISOString()
+            }
+          });
+          return (response.data.balances ?? []) as BalanceRow[];
+        })
+      );
+
+      const totals = dailyBalances.map((dayRows) => {
+        const itemMap = new Map<string, number>();
+        let total = 0;
+        for (const row of dayRows) {
+          const qty = toNumber(row.balance_qty);
+          total += qty;
+          const itemLabel = row.item_code
+            ? `${row.item_code}${row.item_name ? ` - ${row.item_name}` : ''}`
+            : row.item_name ?? 'Bilinmeyen Ürün';
+          itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
+        }
+        dailyItemMaps.push(itemMap);
+        return total;
+      });
+
+      const lastDayMap = dailyItemMaps[dailyItemMaps.length - 1] ?? new Map<string, number>();
+      const topItems = [...lastDayMap.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([itemName]) => itemName);
+
+      const itemSeries: ProductionItemSeries[] = topItems.map((itemName) => ({
+        name: itemName,
+        data: dailyItemMaps.map((dayMap) => dayMap.get(itemName) ?? 0)
+      }));
+
+      return { labels, totals, itemSeries };
+    } catch {
+      return thunkApi.rejectWithValue('Hammadde stok verileri yüklenemedi.');
+    }
+  }
+);
+
 const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
@@ -230,6 +343,18 @@ const dashboardSlice = createSlice({
         state.productionLoading = false;
         state.productionDailyStock = { labels: [], totals: [], itemSeries: [] };
         state.error = action.payload ?? 'Üretim stok verileri yüklenemedi.';
+      })
+      .addCase(fetchRawMaterialDailyStock.pending, (state) => {
+        state.rawMaterialLoading = true;
+      })
+      .addCase(fetchRawMaterialDailyStock.fulfilled, (state, action) => {
+        state.rawMaterialLoading = false;
+        state.rawMaterialDailyStock = action.payload;
+      })
+      .addCase(fetchRawMaterialDailyStock.rejected, (state, action) => {
+        state.rawMaterialLoading = false;
+        state.rawMaterialDailyStock = { labels: [], totals: [], itemSeries: [] };
+        state.error = action.payload ?? 'Hammadde stok verileri yüklenemedi.';
       });
   }
 });
