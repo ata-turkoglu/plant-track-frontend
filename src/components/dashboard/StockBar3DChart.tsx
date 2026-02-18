@@ -64,7 +64,7 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
         trigger: 'item',
         formatter: (params: { value: [number, number, number] }) => {
           const [x, y, v] = params.value;
-          return `${xLabels[x]}<br/>${yLabels[y]}: ${v.toLocaleString('tr-TR')}`;
+          return `${xLabels[x]}<br/>${yLabels[y]}: ${v.toLocaleString('tr-TR')} Ton (t)`;
         }
       },
       visualMap: {
@@ -126,7 +126,7 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
           emphasis: {
             label: {
               show: true,
-              formatter: (params: { value: [number, number, number] }) => `${params.value[2].toLocaleString('tr-TR')}`
+              formatter: (params: { value: [number, number, number] }) => `${params.value[2].toLocaleString('tr-TR')} t`
             }
           }
         }

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar } from 'primereact/avatar';
 import { Menu } from 'primereact/menu';
 import type { Menu as MenuType } from 'primereact/menu';
@@ -55,7 +55,9 @@ export default function AppHeader() {
   return (
     <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-neutral-200 px-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <img src="/images/logo.webp" alt="PlantTrack" className="h-9 w-9 rounded-md object-cover" />
+        <Link to="/" aria-label="Go to dashboard" className="inline-flex">
+          <img src="/images/logo.webp" alt="PlantTrack" className="h-9 w-9 rounded-md object-cover" />
+        </Link>
         <span className="text-sm font-semibold text-slate-900" style={{ textShadow: '0 1px 2px rgba(15, 23, 42, 0.18)' }}>
           PlantTrack
         </span>

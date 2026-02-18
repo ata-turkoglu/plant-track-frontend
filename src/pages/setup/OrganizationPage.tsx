@@ -173,6 +173,10 @@ export default function OrganizationPage() {
     }
   };
 
+  const toggleSelectedNode = (nodeKey: string) => {
+    setSelectedNodeKey((prev) => (prev === nodeKey ? null : nodeKey));
+  };
+
   const nodeTemplate = (node: TreeNode) => {
     const data = node.data as ChartNodeData | undefined;
     if (!data) return null;
@@ -182,20 +186,25 @@ export default function OrganizationPage() {
     if (data.kind === 'organization') {
       return (
         <div
-          className={`cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
-          onClick={() => setSelectedNodeKey(nodeKey)}
+          className={`select-none cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
+          onClick={() => toggleSelectedNode(nodeKey)}
           role="button"
           tabIndex={0}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') setSelectedNodeKey(nodeKey);
+            if (event.key === 'Enter' || event.key === ' ') toggleSelectedNode(nodeKey);
           }}
         >
           <div className="flex flex-col items-center">
             <div className="max-w-[180px] truncate text-[13px] font-semibold text-slate-900">{data.name}</div>
             <div className="text-[11px] text-slate-500">Organization (root)</div>
           </div>
-          {isSelected ? (
-            <div className="mt-2 flex items-center justify-center gap-0.5">
+          <div
+            className={[
+              'overflow-hidden transition-all duration-200 ease-out',
+              isSelected ? 'mt-2 max-h-12 opacity-100 translate-y-0' : 'mt-0 max-h-0 opacity-0 -translate-y-1 pointer-events-none'
+            ].join(' ')}
+          >
+            <div className="flex items-center justify-center gap-0.5">
               <Button
                 icon="pi pi-plus"
                 size="small"
@@ -213,27 +222,32 @@ export default function OrganizationPage() {
                 onClick={openEditOrg}
               />
             </div>
-          ) : null}
+          </div>
         </div>
       );
     }
 
     return (
       <div
-        className={`cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
-        onClick={() => setSelectedNodeKey(nodeKey)}
+        className={`select-none cursor-pointer rounded-lg border bg-white text-center transition ${isSelected ? 'border-brand-500' : 'border-slate-200'}`}
+        onClick={() => toggleSelectedNode(nodeKey)}
         role="button"
         tabIndex={0}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') setSelectedNodeKey(nodeKey);
+          if (event.key === 'Enter' || event.key === ' ') toggleSelectedNode(nodeKey);
         }}
       >
         <div className="flex flex-col items-center">
           <div className="max-w-[180px] truncate text-[13px] font-semibold text-slate-900">{data.name}</div>
           <div className="text-[11px] text-slate-500">Location</div>
         </div>
-        {isSelected ? (
-          <div className="mt-2 flex items-center justify-center gap-0.5">
+        <div
+          className={[
+            'overflow-hidden transition-all duration-200 ease-out',
+            isSelected ? 'mt-2 max-h-12 opacity-100 translate-y-0' : 'mt-0 max-h-0 opacity-0 -translate-y-1 pointer-events-none'
+          ].join(' ')}
+        >
+          <div className="flex items-center justify-center gap-0.5">
             <Button
               icon="pi pi-plus"
               size="small"
@@ -260,7 +274,7 @@ export default function OrganizationPage() {
               onClick={() => onDeleteLocation(data.id)}
             />
           </div>
-        ) : null}
+        </div>
       </div>
     );
   };

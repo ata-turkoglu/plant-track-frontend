@@ -8,13 +8,13 @@ import { toggleSidebar } from '../store/uiSlice';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const items = [
-  { label: 'Dashboard', icon: 'pi pi-chart-line', to: '/' },
-  { label: 'Inventory', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
+  { label: 'Ana Sayfa', icon: 'pi pi-chart-line', to: '/' },
+  { label: 'Stok Hareketleri', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
   { label: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
-  { label: 'Suppliers', icon: 'pi pi-truck', to: '/suppliers' },
-  { label: 'Customers', icon: 'pi pi-users', to: '/customers' },
-  { label: 'Reports', icon: 'pi pi-table', to: '/reports' },
-  { label: 'Setup', icon: 'pi pi-cog', to: '/setup' }
+  { label: 'Tedarikçiler', icon: 'pi pi-truck', to: '/suppliers' },
+  { label: 'Müşteriler', icon: 'pi pi-users', to: '/customers' },
+  { label: 'Raporlar', icon: 'pi pi-table', to: '/reports' },
+  { label: 'Ayarlar', icon: 'pi pi-cog', to: '/setup' }
 ];
 
 type AppSidebarProps = {
