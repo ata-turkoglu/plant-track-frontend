@@ -32,18 +32,29 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
       const parsed = moment(label, [moment.ISO_8601, 'YYYY-MM-DD', 'DD.MM.YYYY', 'DD.MM', 'YYYY/MM/DD'], true);
       return parsed.isValid() ? parsed.format('DD.MM') : String(label);
     });
-    const yLabels = [...data.itemSeries.map((item) => item.name), 'Toplam'];
+    // Keep low-average items at the front and high-average items at the back for better visibility.
+    const sortedItemSeries = [...data.itemSeries].sort((a, b) => {
+      const avgA = a.data.length ? a.data.reduce((sum, v) => sum + (Number(v) || 0), 0) / a.data.length : 0;
+      const avgB = b.data.length ? b.data.reduce((sum, v) => sum + (Number(v) || 0), 0) / b.data.length : 0;
+      return avgA - avgB;
+    });
+
+    const yLabels = [...sortedItemSeries.map((item) => item.name), 'Toplam'];
     const totalYIndex = yLabels.length - 1;
     const bar3dData: Array<[number, number, number]> = [];
 
-    data.itemSeries.forEach((item, itemIndex) => {
+    sortedItemSeries.forEach((item, itemIndex) => {
       item.data.forEach((value, xIndex) => {
-        bar3dData.push([xIndex, itemIndex, Number(value) || 0]);
+        const qty = Number(value) || 0;
+        if (qty <= 0) return;
+        bar3dData.push([xIndex, itemIndex, qty]);
       });
     });
 
     data.totals.forEach((value, xIndex) => {
-      bar3dData.push([xIndex, totalYIndex, Number(value) || 0]);
+      const qty = Number(value) || 0;
+      if (qty <= 0) return;
+      bar3dData.push([xIndex, totalYIndex, qty]);
     });
 
     const maxValue = bar3dData.reduce((acc, [, , value]) => Math.max(acc, value), 0);
@@ -57,27 +68,41 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
         }
       },
       visualMap: {
-        max: maxValue || 1,
-        calculable: true,
-        realtime: false,
+        show: false,
+        min: 1,
+        max: Math.max(maxValue, 1),
         inRange: {
-          color: ['#313695', '#74add1', '#e0f3f8', '#fee090', '#fdae61']
+          color: ['#9ca3af', '#7aa2c8', '#5f9f95', '#c59a63', '#8b5e5e']
         },
-        textStyle: { color: '#64748b', fontSize: 11 }
+        outOfRange: {
+          color: ['#ffffff']
+        }
       },
       xAxis3D: {
         type: 'category',
-        data: xLabels
+        data: xLabels,
+        name: '',
+        nameTextStyle: { color: 'transparent' },
+        axisLabel: {
+          margin: 18
+        }
       },
       yAxis3D: {
         type: 'category',
-        data: yLabels
+        data: yLabels,
+        name: '',
+        nameTextStyle: { color: 'transparent' }
       },
       zAxis3D: {
         type: 'value',
-        name: 'Ton (t)'
+        name: '',
+        axisLabel: {
+          margin: 24
+        }
       },
       grid3D: {
+        left: 12,
+        right: 8,
         boxWidth: 140,
         boxDepth: 90,
         light: {
@@ -87,7 +112,8 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
         viewControl: {
           projection: 'perspective',
           alpha: 25,
-          beta: 35
+          beta: 35,
+          distance: 240
         }
       },
       series: [
@@ -124,5 +150,5 @@ export default function StockBar3DChart({ data, loading }: StockBar3DChartProps)
     );
   }
 
-  return <div ref={chartRef} className="h-80 w-full" />;
+  return <div ref={chartRef} className="h-96 w-full" />;
 }

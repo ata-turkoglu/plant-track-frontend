@@ -90,6 +90,9 @@ function toNumber(value: string | number | null | undefined) {
   return Number.isFinite(num) ? num : 0;
 }
 
+// NOTE: If unit conversion is introduced, revisit dashboard stock aggregation.
+// Chart values may need to be converted into a shared base unit before summing/comparing.
+
 function pad2(value: number) {
   return String(value).padStart(2, '0');
 }
@@ -98,10 +101,18 @@ function formatDayLabel(date: Date) {
   return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}`;
 }
 
-export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, number, { rejectValue: string }>(
+export const fetchProductionDailyStock = createAsyncThunk<
+  ProductionDailyStock,
+  { organizationId: number; startDate?: string | null; endDate?: string | null },
+  { rejectValue: string }
+>(
   'dashboard/fetchProductionDailyStock',
-  async (organizationId, thunkApi) => {
+  async (
+    params: { organizationId: number; startDate?: string | null; endDate?: string | null },
+    thunkApi
+  ) => {
     try {
+      const { organizationId, startDate, endDate } = params;
       const [warehouseTypesRes, warehousesRes, nodesRes, itemsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
@@ -151,12 +162,24 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
       const dailyItemMaps: Array<Map<string, number>> = [];
       const dayEndDates: Date[] = [];
 
-      for (let offset = 6; offset >= 0; offset -= 1) {
-        const day = new Date();
-        day.setDate(day.getDate() - offset);
-        day.setHours(23, 59, 59, 999);
-        dayEndDates.push(day);
-        labels.push(formatDayLabel(day));
+      const end = endDate ? new Date(endDate) : new Date();
+      end.setHours(23, 59, 59, 999);
+
+      const start = startDate ? new Date(startDate) : new Date(end);
+      if (!startDate) start.setDate(start.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+      const fromMs = Math.min(startMs, endMs);
+      const toMs = Math.max(startMs, endMs);
+
+      for (let ms = fromMs; ms <= toMs; ms += 24 * 60 * 60 * 1000) {
+        const day = new Date(ms);
+        const dayEnd = new Date(day);
+        dayEnd.setHours(23, 59, 59, 999);
+        dayEndDates.push(dayEnd);
+        labels.push(formatDayLabel(dayEnd));
       }
 
       const dailyBalances = await Promise.all(
@@ -179,9 +202,7 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
         for (const row of dayRows) {
           const qty = toNumber(row.balance_qty);
           total += qty;
-          const itemLabel = row.item_code
-            ? `${row.item_code}${row.item_name ? ` - ${row.item_name}` : ''}`
-            : row.item_name ?? 'Bilinmeyen Ürün';
+          const itemLabel = row.item_name ?? row.item_code ?? 'Bilinmeyen Ürün';
           itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
         }
         dailyItemMaps.push(itemMap);
@@ -207,10 +228,18 @@ export const fetchProductionDailyStock = createAsyncThunk<ProductionDailyStock, 
   }
 );
 
-export const fetchRawMaterialDailyStock = createAsyncThunk<ProductionDailyStock, number, { rejectValue: string }>(
+export const fetchRawMaterialDailyStock = createAsyncThunk<
+  ProductionDailyStock,
+  { organizationId: number; startDate?: string | null; endDate?: string | null },
+  { rejectValue: string }
+>(
   'dashboard/fetchRawMaterialDailyStock',
-  async (organizationId, thunkApi) => {
+  async (
+    params: { organizationId: number; startDate?: string | null; endDate?: string | null },
+    thunkApi
+  ) => {
     try {
+      const { organizationId, startDate, endDate } = params;
       const [warehouseTypesRes, warehousesRes, nodesRes, itemsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
@@ -257,12 +286,24 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<ProductionDailyStock,
       const dailyItemMaps: Array<Map<string, number>> = [];
       const dayEndDates: Date[] = [];
 
-      for (let offset = 6; offset >= 0; offset -= 1) {
-        const day = new Date();
-        day.setDate(day.getDate() - offset);
-        day.setHours(23, 59, 59, 999);
-        dayEndDates.push(day);
-        labels.push(formatDayLabel(day));
+      const end = endDate ? new Date(endDate) : new Date();
+      end.setHours(23, 59, 59, 999);
+
+      const start = startDate ? new Date(startDate) : new Date(end);
+      if (!startDate) start.setDate(start.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+      const fromMs = Math.min(startMs, endMs);
+      const toMs = Math.max(startMs, endMs);
+
+      for (let ms = fromMs; ms <= toMs; ms += 24 * 60 * 60 * 1000) {
+        const day = new Date(ms);
+        const dayEnd = new Date(day);
+        dayEnd.setHours(23, 59, 59, 999);
+        dayEndDates.push(dayEnd);
+        labels.push(formatDayLabel(dayEnd));
       }
 
       const dailyBalances = await Promise.all(
@@ -285,9 +326,7 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<ProductionDailyStock,
         for (const row of dayRows) {
           const qty = toNumber(row.balance_qty);
           total += qty;
-          const itemLabel = row.item_code
-            ? `${row.item_code}${row.item_name ? ` - ${row.item_name}` : ''}`
-            : row.item_name ?? 'Bilinmeyen Ürün';
+          const itemLabel = row.item_name ?? row.item_code ?? 'Bilinmeyen Ürün';
           itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
         }
         dailyItemMaps.push(itemMap);
