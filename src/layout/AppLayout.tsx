@@ -1,10 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'primereact/button';
 
 import AppHeader from '../components/AppHeader';
 import AppSidebar from '../components/AppSidebar';
 import type { RootState } from '../store';
-import { closeMobileSidebar } from '../store/uiSlice';
+import { closeMobileSidebar, toggleMobileSidebar } from '../store/uiSlice';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function AppLayout() {
@@ -32,7 +33,18 @@ export default function AppLayout() {
           </div>
         ) : null}
 
-        <main className="flex-1 overflow-auto p-3 sm:p-4">
+        <main className="relative flex-1 overflow-auto p-3 sm:p-4">
+          {!isDesktop && !mobileSidebarOpen ? (
+            <Button
+              icon="pi pi-bars"
+              rounded
+              text
+              size="small"
+              aria-label="Open menu"
+              className="fixed left-3 top-20 z-30"
+              onClick={() => dispatch(toggleMobileSidebar())}
+            />
+          ) : null}
           <Outlet />
         </main>
       </div>

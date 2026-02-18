@@ -2,12 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar } from 'primereact/avatar';
-import { Button } from 'primereact/button';
 import { Menu } from 'primereact/menu';
 import type { Menu as MenuType } from 'primereact/menu';
 
 import type { RootState } from '../store';
-import { closeMobileSidebar, toggleMobileSidebar, toggleSidebar } from '../store/uiSlice';
+import { closeMobileSidebar } from '../store/uiSlice';
 import { logout } from '../store/userSlice';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -17,7 +16,6 @@ export default function AppHeader() {
   const location = useLocation();
   const menuRef = useRef<MenuType>(null);
   const user = useSelector((state: RootState) => state.user);
-  const sidebarCollapsed = useSelector((state: RootState) => state.ui.sidebarCollapsed);
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
   useEffect(() => {
@@ -57,19 +55,10 @@ export default function AppHeader() {
   return (
     <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-neutral-200 px-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <Button
-          icon={isDesktop ? (sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left') : 'pi pi-bars'}
-          rounded
-          text
-          aria-label={isDesktop ? 'Collapse sidebar' : 'Open menu'}
-          onClick={() => {
-            if (isDesktop) dispatch(toggleSidebar());
-            else dispatch(toggleMobileSidebar());
-          }}
-          className='cursor-pointer'
-        />
-        <img src="/images/logo.webp" alt="PlantTrack" className="h-8 w-8 rounded-md object-cover" />
-        <span className="text-sm font-semibold text-slate-900">PlantTrack</span>
+        <img src="/images/logo.webp" alt="PlantTrack" className="h-9 w-9 rounded-md object-cover" />
+        <span className="text-sm font-semibold text-slate-900" style={{ textShadow: '0 1px 2px rgba(15, 23, 42, 0.18)' }}>
+          PlantTrack
+        </span>
       </div>
 
       <div className="min-w-0 text-center">
