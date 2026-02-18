@@ -19,6 +19,10 @@ export type ItemRow = {
   type: string;
   code: string;
   name: string;
+  brand?: string | null;
+  model?: string | null;
+  size_spec?: string | null;
+  size_unit_id?: number | null;
   unit_id?: number;
   active: boolean;
 };
@@ -150,6 +154,10 @@ type UpsertInventoryItemPayload = {
   warehouseTypeId: number;
   code: string;
   name: string;
+  brand?: string | null;
+  model?: string | null;
+  sizeSpec?: string | null;
+  sizeUnitId?: number | null;
   unitId: number;
   active: boolean;
 };
@@ -264,12 +272,16 @@ export const deleteInventoryMovement = createAsyncThunk<
 
 export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItemPayload, { rejectValue: string }>(
   'inventory/upsertItem',
-  async ({ organizationId, itemId, warehouseTypeId, code, name, unitId, active }, thunkApi) => {
+  async ({ organizationId, itemId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
     try {
       const response = itemId
         ? await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
             code,
             name,
+            brand: brand ?? null,
+            model: model ?? null,
+            size_spec: sizeSpec ?? null,
+            size_unit_id: sizeUnitId ?? null,
             unit_id: unitId,
             active
           })
@@ -277,6 +289,10 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
             warehouse_type_id: warehouseTypeId,
             code,
             name,
+            brand: brand ?? null,
+            model: model ?? null,
+            size_spec: sizeSpec ?? null,
+            size_unit_id: sizeUnitId ?? null,
             unit_id: unitId,
             active
           });

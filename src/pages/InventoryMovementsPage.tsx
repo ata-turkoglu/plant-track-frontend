@@ -13,12 +13,14 @@ import { TabMenu } from 'primereact/tabmenu';
 import { Tooltip } from 'primereact/tooltip';
 import type { MenuItem } from 'primereact/menuitem';
 import { confirmDialog } from 'primereact/confirmdialog';
-import { Checkbox } from 'primereact/checkbox';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 
+import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemFormDialog';
+import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
+import { formatUnitLabel } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
 import {
   deleteInventoryItem,
@@ -54,6 +56,18 @@ type EventLineDraft = {
   unit_id: number | null;
 };
 
+const emptyItemDraft: ItemFormDraft = {
+  warehouseTypeId: null,
+  code: '',
+  name: '',
+  brand: '',
+  model: '',
+  sizeSpec: '',
+  sizeUnitId: null,
+  unitId: null,
+  active: true
+};
+
 export default function InventoryMovementsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
@@ -76,12 +90,9 @@ export default function InventoryMovementsPage() {
   const [referenceType, setReferenceType] = useState('');
 
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [newItemCode, setNewItemCode] = useState('');
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemUnitId, setNewItemUnitId] = useState<number | null>(null);
-  const [newItemActive, setNewItemActive] = useState(true);
   const [itemFormMode, setItemFormMode] = useState<'create' | 'edit'>('create');
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [itemDraft, setItemDraft] = useState<ItemFormDraft>(emptyItemDraft);
 
   const [itemsListOpen, setItemsListOpen] = useState(false);
   const [itemsSearch, setItemsSearch] = useState('');
@@ -94,6 +105,8 @@ export default function InventoryMovementsPage() {
     item_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
     uom: { value: null, matchMode: FilterMatchMode.CONTAINS }
   });
+  const formatInventoryUnitLabel = (unit?: { name?: string | null; symbol?: string | null; code?: string | null } | null) =>
+    formatUnitLabel(unit);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -205,6 +218,12 @@ export default function InventoryMovementsPage() {
     });
   }, [balances, activeWarehouseTypeId, nodeById, warehouseTypeByWarehouseId, selectedBalanceWarehouseId]);
 
+  const unitLabelByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of units) map.set(u.code.toLowerCase(), formatInventoryUnitLabel(u));
+    return map;
+  }, [units]);
+
   const displayMovements = useMemo<MovementDisplayRow[]>(
     () =>
       movementsForType.map((m) => ({
@@ -216,11 +235,11 @@ export default function InventoryMovementsPage() {
         item_code: m.item_code ?? '',
         item_name: m.item_name ?? '',
         quantity: m.quantity,
-        uom: m.uom,
+        uom: unitLabelByCode.get(String(m.uom ?? '').toLowerCase()) ?? m.uom,
         occurred_at: m.occurred_at,
         _sourceMovementId: m.id
       })),
-    [movementsForType]
+    [movementsForType, unitLabelByCode]
   );
 
   const itemOptions = useMemo(
@@ -232,9 +251,9 @@ export default function InventoryMovementsPage() {
     [items, activeWarehouseTypeId]
   );
 
-  const unitCodeById = useMemo(() => {
+  const unitLabelById = useMemo(() => {
     const map = new Map<number, string>();
-    for (const u of units) map.set(u.id, u.code);
+    for (const u of units) map.set(u.id, formatInventoryUnitLabel(u));
     return map;
   }, [units]);
 
@@ -248,8 +267,13 @@ export default function InventoryMovementsPage() {
     () =>
       units
         .filter((u) => u.active)
-        .map((u) => ({ label: u.symbol ? `${u.name} (${u.symbol})` : u.name, value: u.id, code: u.code })),
+        .map((u) => ({ label: formatInventoryUnitLabel(u), value: u.id, code: u.code })),
     [units]
+  );
+
+  const warehouseTypeOptions = useMemo(
+    () => warehouseTypes.map((wt) => ({ label: wt.name, value: wt.id })),
+    [warehouseTypes]
   );
 
   const createDraftLine = (seed?: Partial<EventLineDraft>): EventLineDraft => ({
@@ -283,20 +307,28 @@ export default function InventoryMovementsPage() {
   const openCreateItem = () => {
     setItemFormMode('create');
     setEditingItemId(null);
-    setNewItemCode('');
-    setNewItemName('');
-    setNewItemUnitId(unitOptions[0]?.value ?? null);
-    setNewItemActive(true);
+    setItemDraft({
+      ...emptyItemDraft,
+      warehouseTypeId: activeWarehouseTypeId,
+      unitId: unitOptions[0]?.value ?? null
+    });
     setItemDialogOpen(true);
   };
 
-  const openEditItem = (row: ItemRow) => {
+  const openEditItem = (row: ItemTableRow) => {
     setItemFormMode('edit');
     setEditingItemId(row.id);
-    setNewItemCode(row.code);
-    setNewItemName(row.name);
-    setNewItemUnitId(row.unit_id ?? null);
-    setNewItemActive(row.active);
+    setItemDraft({
+      warehouseTypeId: row.warehouse_type_id ?? activeWarehouseTypeId,
+      code: row.code,
+      name: row.name,
+      brand: row.brand ?? '',
+      model: row.model ?? '',
+      sizeSpec: row.size_spec ?? '',
+      sizeUnitId: row.size_unit_id ?? null,
+      unitId: row.unit_id ?? null,
+      active: row.active
+    });
     setItemDialogOpen(true);
   };
 
@@ -375,13 +407,14 @@ export default function InventoryMovementsPage() {
 
   const submitNewItem = async () => {
     if (!organizationId) return;
-    if (!activeWarehouseTypeId) {
+    const warehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
+    if (!warehouseTypeId) {
       setLocalError('Depo tipi secili degil.');
       return;
     }
-    const code = newItemCode.trim();
-    const name = newItemName.trim();
-    if (!code || !name || !newItemUnitId) return;
+    const code = itemDraft.code.trim();
+    const name = itemDraft.name.trim();
+    if (!code || !name || !itemDraft.unitId) return;
 
     setLocalError('');
     try {
@@ -389,11 +422,15 @@ export default function InventoryMovementsPage() {
         const created = await dispatch(
           upsertInventoryItem({
             organizationId,
-            warehouseTypeId: activeWarehouseTypeId,
+            warehouseTypeId,
             code,
             name,
-            unitId: newItemUnitId,
-            active: newItemActive
+            brand: itemDraft.brand.trim() || null,
+            model: itemDraft.model.trim() || null,
+            sizeSpec: itemDraft.sizeSpec.trim() || null,
+            sizeUnitId: itemDraft.sizeUnitId ?? null,
+            unitId: itemDraft.unitId,
+            active: itemDraft.active
           })
         ).unwrap();
         setEventLines((prev) =>
@@ -410,17 +447,20 @@ export default function InventoryMovementsPage() {
           upsertInventoryItem({
             organizationId,
             itemId: editingItemId,
-            warehouseTypeId: activeWarehouseTypeId,
+            warehouseTypeId,
             code,
             name,
-            unitId: newItemUnitId,
-            active: newItemActive
+            brand: itemDraft.brand.trim() || null,
+            model: itemDraft.model.trim() || null,
+            sizeSpec: itemDraft.sizeSpec.trim() || null,
+            sizeUnitId: itemDraft.sizeUnitId ?? null,
+            unitId: itemDraft.unitId,
+            active: itemDraft.active
           })
         ).unwrap();
         setItemDialogOpen(false);
       }
-      setNewItemCode('');
-      setNewItemName('');
+      setItemDraft(emptyItemDraft);
     } catch {
       setLocalError('Urun/Malzeme eklenemedi (kod benzersiz olmali).');
     }
@@ -513,7 +553,7 @@ export default function InventoryMovementsPage() {
         content="Bu stok hareketi hangi belge/isten kaynaklandi? Ornek: PO (Satin Alma), WO (Is Emri), SO (Satis), INV (Fatura)."
       />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white px-2 py-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white pb-2">
         <TabMenu model={tabItems} activeIndex={activeIndex} className="p-component-sm" />
       </div>
 
@@ -545,7 +585,7 @@ export default function InventoryMovementsPage() {
       {localError || error ? <Message severity="error" text={localError || error} className="w-full" /> : null}
 
       <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="overflow-x-auto p-3">
+        <div className="overflow-x-auto py-3">
           <DataTable
             value={displayMovements}
             loading={loading}
@@ -574,7 +614,7 @@ export default function InventoryMovementsPage() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="p-3">
+        <div className="py-3">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-slate-700">Stok Bilgisi</span>
             <Dropdown
@@ -592,7 +632,14 @@ export default function InventoryMovementsPage() {
               <Column field="item_code" header="Kod" sortable />
               <Column field="item_name" header="Urun" sortable />
               <Column field="balance_qty" header="Bakiye" sortable/>
-              <Column field="unit_code" header="Birim" sortable />
+              <Column
+                field="unit_code"
+                header="Birim"
+                sortable
+                body={(row: { unit_code?: string | null }) =>
+                  row.unit_code ? unitLabelByCode.get(row.unit_code.toLowerCase()) ?? row.unit_code : '-'
+                }
+              />
             </DataTable>
           </div>
         </div>
@@ -651,9 +698,12 @@ export default function InventoryMovementsPage() {
               </div>
             </div>
             {eventLines.map((line) => {
-              const unitCode = line.unit_id ? unitCodeById.get(line.unit_id) ?? '-' : '-';
+              const unitLabel = line.unit_id ? unitLabelById.get(line.unit_id) ?? '-' : '-';
               return (
-                <div key={line.id} className="grid gap-2 rounded-lg border border-slate-200 py-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_auto]">
+                <div
+                  key={line.id}
+                  className="grid items-center gap-2 overflow-hidden rounded-lg border border-slate-200 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,10rem)_minmax(8rem,9.5rem)_2.5rem]"
+                >
                   <Dropdown
                     value={line.item_id}
                     onChange={(e) => {
@@ -669,11 +719,12 @@ export default function InventoryMovementsPage() {
                   <InputNumber
                     value={line.quantity}
                     onValueChange={(e) => updateLine(line.id, { quantity: e.value ?? null })}
-                    className="w-fit min-w-0"
+                    className="w-full min-w-0"
+                    inputClassName="w-full"
                     min={0}
                     placeholder="Miktar"
                   />
-                  <InputText value={unitCode} readOnly className="w-fit min-w-0" />
+                  <InputText value={unitLabel} readOnly className="w-full min-w-0 text-sm" />
                   <Button
                     icon="pi pi-trash"
                     size="small"
@@ -719,63 +770,18 @@ export default function InventoryMovementsPage() {
         </div>
       </Dialog>
 
-      <Dialog
-        header={itemFormMode === 'edit' ? 'Item Duzenle' : 'Yeni Item'}
+      <ItemFormDialog
         visible={itemDialogOpen}
+        mode={itemFormMode}
+        draft={itemDraft}
+        onDraftChange={setItemDraft}
+        warehouseTypeOptions={warehouseTypeOptions}
+        unitOptions={unitOptions}
+        loading={loading}
+        warehouseTypeDisabled={itemFormMode === 'edit'}
         onHide={() => setItemDialogOpen(false)}
-        className="w-full max-w-lg"
-      >
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Depo tipi</span>
-            <InputText
-              value={activeWarehouseTypeName}
-              readOnly
-              className="w-full"
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Code</span>
-            <InputText value={newItemCode} onChange={(e) => setNewItemCode(e.target.value)} className="w-full" />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Name</span>
-            <InputText value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className="w-full" />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Birim</span>
-            <Dropdown
-              value={newItemUnitId}
-              onChange={(e) => setNewItemUnitId(e.value ?? null)}
-              options={unitOptions}
-              optionLabel="label"
-              optionValue="value"
-              className="w-full"
-              placeholder="Birim sec"
-            />
-          </label>
-
-          <label className="flex items-center gap-2">
-            <Checkbox
-              inputId="item_active"
-              checked={newItemActive}
-              onChange={(e) => setNewItemActive(Boolean(e.checked))}
-            />
-            <span className="text-sm text-slate-700">Aktif</span>
-          </label>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgec" size="small" text onClick={() => setItemDialogOpen(false)} />
-            <Button
-              label="Kaydet"
-              size="small"
-              onClick={submitNewItem}
-              loading={loading}
-              disabled={!activeWarehouseTypeId || !newItemCode.trim() || !newItemName.trim() || !newItemUnitId}
-            />
-          </div>
-        </div>
-      </Dialog>
+        onSubmit={submitNewItem}
+      />
 
       <Dialog
         header={`Malzemeler (${activeWarehouseTypeName})`}
@@ -799,75 +805,49 @@ export default function InventoryMovementsPage() {
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
-            <DataTable
-              value={itemsList}
-              size="small"
+            <ItemsTable
+              items={itemsList}
+              units={units}
               emptyMessage="Item yok."
-              removableSort
-              sortMode="multiple"
-              tableStyle={{ minWidth: '44rem' }}
-            >
-              <Column field="code" header="Kod" sortable style={{ width: '10rem' }} />
-              <Column field="name" header="Isim" sortable />
-              <Column
-                header="Birim"
-                body={(row: ItemRow) => (
-                  <span className="text-sm text-slate-700">
-                    {row.unit_id ? unitCodeById.get(row.unit_id) ?? '-' : '-'}
-                  </span>
-                )}
-                sortField="unit_id"
-                style={{ width: '7rem' }}
-              />
-              <Column
-                header="Aktif"
-                body={(row: ItemRow) => <span className="text-sm text-slate-700">{row.active ? 'Evet' : 'Hayir'}</span>}
-                sortField="active"
-                sortable
-                style={{ width: '6rem' }}
-              />
-              <Column
-                header=""
-                body={(row: ItemRow) => (
-                  <div className="flex items-center justify-end gap-1">
-                    <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label="Duzenle" />
-                    <Button
-                      icon="pi pi-trash"
-                      size="small"
-                      text
-                      rounded
-                      severity="danger"
-                      onClick={() => {
-                        if (!organizationId) return;
-                        confirmDialog({
-                          message: 'Bu item silinsin mi? (Pasife alinacak)',
-                          header: 'Silme Onayi',
-                          icon: 'pi pi-exclamation-triangle',
-                          acceptClassName: 'p-button-danger p-button-sm',
-                          acceptLabel: 'Sil',
-                          rejectLabel: 'Vazgec',
-                          accept: async () => {
-                            setLocalError('');
-                            try {
-                              await dispatch(
-                                deleteInventoryItem({
-                                  organizationId,
-                                  itemId: row.id
-                                })
-                              ).unwrap();
-                            } catch {
-                              setLocalError('Silme basarisiz.');
-                            }
+              tableStyle={{ minWidth: '62rem' }}
+              actionBody={(row) => (
+                <div className="flex items-center justify-end gap-1">
+                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label="Duzenle" />
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    rounded
+                    severity="danger"
+                    onClick={() => {
+                      if (!organizationId) return;
+                      confirmDialog({
+                        message: 'Bu item silinsin mi? (Pasife alinacak)',
+                        header: 'Silme Onayi',
+                        icon: 'pi pi-exclamation-triangle',
+                        acceptClassName: 'p-button-danger p-button-sm',
+                        acceptLabel: 'Sil',
+                        rejectLabel: 'Vazgec',
+                        accept: async () => {
+                          setLocalError('');
+                          try {
+                            await dispatch(
+                              deleteInventoryItem({
+                                organizationId,
+                                itemId: row.id
+                              })
+                            ).unwrap();
+                          } catch {
+                            setLocalError('Silme basarisiz.');
                           }
-                        });
-                      }}
-                      aria-label="Sil"
-                    />
-                  </div>
-                )}
-                style={{ width: '7rem' }}
-              />
-            </DataTable>
+                        }
+                      });
+                    }}
+                    aria-label="Sil"
+                  />
+                </div>
+              )}
+            />
           </div>
         </div>
       </Dialog>

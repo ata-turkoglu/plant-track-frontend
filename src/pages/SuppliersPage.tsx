@@ -159,7 +159,7 @@ export default function SuppliersPage() {
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
         <DataTable
           value={rows}
           size="small"

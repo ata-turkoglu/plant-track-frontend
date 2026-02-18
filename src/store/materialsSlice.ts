@@ -25,6 +25,10 @@ export type ItemRow = {
   type: string;
   code: string;
   name: string;
+  brand?: string | null;
+  model?: string | null;
+  size_spec?: string | null;
+  size_unit_id?: number | null;
   unit_id: number;
   active: boolean;
 };
@@ -51,6 +55,10 @@ type UpsertMaterialPayload = {
   organizationId: number;
   code: string;
   name: string;
+  brand?: string | null;
+  model?: string | null;
+  sizeSpec?: string | null;
+  sizeUnitId?: number | null;
   unitId: number;
   active: boolean;
   warehouseTypeId?: number;
@@ -89,7 +97,7 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
 
 export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/createItem',
-  async ({ organizationId, warehouseTypeId, code, name, unitId, active }, thunkApi) => {
+  async ({ organizationId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
     if (!warehouseTypeId) {
       return thunkApi.rejectWithValue('Kaydetme basarisiz. Depo tipi secilmedi.');
     }
@@ -98,6 +106,10 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         warehouse_type_id: warehouseTypeId,
         code,
         name,
+        brand: brand ?? null,
+        model: model ?? null,
+        size_spec: sizeSpec ?? null,
+        size_unit_id: sizeUnitId ?? null,
         unit_id: unitId,
         active
       });
@@ -111,7 +123,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
 
 export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/updateItem',
-  async ({ organizationId, itemId, code, name, unitId, active }, thunkApi) => {
+  async ({ organizationId, itemId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
     if (!itemId) {
       return thunkApi.rejectWithValue('Kaydetme basarisiz. Kayit secilmedi.');
     }
@@ -119,6 +131,10 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
         code,
         name,
+        brand: brand ?? null,
+        model: model ?? null,
+        size_spec: sizeSpec ?? null,
+        size_unit_id: sizeUnitId ?? null,
         unit_id: unitId,
         active
       });
