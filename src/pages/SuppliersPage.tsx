@@ -196,8 +196,8 @@ export default function SuppliersPage() {
             style={{ width: '7rem' }}
             body={(row: SupplierRow) => (
               <div className="flex items-center justify-end gap-1">
-                <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} />
-                <Button icon="pi pi-trash" size="small" text rounded severity="danger" onClick={() => remove(row)} />
+                <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
+                <Button icon="pi pi-trash" size="small" text rounded severity="danger" onClick={() => remove(row)} aria-label={t('common.delete', 'Sil')} />
               </div>
             )}
           />

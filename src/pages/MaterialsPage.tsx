@@ -1,19 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import type { DataTableFilterMeta } from 'primereact/datatable';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import type { MenuItem } from 'primereact/menuitem';
 import { TabMenu } from 'primereact/tabmenu';
 import { FilterMatchMode } from 'primereact/api';
 
+import SearchField from '../components/common/SearchField';
+import { warehouseIconByType } from '../components/inventory/warehouseTypeUi';
 import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemFormDialog';
 import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
 import { formatUnitLabelWithName } from '../components/items/itemUtils';
+import { useGlobalTableFilter } from '../hooks/useGlobalTableFilter';
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
 import {
@@ -22,22 +22,6 @@ import {
   fetchMaterialsData,
   updateMaterialItem
 } from '../store/materialsSlice';
-
-function normalizeWarehouseLabel(name: string) {
-  if (name === 'Urun') return 'Ürün';
-  if (name === 'Yedek Parca') return 'Yedek Parça';
-  return name;
-}
-
-function warehouseIconByType(name: string, code: string) {
-  const key = `${code} ${name}`.toLowerCase();
-  if (key.includes('hammadde') || key.includes('raw')) return 'pi pi-circle-fill';
-  if (key.includes('yedek') || key.includes('spare')) return 'pi pi-cog';
-  if (key.includes('ürün') || key.includes('urun') || key.includes('product') || key.includes('finished')) {
-    return 'pi pi-box';
-  }
-  return 'pi pi-tag';
-}
 
 const emptyDraft: ItemFormDraft = {
   warehouseTypeId: null,
@@ -51,6 +35,16 @@ const emptyDraft: ItemFormDraft = {
   active: true
 };
 
+const initialMaterialFilters: DataTableFilterMeta = {
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  code: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  brand: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  model: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  size_spec: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  active: { value: null, matchMode: FilterMatchMode.EQUALS }
+};
+
 function MaterialsPageImpl() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
@@ -61,16 +55,7 @@ function MaterialsPageImpl() {
 
   const [activeWarehouseTypeId, setActiveWarehouseTypeId] = useState<number | null>(null);
 
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<DataTableFilterMeta>({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    code: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    brand: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    model: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    size_spec: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    active: { value: null, matchMode: FilterMatchMode.EQUALS }
-  });
+  const { search, filters, updateGlobalSearch, applyTableFilters } = useGlobalTableFilter(initialMaterialFilters);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
@@ -93,12 +78,23 @@ function MaterialsPageImpl() {
   const tabItems = useMemo<MenuItem[]>(
     () =>
       warehouseTypes.map((wt) => ({
-        label: tWarehouseType(wt.code, normalizeWarehouseLabel(wt.name)),
+        label: tWarehouseType(wt.code, wt.name),
         command: () => setActiveWarehouseTypeId(wt.id),
         template: (item, options) => {
           const iconClass = warehouseIconByType(wt.name, wt.code);
           return (
-            <a className={options.className} onClick={options.onClick}>
+            <a
+              className={options.className}
+              onClick={options.onClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  options.onClick?.(event as any);
+                }
+              }}
+            >
               <div className="flex items-center gap-2">
                 <i className={`${iconClass} text-sm text-slate-600`} aria-hidden />
                 <span>{item.label}</span>
@@ -137,7 +133,7 @@ function MaterialsPageImpl() {
     [warehouseTypes, tWarehouseType]
   );
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setMode('create');
     setEditingId(null);
     setDraft({
@@ -146,9 +142,9 @@ function MaterialsPageImpl() {
       unitId: unitOptions[0]?.value ?? null
     });
     setDialogOpen(true);
-  };
+  }, [activeWarehouseTypeId, unitOptions]);
 
-  const openEdit = (row: ItemTableRow) => {
+  const openEdit = useCallback((row: ItemTableRow) => {
     setMode('edit');
     setEditingId(row.id);
     setDraft({
@@ -163,7 +159,7 @@ function MaterialsPageImpl() {
       active: row.active
     });
     setDialogOpen(true);
-  };
+  }, [activeWarehouseTypeId]);
 
   const submit = async () => {
     if (!organizationId || !draft.warehouseTypeId || !draft.unitId) return;
@@ -209,7 +205,7 @@ function MaterialsPageImpl() {
     }
   };
 
-  const remove = (row: ItemTableRow) => {
+  const remove = useCallback((row: ItemTableRow) => {
     if (!organizationId) return;
     confirmDialog({
       message: t('materials.confirm.deactivate', 'Kaydi pasif etmek istiyor musun?'),
@@ -230,7 +226,7 @@ function MaterialsPageImpl() {
         }
       }
     });
-  };
+  }, [dispatch, organizationId, t]);
 
   const globalFilterFields = useMemo(() => ['code', 'name', 'brand', 'model', 'size_spec'], []);
 
@@ -253,20 +249,20 @@ function MaterialsPageImpl() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <IconField iconPosition="left" className="w-full sm:w-auto">
-          <InputIcon className="pi pi-search text-slate-400" />
-          <InputText
-            value={search}
-            onChange={(e) => {
-              const v = e.target.value;
-              setSearch(v);
-              setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-            }}
-            placeholder={t('common.search', 'Ara')}
-            className="w-full sm:w-72"
-          />
-        </IconField>
-        <Button label={t('materials.new', 'Yeni Malzeme')} icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
+        <SearchField
+          value={search}
+          onChange={updateGlobalSearch}
+          placeholder={t('common.search', 'Ara')}
+          ariaLabel={t('materials.search', 'Malzemelerde ara')}
+        />
+        <Button
+          label={t('materials.new', 'Yeni Malzeme')}
+          icon="pi pi-plus"
+          size="small"
+          onClick={openCreate}
+          disabled={!activeWarehouseTypeId}
+          aria-label={t('materials.new', 'Yeni Malzeme')}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
@@ -277,15 +273,15 @@ function MaterialsPageImpl() {
           emptyMessage={t('materials.empty', 'Malzeme yok.')}
           showFilters
           filters={filters}
-          onFilter={(e) => setFilters(e.filters)}
+          onFilter={applyTableFilters}
           globalFilterFields={globalFilterFields}
           paginator
           rows={12}
           tableStyle={{ minWidth: '58rem' }}
           actionBody={(row) => (
             <div className="flex items-center justify-end gap-1">
-              <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} />
-              <Button icon="pi pi-trash" size="small" text rounded severity="danger" onClick={() => remove(row)} />
+              <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
+              <Button icon="pi pi-trash" size="small" text rounded severity="danger" onClick={() => remove(row)} aria-label={t('common.delete', 'Sil')} />
             </div>
           )}
         />

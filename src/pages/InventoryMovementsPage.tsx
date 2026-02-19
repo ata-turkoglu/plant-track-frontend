@@ -1,26 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
-import { Calendar } from 'primereact/calendar';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { TabMenu } from 'primereact/tabmenu';
 import { Tooltip } from 'primereact/tooltip';
 import type { MenuItem } from 'primereact/menuitem';
 import { confirmDialog } from 'primereact/confirmdialog';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 
+import InventoryBalancesTable from '../components/inventory/InventoryBalancesTable';
+import InventoryContentToolbar from '../components/inventory/InventoryContentToolbar';
+import InventoryItemsDialog from '../components/inventory/InventoryItemsDialog';
+import InventoryMovementEntryDialog from '../components/inventory/InventoryMovementEntryDialog';
+import InventoryMovementsTable from '../components/inventory/InventoryMovementsTable';
+import type { EventLineDraft, GroupedNodeOption, MovementDisplayRow } from '../components/inventory/types';
+import { warehouseIconByType } from '../components/inventory/warehouseTypeUi';
 import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemFormDialog';
-import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
+import type { ItemTableRow } from '../components/items/ItemsTable';
 import { formatUnitLabelWithName } from '../components/items/itemUtils';
+import { useGlobalTableFilter } from '../hooks/useGlobalTableFilter';
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
 import { enqueueToast } from '../store/uiSlice';
@@ -35,51 +34,13 @@ import {
   upsertInventoryMovement
 } from '../store/inventorySlice';
 
-function normalizeWarehouseLabel(name: string) {
-  if (name === 'Urun') return 'Ürün';
-  if (name === 'Yedek Parca') return 'Yedek Parça';
-  return name;
-}
-
-function warehouseIconByType(name: string, code: string) {
-  const key = `${code} ${name}`.toLowerCase();
-  if (key.includes('hammadde') || key.includes('raw')) return 'pi pi-circle-fill';
-  if (key.includes('yedek') || key.includes('spare')) return 'pi pi-cog';
-  if (key.includes('ürün') || key.includes('urun') || key.includes('product') || key.includes('finished')) {
-    return 'pi pi-box';
-  }
-  return 'pi pi-tag';
-}
-
-type MovementDisplayRow = {
-  // DataTable needs a stable key; for transfers use groupId.
-  row_key: string;
-  movement_group_id: string | null;
-  movement_type: string;
-  from_label: string;
-  to_label: string;
-  item_code: string;
-  item_name: string;
-  quantity: string | number;
-  uom: string;
-  occurred_at: string;
-  // For actions
-  _sourceMovementId?: number;
-};
-
-type EventLineDraft = {
-  id: string;
-  item_id: number | null;
-  quantity: number | null;
-  unit_id: number | null;
-};
-
-type NodeGroupKey = 'WAREHOUSE' | 'LOCATION' | 'SUPPLIER' | 'CUSTOMER';
-
-type GroupedNodeOption = {
-  label: string;
-  groupKey: NodeGroupKey;
-  items: { label: string; value: number }[];
+const initialMovementFilters: DataTableFilterMeta = {
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  from_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  to_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  item_code: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  item_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  uom: { value: null, matchMode: FilterMatchMode.CONTAINS }
 };
 
 const emptyItemDraft: ItemFormDraft = {
@@ -122,16 +83,9 @@ export default function InventoryMovementsPage() {
 
   const [itemsListOpen, setItemsListOpen] = useState(false);
   const [itemsSearch, setItemsSearch] = useState('');
-  const [movementSearch, setMovementSearch] = useState('');
   const [contentTab, setContentTab] = useState<'movements' | 'balances'>('movements');
-  const [movementFilters, setMovementFilters] = useState<DataTableFilterMeta>({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    from_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    to_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    item_code: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    item_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    uom: { value: null, matchMode: FilterMatchMode.CONTAINS }
-  });
+  const { search: movementSearch, filters: movementFilters, updateGlobalSearch, applyTableFilters } =
+    useGlobalTableFilter(initialMovementFilters);
   const formatInventoryUnitLabel = (unit?: { name?: string | null; symbol?: string | null; code?: string | null } | null) =>
     formatUnitLabelWithName(
       unit ?? null,
@@ -238,22 +192,23 @@ export default function InventoryMovementsPage() {
     return groups;
   }, [nodes, warehousesByType, t]);
 
-  const nodeGroupTemplate = (group: GroupedNodeOption) => {
-    const iconByGroupKey: Record<NodeGroupKey, string> = {
+  const nodeGroupTemplate = useCallback((group: GroupedNodeOption) => {
+    const iconByGroupKey: Record<string, string> = {
       WAREHOUSE: 'pi pi-building',
       LOCATION: 'pi pi-map-marker',
       SUPPLIER: 'pi pi-truck',
       CUSTOMER: 'pi pi-users'
     };
+    const iconClass = iconByGroupKey[group.groupKey] ?? 'pi pi-tag';
 
     return (
       <div className="inventory-node-group-chip">
-        <i className={`${iconByGroupKey[group.groupKey]} text-xs`} />
+        <i className={`${iconClass} text-xs`} />
         <span>{group.label}</span>
         <span className="inventory-node-group-count">{group.items.length}</span>
       </div>
     );
-  };
+  }, []);
 
   const movementsForType = useMemo(() => {
     if (activeWarehouseTypeId === null) return movements;
@@ -319,6 +274,12 @@ export default function InventoryMovementsPage() {
     return map;
   }, [items]);
 
+  const movementById = useMemo(() => {
+    const map = new Map<number, MovementRow>();
+    for (const movement of movements) map.set(movement.id, movement);
+    return map;
+  }, [movements]);
+
   const unitOptions = useMemo(
     () =>
       units
@@ -332,14 +293,14 @@ export default function InventoryMovementsPage() {
     [warehouseTypes, tWarehouseType]
   );
 
-  const createDraftLine = (seed?: Partial<EventLineDraft>): EventLineDraft => ({
+  const createDraftLine = useCallback((seed?: Partial<EventLineDraft>): EventLineDraft => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     item_id: seed?.item_id ?? null,
     quantity: seed?.quantity ?? null,
     unit_id: seed?.unit_id ?? null
-  });
+  }), []);
 
-  const openEntry = () => {
+  const openEntry = useCallback(() => {
     const firstFromNode = groupedNodeOptions[0]?.items[0]?.value ?? null;
     const secondNode = groupedNodeOptions.flatMap((g) => g.items).find((node) => node.value !== firstFromNode)?.value ?? null;
 
@@ -358,9 +319,9 @@ export default function InventoryMovementsPage() {
     setOccurredAt(new Date());
     setReferenceType('');
     setEntryOpen(true);
-  };
+  }, [createDraftLine, groupedNodeOptions, itemById, itemOptions]);
 
-  const openCreateItem = () => {
+  const openCreateItem = useCallback(() => {
     setItemFormMode('create');
     setEditingItemId(null);
     setItemDraft({
@@ -369,9 +330,9 @@ export default function InventoryMovementsPage() {
       unitId: unitOptions[0]?.value ?? null
     });
     setItemDialogOpen(true);
-  };
+  }, [activeWarehouseTypeId, unitOptions]);
 
-  const openEditItem = (row: ItemTableRow) => {
+  const openEditItem = useCallback((row: ItemTableRow) => {
     setItemFormMode('edit');
     setEditingItemId(row.id);
     setItemDraft({
@@ -386,9 +347,9 @@ export default function InventoryMovementsPage() {
       active: row.active
     });
     setItemDialogOpen(true);
-  };
+  }, [activeWarehouseTypeId]);
 
-  const openEdit = (row: MovementRow) => {
+  const openEdit = useCallback((row: MovementRow) => {
     setEditingMovementId(row.id);
     setFromNodeId(row.from_node_id ?? null);
     setToNodeId(row.to_node_id ?? null);
@@ -403,7 +364,7 @@ export default function InventoryMovementsPage() {
     setOccurredAt(row.occurred_at ? new Date(row.occurred_at) : new Date());
     setReferenceType(row.reference_type ?? '');
     setEntryOpen(true);
-  };
+  }, [createDraftLine, itemById]);
 
   const updateLine = (lineId: string, patch: Partial<EventLineDraft>) => {
     setEventLines((prev) => prev.map((line) => (line.id === lineId ? { ...line, ...patch } : line)));
@@ -538,12 +499,12 @@ export default function InventoryMovementsPage() {
     }
   };
 
-  const occurredAtBody = (row: MovementRow) => {
+  const occurredAtBody = (row: { occurred_at: string }) => {
     const date = new Date(row.occurred_at);
     return <span className="text-sm text-slate-700">{date.toLocaleString()}</span>;
   };
 
-  const actionsBody = (row: MovementDisplayRow) => {
+  const actionsBody = useCallback((row: MovementDisplayRow) => {
     return (
       <div className="flex items-center justify-end gap-1">
         <Button
@@ -552,7 +513,7 @@ export default function InventoryMovementsPage() {
           text
           rounded
           onClick={() => {
-            const src = movements.find((m) => m.id === row._sourceMovementId);
+            const src = row._sourceMovementId ? movementById.get(row._sourceMovementId) : undefined;
             if (src) openEdit(src);
           }}
           aria-label={t('inventory.action.edit', 'Duzenle')}
@@ -597,19 +558,94 @@ export default function InventoryMovementsPage() {
         />
       </div>
     );
-  };
+  }, [dispatch, movementById, openEdit, organizationId, t]);
+
+  const onEntryHide = useCallback(() => {
+    setEntryOpen(false);
+    setEditingMovementId(null);
+  }, []);
+
+  const onLineItemChange = useCallback((lineId: string, itemId: number | null) => {
+    const nextItem = itemId ? itemById.get(itemId) : undefined;
+    updateLine(lineId, { item_id: itemId, unit_id: nextItem?.unit_id ?? null });
+  }, [itemById]);
+
+  const onLineQuantityChange = useCallback((lineId: string, quantity: number | null) => {
+    updateLine(lineId, { quantity });
+  }, []);
+
+  const movementSaveDisabled =
+    !fromNodeId ||
+    !toNodeId ||
+    fromNodeId === toNodeId ||
+    eventLines.length === 0 ||
+    eventLines.some((line) => !line.item_id || !line.quantity || !line.unit_id);
+
+  const itemActionsBody = useCallback((row: ItemTableRow) => (
+    <div className="flex items-center justify-end gap-1">
+      <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
+      <Button
+        icon="pi pi-trash"
+        size="small"
+        text
+        rounded
+        severity="danger"
+        onClick={() => {
+          if (!organizationId) return;
+          confirmDialog({
+            message: t('inventory.confirm.delete_item', 'Bu item silinsin mi? (Pasife alinacak)'),
+            header: t('inventory.confirm.title', 'Silme Onayi'),
+            icon: 'pi pi-exclamation-triangle',
+            acceptClassName: 'p-button-danger p-button-sm',
+            acceptLabel: t('common.delete', 'Sil'),
+            rejectLabel: t('common.cancel', 'Vazgec'),
+            accept: async () => {
+              try {
+                await dispatch(
+                  deleteInventoryItem({
+                    organizationId,
+                    itemId: row.id
+                  })
+                ).unwrap();
+              } catch {
+                dispatch(
+                  enqueueToast({
+                    severity: 'error',
+                    summary: 'Hata',
+                    detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
+                  })
+                );
+              }
+            }
+          });
+        }}
+        aria-label={t('common.delete', 'Sil')}
+      />
+    </div>
+  ), [dispatch, openEditItem, organizationId, t]);
 
   if (!organizationId) {
     return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   const tabItems: MenuItem[] = warehouseTypes.map((wt) => ({
-    label: tWarehouseType(wt.code, normalizeWarehouseLabel(wt.name)),
+    label: tWarehouseType(wt.code, wt.name),
     command: () => setActiveWarehouseTypeId(wt.id),
     template: (item, options) => {
       const iconClass = warehouseIconByType(wt.name, wt.code);
       return (
-        <a className={options.className} onClick={options.onClick}>
+        <a
+          className={options.className}
+          onClick={options.onClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              options.onClick?.(event as any);
+            }
+          }}
+        >
           <div className="flex items-center gap-2">
             <i className={`${iconClass} text-sm text-slate-600`} aria-hidden />
             <span>{item.label}</span>
@@ -638,7 +674,7 @@ export default function InventoryMovementsPage() {
 
   return (
     <div className="grid gap-4">
-        <Tooltip
+      <Tooltip
         ref={refTooltip}
         target="#inventory-ref-info"
         position="top"
@@ -660,245 +696,66 @@ export default function InventoryMovementsPage() {
         </div>
       </div>
 
-      {contentTab === 'movements' ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button
-            label={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
-            icon="pi pi-list"
-            size="small"
-            outlined
-            onClick={() => setItemsListOpen(true)}
-            disabled={!activeWarehouseTypeId}
-          />
-          <IconField iconPosition="left" className="w-full sm:w-auto">
-            <InputIcon className="pi pi-search text-slate-400" />
-            <InputText
-              value={movementSearch}
-              onChange={(e) => {
-                const v = e.target.value;
-                setMovementSearch(v);
-                setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-              }}
-              placeholder={t('common.search', 'Ara')}
-              className="w-full sm:w-72"
-            />
-          </IconField>
-          <Button label={t('inventory.new_movement', 'Yeni Hareket')} icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button
-            label={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
-            icon="pi pi-list"
-            size="small"
-            outlined
-            onClick={() => setItemsListOpen(true)}
-            disabled={!activeWarehouseTypeId}
-          />
-          <Dropdown
-            value={selectedBalanceWarehouseId}
-            onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
-            options={balanceWarehouseOptions}
-            className="w-full sm:w-72"
-            placeholder={t('inventory.select_warehouse', 'Depo sec')}
-            filter
-            disabled={balanceWarehouseOptions.length === 0}
-          />
-        </div>
-      )}
+      <InventoryContentToolbar
+        translate={t}
+        contentTab={contentTab}
+        activeWarehouseTypeId={activeWarehouseTypeId}
+        activeWarehouseTypeName={activeWarehouseTypeName}
+        onOpenItems={() => setItemsListOpen(true)}
+        movementSearch={movementSearch}
+        onMovementSearchChange={updateGlobalSearch}
+        onOpenEntry={openEntry}
+        canCreateMovement={canCreateMovement}
+        selectedBalanceWarehouseId={selectedBalanceWarehouseId}
+        onSelectedBalanceWarehouseIdChange={setSelectedBalanceWarehouseId}
+        balanceWarehouseOptions={balanceWarehouseOptions}
+      />
 
       {contentTab === 'movements' ? (
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="overflow-x-auto py-3">
-            <DataTable
-              value={displayMovements}
-              loading={loading}
-              size="small"
-              emptyMessage={t('inventory.empty.movements', 'Hareket yok.')}
-              removableSort
-              sortMode="multiple"
-              sortField="occurred_at"
-              sortOrder={-1}
-              filters={movementFilters}
-              onFilter={(e) => setMovementFilters(e.filters)}
-              globalFilterFields={['from_label', 'to_label', 'item_code', 'item_name', 'uom']}
-              dataKey="row_key"
-              tableStyle={{ minWidth: '70rem' }}
-            >
-              <Column field="item_code" header={t('inventory.col.code', 'Kod')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-              <Column field="item_name" header={t('inventory.col.item', 'Urun')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-              <Column field="from_label" header={t('inventory.col.from', 'Nereden')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-              <Column field="to_label" header={t('inventory.col.to', 'Nereye')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-              <Column field="quantity" header={t('inventory.col.qty', 'Miktar')} sortable style={{ width: '8rem' }} />
-              <Column field="uom" header={t('inventory.col.unit', 'Birim')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-              <Column header={t('inventory.col.date', 'Tarih')} body={occurredAtBody} sortField="occurred_at" sortable />
-              <Column header="" body={actionsBody} />
-            </DataTable>
-          </div>
-        </div>
+        <InventoryMovementsTable
+          translate={t}
+          loading={loading}
+          rows={displayMovements}
+          filters={movementFilters}
+          onFilter={applyTableFilters}
+          occurredAtBody={occurredAtBody}
+          actionsBody={actionsBody}
+        />
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="py-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('inventory.stock_info', 'Stok Bilgisi')}</span>
-            </div>
-            <div className="overflow-x-auto">
-              <DataTable value={balancesForType} size="small" emptyMessage={t('inventory.empty.balance', 'Bakiye yok.')} paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
-                <Column field="item_code" header={t('inventory.col.code', 'Kod')} sortable />
-                <Column field="item_name" header={t('inventory.col.item', 'Urun')} sortable />
-                <Column field="balance_qty" header={t('inventory.col.balance', 'Bakiye')} sortable />
-                <Column
-                  field="unit_code"
-                  header={t('inventory.col.unit', 'Birim')}
-                  sortable
-                  body={(row: { unit_code?: string | null }) =>
-                    row.unit_code ? unitLabelByCode.get(row.unit_code.toLowerCase()) ?? row.unit_code : '-'
-                  }
-                />
-              </DataTable>
-            </div>
-          </div>
-        </div>
+        <InventoryBalancesTable
+          translate={t}
+          rows={balancesForType}
+          unitLabelResolver={(unitCode) => (unitCode ? unitLabelByCode.get(unitCode.toLowerCase()) ?? unitCode : '-')}
+        />
       )}
 
-      <Dialog
-        header={editingMovementId ? t('inventory.edit_movement', 'Stok Hareketi Duzelt') : t('inventory.new_movement_dialog', 'Yeni Stok Hareketi')}
+      <InventoryMovementEntryDialog
+        translate={t}
         visible={entryOpen}
-        onHide={() => {
-          setEntryOpen(false);
-          setEditingMovementId(null);
-        }}
-        className="w-full max-w-4xl"
-      >
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('inventory.col.date', 'Tarih')}</span>
-            <Calendar value={occurredAt} onChange={(e) => setOccurredAt(e.value ?? new Date())} showTime className="w-full" />
-          </label>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('inventory.from_node', 'From Node')}</span>
-              <Dropdown
-                value={fromNodeId}
-                onChange={(e) => setFromNodeId(e.value ?? null)}
-                options={groupedNodeOptions}
-                optionGroupLabel="label"
-                optionGroupChildren="items"
-                optionGroupTemplate={nodeGroupTemplate}
-                className="w-full inventory-node-dropdown"
-                panelClassName="inventory-node-panel"
-                filter
-                filterBy="label"
-                filterPlaceholder={t('common.search', 'Ara')}
-                placeholder={t('inventory.select_source_node', 'Kaynak node sec')}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('inventory.to_node', 'To Node')}</span>
-              <Dropdown
-                value={toNodeId}
-                onChange={(e) => setToNodeId(e.value ?? null)}
-                options={groupedNodeOptions}
-                optionGroupLabel="label"
-                optionGroupChildren="items"
-                optionGroupTemplate={nodeGroupTemplate}
-                className="w-full inventory-node-dropdown"
-                panelClassName="inventory-node-panel"
-                filter
-                filterBy="label"
-                filterPlaceholder={t('common.search', 'Ara')}
-                placeholder={t('inventory.select_target_node', 'Hedef node sec')}
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('inventory.lines', 'Hareket Satirlari')}</span>
-              <div className="flex items-center gap-2">
-                <Button label={t('inventory.new_item', 'Yeni Item')} icon="pi pi-plus" size="small" outlined onClick={openCreateItem} />
-                <Button label={t('inventory.add_line', 'Satir Ekle')} icon="pi pi-plus" size="small" onClick={addLine} />
-              </div>
-            </div>
-            {eventLines.map((line) => {
-              const unitLabel = line.unit_id ? unitLabelById.get(line.unit_id) ?? '-' : '-';
-              return (
-                <div
-                  key={line.id}
-                  className="grid items-center gap-2 overflow-hidden rounded-lg border border-slate-200 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,10rem)_minmax(8rem,9.5rem)_2.5rem]"
-                >
-                  <Dropdown
-                    value={line.item_id}
-                    onChange={(e) => {
-                      const nextItemId = e.value ?? null;
-                      const nextItem = nextItemId ? itemById.get(nextItemId) : undefined;
-                      updateLine(line.id, { item_id: nextItemId, unit_id: nextItem?.unit_id ?? null });
-                    }}
-                    options={itemOptions}
-                    className="w-full min-w-0"
-                    filter
-                    placeholder={t('inventory.item_or_material', 'Urun/Malzeme')}
-                  />
-                  <InputNumber
-                    value={line.quantity}
-                    onValueChange={(e) => updateLine(line.id, { quantity: e.value ?? null })}
-                    className="w-full min-w-0"
-                    inputClassName="w-full"
-                    min={0}
-                    placeholder={t('inventory.col.qty', 'Miktar')}
-                  />
-                  <InputText
-                    value={unitLabel}
-                    readOnly
-                    tabIndex={-1}
-                    onFocus={(e) => e.currentTarget.blur()}
-                    className="w-full min-w-0 text-sm readonly-display-input"
-                  />
-                  <Button
-                    icon="pi pi-trash"
-                    size="small"
-                    text
-                    severity="danger"
-                    onClick={() => removeLine(line.id)}
-                    disabled={eventLines.length <= 1}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          <label className="grid gap-2">
-            <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              {t('inventory.reference', 'Referans')}
-              <i
-                id="inventory-ref-info"
-                className="pi pi-info-circle cursor-help text-xs text-slate-400 hover:text-slate-700"
-                aria-label={t('inventory.reference_info', 'Referans aciklamasi')}
-                tabIndex={0}
-              />
-            </span>
-            <InputText value={referenceType} onChange={(e) => setReferenceType(e.target.value)} placeholder={t('inventory.reference_placeholder', 'PO, WO, ...')} className="w-full" />
-          </label>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setEntryOpen(false)} />
-            <Button
-              label={t('common.save', 'Kaydet')}
-              size="small"
-              onClick={submitEntry}
-              loading={loading}
-              disabled={
-                !fromNodeId ||
-                !toNodeId ||
-                fromNodeId === toNodeId ||
-                eventLines.length === 0 ||
-                eventLines.some((line) => !line.item_id || !line.quantity || !line.unit_id)
-              }
-            />
-          </div>
-        </div>
-      </Dialog>
+        editingMovement={Boolean(editingMovementId)}
+        occurredAt={occurredAt}
+        onOccurredAtChange={setOccurredAt}
+        fromNodeId={fromNodeId}
+        toNodeId={toNodeId}
+        onFromNodeChange={setFromNodeId}
+        onToNodeChange={setToNodeId}
+        groupedNodeOptions={groupedNodeOptions}
+        nodeGroupTemplate={nodeGroupTemplate}
+        eventLines={eventLines}
+        itemOptions={itemOptions}
+        getUnitLabel={(unitId) => (unitId ? unitLabelById.get(unitId) ?? '-' : '-')}
+        onLineItemChange={onLineItemChange}
+        onLineQuantityChange={onLineQuantityChange}
+        onRemoveLine={removeLine}
+        onAddLine={addLine}
+        onOpenCreateItem={openCreateItem}
+        referenceType={referenceType}
+        onReferenceTypeChange={setReferenceType}
+        onHide={onEntryHide}
+        onSubmit={submitEntry}
+        loading={loading}
+        saveDisabled={movementSaveDisabled}
+      />
 
       <ItemFormDialog
         visible={itemDialogOpen}
@@ -913,79 +770,19 @@ export default function InventoryMovementsPage() {
         onSubmit={submitNewItem}
       />
 
-      <Dialog
-        header={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
+      <InventoryItemsDialog
+        translate={t}
         visible={itemsListOpen}
+        activeWarehouseTypeName={activeWarehouseTypeName}
+        searchValue={itemsSearch}
+        onSearchChange={setItemsSearch}
         onHide={() => setItemsListOpen(false)}
-        className="w-full max-w-4xl"
-        contentStyle={{ minHeight: '50vh' }}
-      >
-        <div className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <IconField iconPosition="left" className="w-full sm:w-auto">
-              <InputIcon className="pi pi-search text-slate-400" />
-              <InputText
-                value={itemsSearch}
-                onChange={(e) => setItemsSearch(e.target.value)}
-                placeholder={t('common.search', 'Ara')}
-                className="w-full sm:w-72"
-              />
-            </IconField>
-            <Button label={t('inventory.new_item', 'Yeni Item')} icon="pi pi-plus" size="small" onClick={openCreateItem} disabled={!activeWarehouseTypeId} />
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
-            <ItemsTable
-              items={itemsList}
-              units={units}
-              emptyMessage={t('inventory.empty.items', 'Item yok.')}
-              tableStyle={{ minWidth: '62rem' }}
-              actionBody={(row) => (
-                <div className="flex items-center justify-end gap-1">
-                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
-                  <Button
-                    icon="pi pi-trash"
-                    size="small"
-                    text
-                    rounded
-                    severity="danger"
-                    onClick={() => {
-                      if (!organizationId) return;
-                      confirmDialog({
-                        message: t('inventory.confirm.delete_item', 'Bu item silinsin mi? (Pasife alinacak)'),
-                        header: t('inventory.confirm.title', 'Silme Onayi'),
-                        icon: 'pi pi-exclamation-triangle',
-                        acceptClassName: 'p-button-danger p-button-sm',
-                        acceptLabel: t('common.delete', 'Sil'),
-                        rejectLabel: t('common.cancel', 'Vazgec'),
-                        accept: async () => {
-                          try {
-                            await dispatch(
-                              deleteInventoryItem({
-                                organizationId,
-                                itemId: row.id
-                              })
-                            ).unwrap();
-                          } catch {
-                            dispatch(
-                              enqueueToast({
-                                severity: 'error',
-                                summary: 'Hata',
-                                detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
-                              })
-                            );
-                          }
-                        }
-                      });
-                    }}
-                    aria-label={t('common.delete', 'Sil')}
-                  />
-                </div>
-              )}
-            />
-          </div>
-        </div>
-      </Dialog>
+        onOpenCreateItem={openCreateItem}
+        createDisabled={!activeWarehouseTypeId}
+        items={itemsList}
+        units={units}
+        actionBody={itemActionsBody}
+      />
     </div>
   );
 }

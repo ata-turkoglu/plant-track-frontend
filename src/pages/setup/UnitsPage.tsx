@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
@@ -8,11 +8,11 @@ import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 
+import SearchField from '../../components/common/SearchField';
+import { useGlobalTableFilter } from '../../hooks/useGlobalTableFilter';
 import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
 import type { AppDispatch, RootState } from '../../store';
@@ -41,6 +41,15 @@ function deriveCodeFromEnName(enName: string) {
     .slice(0, 16);
 }
 
+const initialUnitFilters: DataTableFilterMeta = {
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  code: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  tr_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  en_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  tr_symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  en_symbol: { value: null, matchMode: FilterMatchMode.CONTAINS }
+};
+
 export default function UnitsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useI18n();
@@ -50,15 +59,7 @@ export default function UnitsPage() {
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
 
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<DataTableFilterMeta>({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    code: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    tr_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    en_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    tr_symbol: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    en_symbol: { value: null, matchMode: FilterMatchMode.CONTAINS }
-  });
+  const { search, filters, updateGlobalSearch, applyTableFilters } = useGlobalTableFilter(initialUnitFilters);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<UnitRow | null>(null);
@@ -67,6 +68,8 @@ export default function UnitsPage() {
   const [trSymbol, setTrSymbol] = useState('');
   const [enSymbol, setEnSymbol] = useState('');
   const [active, setActive] = useState(true);
+  const derivedCode = useMemo(() => deriveCodeFromEnName(enName), [enName]);
+  const isPieceUnit = derivedCode === 'piece';
 
   const resetForm = () => {
     setEditing(null);
@@ -95,18 +98,18 @@ export default function UnitsPage() {
   }, [organizationId]);
 
   useEffect(() => {
-    if (deriveCodeFromEnName(enName) === 'piece' && (trSymbol || enSymbol)) {
+    if (isPieceUnit && (trSymbol || enSymbol)) {
       setTrSymbol('');
       setEnSymbol('');
     }
-  }, [enName, trSymbol, enSymbol]);
+  }, [isPieceUnit, trSymbol, enSymbol]);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     resetForm();
     setDialogOpen(true);
-  };
+  }, []);
 
-  const openEdit = (row: UnitRow) => {
+  const openEdit = useCallback((row: UnitRow) => {
     setEditing(row);
     setTrName(row.tr_name ?? '');
     setEnName(row.en_name ?? row.name ?? '');
@@ -114,7 +117,7 @@ export default function UnitsPage() {
     setEnSymbol(row.en_symbol ?? row.symbol ?? '');
     setActive(Boolean(row.active));
     setDialogOpen(true);
-  };
+  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -162,7 +165,7 @@ export default function UnitsPage() {
     }
   };
 
-  const onDelete = (row: UnitRow) => {
+  const onDelete = useCallback((row: UnitRow) => {
     if (!organizationId || row.system) return;
 
     confirmDialog({
@@ -186,7 +189,7 @@ export default function UnitsPage() {
         }
       }
     });
-  };
+  }, [dispatch, organizationId, t]);
 
   const actionsBody = (row: UnitRow) => {
     return (
@@ -197,7 +200,7 @@ export default function UnitsPage() {
           text
           rounded
           onClick={() => openEdit(row)}
-          aria-label="Edit"
+          aria-label={t('inventory.action.edit', 'Duzenle')}
         />
         <Button
           icon="pi pi-trash"
@@ -228,11 +231,11 @@ export default function UnitsPage() {
   const canSubmit = useMemo(() => {
     const hasCore = Boolean(trName.trim() && enName.trim());
     if (!hasCore) return false;
-    if (deriveCodeFromEnName(enName) === 'piece') return true;
+    if (isPieceUnit) return true;
     const hasTrSymbol = Boolean(trSymbol.trim());
     const hasEnSymbol = Boolean(enSymbol.trim());
     return hasTrSymbol === hasEnSymbol;
-  }, [trName, enName, trSymbol, enSymbol]);
+  }, [trName, enName, isPieceUnit, trSymbol, enSymbol]);
 
   if (!organizationId) {
     return (
@@ -248,20 +251,13 @@ export default function UnitsPage() {
     <div className="grid gap-4">
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-          <IconField iconPosition="left" className="w-full sm:w-auto">
-            <InputIcon className="pi pi-search text-slate-400" />
-            <InputText
-              value={search}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSearch(v);
-                setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-              }}
-              placeholder={t('common.search', 'Ara')}
-              className="w-full sm:w-72"
-            />
-          </IconField>
-          <Button label={t('setup.units.new', 'Yeni Birim')} icon="pi pi-plus" size="small" onClick={openCreate} />
+          <SearchField
+            value={search}
+            onChange={updateGlobalSearch}
+            placeholder={t('common.search', 'Ara')}
+            ariaLabel={t('setup.units.search', 'Birimlerde ara')}
+          />
+          <Button label={t('setup.units.new', 'Yeni Birim')} icon="pi pi-plus" size="small" onClick={openCreate} aria-label={t('setup.units.new', 'Yeni Birim')} />
         </div>
 
         <div className="overflow-x-auto">
@@ -273,7 +269,7 @@ export default function UnitsPage() {
             removableSort
             sortMode="multiple"
             filters={filters}
-            onFilter={(e) => setFilters(e.filters)}
+            onFilter={applyTableFilters}
             globalFilterFields={['code', 'tr_name', 'en_name', 'tr_symbol', 'en_symbol']}
             tableStyle={{ minWidth: '52rem' }}
           >
@@ -300,7 +296,7 @@ export default function UnitsPage() {
       >
         <form className="grid gap-3" onSubmit={submit} autoComplete="off">
           <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            {t('setup.units.code_auto', 'Kod, EN ad alanindan otomatik uretilir.')}: <span className="font-semibold">{deriveCodeFromEnName(enName) || '-'}</span>
+            {t('setup.units.code_auto', 'Kod, EN ad alanindan otomatik uretilir.')}: <span className="font-semibold">{derivedCode || '-'}</span>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -321,7 +317,7 @@ export default function UnitsPage() {
                 value={trSymbol}
                 onChange={(e) => setTrSymbol(e.target.value)}
                 className="w-full"
-                disabled={deriveCodeFromEnName(enName) === 'piece'}
+                disabled={isPieceUnit}
               />
             </label>
             <label className="grid gap-2">
@@ -330,12 +326,12 @@ export default function UnitsPage() {
                 value={enSymbol}
                 onChange={(e) => setEnSymbol(e.target.value)}
                 className="w-full"
-                disabled={deriveCodeFromEnName(enName) === 'piece'}
+                disabled={isPieceUnit}
               />
             </label>
           </div>
 
-          {deriveCodeFromEnName(enName) === 'piece' ? (
+          {isPieceUnit ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               {t('setup.units.piece_symbol_note', '`piece` kodu icin symbol bos birakilmalidir.')}
             </div>

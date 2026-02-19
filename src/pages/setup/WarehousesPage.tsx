@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
@@ -10,9 +10,9 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
 
+import SearchField from '../../components/common/SearchField';
+import { useGlobalTableFilter } from '../../hooks/useGlobalTableFilter';
 import type { AppDispatch, RootState } from '../../store';
 import { useI18n } from '../../hooks/useI18n';
 import {
@@ -25,6 +25,13 @@ import {
 } from '../../store/setupSlice';
 
 type LocationOption = { label: string; value: number };
+
+const initialWarehouseFilters: DataTableFilterMeta = {
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  warehouse_type_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  location_label: { value: null, matchMode: FilterMatchMode.CONTAINS }
+};
 
 function buildLocationOptions(locations: LocationRow[]): LocationOption[] {
   const byId = new Map<number, LocationRow>();
@@ -70,13 +77,7 @@ export default function WarehousesPage() {
   const [name, setName] = useState('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [warehouseTypeId, setWarehouseTypeId] = useState<number | null>(null);
-  const [filters, setFilters] = useState<DataTableFilterMeta>({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    warehouse_type_label: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    location_label: { value: null, matchMode: FilterMatchMode.CONTAINS }
-  });
-  const [search, setSearch] = useState('');
+  const { search, filters, updateGlobalSearch, applyTableFilters } = useGlobalTableFilter(initialWarehouseFilters);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -91,23 +92,23 @@ export default function WarehousesPage() {
     return map;
   }, [locationOptions]);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setName('');
     setLocationId(locationOptions[0]?.value ?? null);
     setWarehouseTypeId(warehouseTypes[0]?.id ?? null);
     setDialogOpen(true);
-  };
+  }, [locationOptions, warehouseTypes]);
 
-  const openEdit = (row: WarehouseRow) => {
+  const openEdit = useCallback((row: WarehouseRow) => {
     setEditing(row);
     setName(row.name);
     setLocationId(row.location_id);
     setWarehouseTypeId(row.warehouse_type_id);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const onDelete = (row: WarehouseRow) => {
+  const onDelete = useCallback((row: WarehouseRow) => {
     confirmDialog({
       header: t('warehouse.confirm.delete_title', 'Depo Sil'),
       message: t('warehouse.confirm.delete_message', 'Bu depoyu silmek istiyor musun?'),
@@ -123,7 +124,7 @@ export default function WarehousesPage() {
         }
       }
     });
-  };
+  }, [dispatch, t]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -160,7 +161,7 @@ export default function WarehousesPage() {
   const actionsBody = (row: WarehouseRow) => {
     return (
       <div className="flex items-center justify-end gap-1">
-        <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label="Edit" />
+        <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
         <Button
           icon="pi pi-trash"
           size="small"
@@ -174,26 +175,22 @@ export default function WarehousesPage() {
     );
   };
 
-  const locationBody = (row: WarehouseRow) => {
-    return <span className="text-sm text-slate-700">{locationNameById.get(row.location_id) ?? '-'}</span>;
-  };
-
-  const typeBody = (row: WarehouseRow) => {
-    const matched = warehouseTypes.find((t) => t.id === row.warehouse_type_id);
-    const name = tWarehouseType(matched?.code, row.warehouse_type_name ?? matched?.name ?? '-');
-    return <span className="text-sm text-slate-700">{name}</span>;
-  };
+  const warehouseTypeById = useMemo(() => {
+    const map = new Map<number, (typeof warehouseTypes)[number]>();
+    for (const warehouseType of warehouseTypes) map.set(warehouseType.id, warehouseType);
+    return map;
+  }, [warehouseTypes]);
 
   const warehousesView = useMemo(() => {
     return warehouses.map((w) => ({
       ...w,
       warehouse_type_label: (() => {
-        const matched = warehouseTypes.find((t) => t.id === w.warehouse_type_id);
+        const matched = warehouseTypeById.get(w.warehouse_type_id);
         return tWarehouseType(matched?.code, w.warehouse_type_name ?? matched?.name ?? '');
       })(),
       location_label: locationNameById.get(w.location_id) ?? ''
     }));
-  }, [warehouses, warehouseTypes, locationNameById, tWarehouseType]);
+  }, [warehouses, warehouseTypeById, locationNameById, tWarehouseType]);
 
   const typeOptions = useMemo(
     () => warehouseTypes.map((item) => ({ label: tWarehouseType(item.code, item.name), value: item.id })),
@@ -208,20 +205,13 @@ export default function WarehousesPage() {
     <div className="grid gap-4">
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-          <IconField iconPosition="left" className="w-full sm:w-auto">
-            <InputIcon className="pi pi-search text-slate-400" />
-            <InputText
-              value={search}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSearch(v);
-                setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-              }}
-              placeholder={t('common.search', 'Ara')}
-              className="w-full sm:w-72"
-            />
-          </IconField>
-          <Button label={t('warehouse.new', 'Yeni Depo')} icon="pi pi-plus" size="small" onClick={openCreate} />
+          <SearchField
+            value={search}
+            onChange={updateGlobalSearch}
+            placeholder={t('common.search', 'Ara')}
+            ariaLabel={t('warehouse.search', 'Depolarda ara')}
+          />
+          <Button label={t('warehouse.new', 'Yeni Depo')} icon="pi pi-plus" size="small" onClick={openCreate} aria-label={t('warehouse.new', 'Yeni Depo')} />
         </div>
 
         <div className="overflow-x-auto">
@@ -233,7 +223,7 @@ export default function WarehousesPage() {
             removableSort
             sortMode="multiple"
             filters={filters}
-            onFilter={(e) => setFilters(e.filters)}
+            onFilter={applyTableFilters}
             globalFilterFields={['name', 'warehouse_type_label', 'location_label']}
             tableStyle={{ minWidth: '52rem' }}
           >

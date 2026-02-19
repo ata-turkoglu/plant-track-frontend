@@ -21,7 +21,11 @@ export function useI18n() {
     () =>
       (code: string | undefined, fallbackName?: string) => {
         if (!code) return fallbackName ?? '';
-        return t(`warehouse_type.${code}`, fallbackName ?? code);
+        const normalizedCode = code.toLowerCase();
+        const fallback = fallbackName ?? code;
+        const normalizedValue = t(`warehouse_type.${normalizedCode}`, fallback);
+        if (normalizedValue !== fallback) return normalizedValue;
+        return t(`warehouse_type.${code}`, fallback);
       },
     [t]
   );

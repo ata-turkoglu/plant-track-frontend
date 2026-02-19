@@ -166,7 +166,7 @@ export default function TranslationsPage() {
   const actionsBody = (row: TranslationRow) => {
     return (
       <div className="flex items-center justify-end gap-1">
-        <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label="Edit" />
+        <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
         <Button
           icon="pi pi-trash"
           size="small"
@@ -174,7 +174,7 @@ export default function TranslationsPage() {
           rounded
           severity="danger"
           onClick={() => onDelete(row)}
-          aria-label="Delete"
+          aria-label={t('common.delete', 'Sil')}
         />
       </div>
     );
