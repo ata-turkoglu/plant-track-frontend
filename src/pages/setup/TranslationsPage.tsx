@@ -199,7 +199,7 @@ export default function TranslationsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <DataTable value={filteredRows} loading={loading} size="small" emptyMessage={t('setup.translations.no_data', 'Kayit yok.')}> 
+          <DataTable className="translations-datatable" value={filteredRows} loading={loading} size="small" emptyMessage={t('setup.translations.no_data', 'Kayit yok.')}> 
             <Column field="namespace" header={t('setup.translations.namespace', 'Namespace')} sortable />
             <Column field="entry_key" header={t('setup.translations.key', 'Key')} sortable />
             <Column field="tr" header={t('setup.translations.tr', 'Turkce')} />

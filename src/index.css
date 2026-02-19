@@ -160,6 +160,12 @@ textarea[readonly]:focus-visible,
   border-bottom: 1px solid #cbd5e1 !important;
 }
 
+/* Setup/Translations table: match header height with other data-heavy tables. */
+.translations-datatable .p-datatable-thead > tr > th {
+  padding-top: 0.9rem !important;
+  padding-bottom: 0.9rem !important;
+}
+
 /* Dashboard card date range inputs: compact height. */
 .dashboard-card-date .p-inputtext {
   height: 1.95rem;
