@@ -23,6 +23,7 @@ import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
 import { formatUnitLabelWithName } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
+import { enqueueToast } from '../store/uiSlice';
 import {
   deleteInventoryItem,
   deleteInventoryMovement,
@@ -97,10 +98,9 @@ export default function InventoryMovementsPage() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating, error } =
+  const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating } =
     useSelector((s: RootState) => s.inventory);
   const refTooltip = useRef<Tooltip>(null);
-  const [localError, setLocalError] = useState('');
   const loading = fetchLoading || mutating;
 
   const [activeWarehouseTypeId, setActiveWarehouseTypeId] = useState<number | null>(null);
@@ -437,11 +437,10 @@ export default function InventoryMovementsPage() {
       }));
     if (linesPayload.length !== eventLines.length) return;
 
-    setLocalError('');
     try {
       const payload = {
-        event_type: 'MOVE',
-        status: 'POSTED',
+        event_type: 'MOVE' as const,
+        status: 'POSTED' as const,
         lines: linesPayload,
         reference_type: referenceType || null,
         occurred_at: occurredAt.toISOString()
@@ -457,7 +456,13 @@ export default function InventoryMovementsPage() {
       setEntryOpen(false);
       setEditingMovementId(null);
     } catch {
-      setLocalError(t('inventory.error.save_failed', 'Kaydetme basarisiz.'));
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: t('inventory.error.save_failed', 'Kaydetme basarisiz.')
+        })
+      );
     }
   };
 
@@ -465,14 +470,19 @@ export default function InventoryMovementsPage() {
     if (!organizationId) return;
     const warehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!warehouseTypeId) {
-      setLocalError(t('inventory.error.type_not_selected', 'Depo tipi secili degil.'));
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: t('inventory.error.type_not_selected', 'Depo tipi secili degil.')
+        })
+      );
       return;
     }
     const code = itemDraft.code.trim();
     const name = itemDraft.name.trim();
     if (!code || !name || !itemDraft.unitId) return;
 
-    setLocalError('');
     try {
       if (itemFormMode === 'create') {
         const created = await dispatch(
@@ -518,7 +528,13 @@ export default function InventoryMovementsPage() {
       }
       setItemDraft(emptyItemDraft);
     } catch {
-      setLocalError(t('inventory.error.item_upsert_failed', 'Urun/Malzeme kaydedilemedi (kod benzersiz olmali).'));
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: t('inventory.error.item_upsert_failed', 'Urun/Malzeme kaydedilemedi (kod benzersiz olmali).')
+        })
+      );
     }
   };
 
@@ -557,7 +573,6 @@ export default function InventoryMovementsPage() {
               acceptLabel: t('common.delete', 'Sil'),
               rejectLabel: t('common.cancel', 'Vazgec'),
               accept: async () => {
-                setLocalError('');
                 try {
                   if (!row._sourceMovementId) return;
                   await dispatch(
@@ -567,7 +582,13 @@ export default function InventoryMovementsPage() {
                     })
                   ).unwrap();
                 } catch {
-                  setLocalError(t('inventory.error.delete_failed', 'Silme basarisiz.'));
+                  dispatch(
+                    enqueueToast({
+                      severity: 'error',
+                      summary: 'Hata',
+                      detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
+                    })
+                  );
                 }
               }
             });
@@ -685,8 +706,6 @@ export default function InventoryMovementsPage() {
           />
         </div>
       )}
-
-      {localError || error ? <Message severity="error" text={localError || error} className="w-full" /> : null}
 
       {contentTab === 'movements' ? (
         <div className="rounded-xl border border-slate-200 bg-white">
@@ -940,7 +959,6 @@ export default function InventoryMovementsPage() {
                         acceptLabel: t('common.delete', 'Sil'),
                         rejectLabel: t('common.cancel', 'Vazgec'),
                         accept: async () => {
-                          setLocalError('');
                           try {
                             await dispatch(
                               deleteInventoryItem({
@@ -949,7 +967,13 @@ export default function InventoryMovementsPage() {
                               })
                             ).unwrap();
                           } catch {
-                            setLocalError(t('inventory.error.delete_failed', 'Silme basarisiz.'));
+                            dispatch(
+                              enqueueToast({
+                                severity: 'error',
+                                summary: 'Hata',
+                                detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
+                              })
+                            );
                           }
                         }
                       });

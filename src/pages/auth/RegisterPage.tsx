@@ -4,13 +4,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
-import { Message } from 'primereact/message';
 import { Password } from 'primereact/password';
 import { SelectButton } from 'primereact/selectbutton';
 
 import AuthShell from '../../components/AuthShell';
 import type { AppDispatch, RootState } from '../../store';
 import { clearAuthMessages, registerOrganization } from '../../store/authSlice';
+import { enqueueToast } from '../../store/uiSlice';
 
 export default function RegisterPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -23,7 +23,6 @@ export default function RegisterPage() {
   const [adminPassword, setAdminPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [language, setLanguage] = useState<'tr' | 'en'>('tr');
-  const [error, setError] = useState('');
 
   const passwordPt = {
     root: { className: 'w-full' },
@@ -42,10 +41,15 @@ export default function RegisterPage() {
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     dispatch(clearAuthMessages());
-    setError('');
 
     if (adminPassword !== confirmPassword) {
-      setError('Şifreler eşleşmiyor.');
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Şifreler eşleşmiyor.'
+        })
+      );
       return;
     }
 
@@ -160,7 +164,6 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          {(error || auth.error) && <Message severity="error" text={error || auth.error} className="w-full" />}
         </form>
       </Card>
     </AuthShell>

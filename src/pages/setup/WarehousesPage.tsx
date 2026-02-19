@@ -60,7 +60,7 @@ export default function WarehousesPage() {
   const { t, tWarehouseType } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { locations, warehouseTypes, warehouses, loading: fetchLoading, mutating, error } = useSelector(
+  const { locations, warehouseTypes, warehouses, loading: fetchLoading, mutating } = useSelector(
     (s: RootState) => s.setup
   );
   const loading = fetchLoading || mutating;
@@ -206,8 +206,6 @@ export default function WarehousesPage() {
 
   return (
     <div className="grid gap-4">
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
-
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <IconField iconPosition="left" className="w-full sm:w-auto">

@@ -30,7 +30,7 @@ export default function SuppliersPage() {
   const { t } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { rows, loading: fetchLoading, mutating, error } = useSelector((s: RootState) => s.suppliers);
+  const { rows, loading: fetchLoading, mutating } = useSelector((s: RootState) => s.suppliers);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
@@ -165,8 +165,6 @@ export default function SuppliersPage() {
         </IconField>
         <Button label={t('supplier.new', 'Yeni Tedarikci')} icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
-
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
         <DataTable

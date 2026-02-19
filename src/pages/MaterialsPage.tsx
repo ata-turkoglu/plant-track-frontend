@@ -55,7 +55,7 @@ function MaterialsPageImpl() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { warehouseTypes, units, items, loading: fetchLoading, mutating, error } = useSelector(
+  const { warehouseTypes, units, items, loading: fetchLoading, mutating } = useSelector(
     (s: RootState) => s.materials
   );
 
@@ -268,8 +268,6 @@ function MaterialsPageImpl() {
         </IconField>
         <Button label={t('materials.new', 'Yeni Malzeme')} icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
       </div>
-
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
         <ItemsTable

@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
 import { Card } from 'primereact/card';
 import { Calendar } from 'primereact/calendar';
-import { Message } from 'primereact/message';
 
 import StockBar3DChart from '../components/dashboard/StockBar3DChart';
 import type { AppDispatch, RootState } from '../store';
@@ -19,7 +18,7 @@ function createDefaultWeekRange(): (Date | null)[] {
 export default function DashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { productionDailyStock, rawMaterialDailyStock, productionLoading, rawMaterialLoading, error } = useSelector(
+  const { productionDailyStock, rawMaterialDailyStock, productionLoading, rawMaterialLoading } = useSelector(
     (s: RootState) => s.dashboard
   );
 
@@ -51,8 +50,6 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-4">
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
-
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-component-sm dashboard-chart-card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

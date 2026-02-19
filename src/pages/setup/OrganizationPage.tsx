@@ -82,7 +82,7 @@ export default function OrganizationPage() {
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const organizationNameFromStore = useSelector((s: RootState) => s.user.organizationName);
-  const { organizationName: setupOrganizationName, locations, loading: fetchLoading, mutating, error } = useSelector(
+  const { organizationName: setupOrganizationName, locations, loading: fetchLoading, mutating } = useSelector(
     (s: RootState) => s.setup
   );
   const orgName = setupOrganizationName || organizationNameFromStore;
@@ -285,8 +285,6 @@ export default function OrganizationPage() {
 
   return (
     <div className="grid gap-4">
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
-
       <div className="overflow-auto rounded-xl border border-slate-200 bg-white p-4">
         <OrganizationChart value={value} nodeTemplate={nodeTemplate} />
       </div>

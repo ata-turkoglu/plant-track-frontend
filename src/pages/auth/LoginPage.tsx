@@ -6,7 +6,6 @@ import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
-import { Message } from 'primereact/message';
 
 import AuthShell from '../../components/AuthShell';
 import type { AppDispatch, RootState } from '../../store';
@@ -17,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, error } = useSelector((s: RootState) => s.auth);
+  const { loading } = useSelector((s: RootState) => s.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -109,7 +108,6 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {error && <Message severity="error" text={error} className="w-full" />}
         </form>
       </Card>
     </AuthShell>

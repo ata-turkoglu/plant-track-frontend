@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
-import { Message } from 'primereact/message';
 
 import AuthShell from '../../components/AuthShell';
 import type { AppDispatch, RootState } from '../../store';
@@ -12,7 +11,7 @@ import { clearAuthMessages, requestPasswordReset } from '../../store/authSlice';
 
 export default function ForgotPasswordPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, forgotPasswordSuccess } = useSelector((s: RootState) => s.auth);
+  const { loading } = useSelector((s: RootState) => s.auth);
   const [email, setEmail] = useState('');
 
   const onSubmit = async (event: FormEvent) => {
@@ -65,9 +64,6 @@ export default function ForgotPasswordPage() {
               Girişe Dön
             </Link>
           </div>
-
-          {error && <Message severity="error" text={error} className="w-full" />}
-          {forgotPasswordSuccess && <Message severity="success" text={forgotPasswordSuccess} className="w-full" />}
         </form>
       </Card>
     </AuthShell>

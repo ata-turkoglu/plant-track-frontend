@@ -50,10 +50,6 @@ const fulfilledToastMap: Record<string, { summary: string; detail: string }> = {
   'inventory/deleteItem/fulfilled': { summary: 'Başarılı', detail: 'Item silindi.' }
 };
 
-const rejectedToastSet = new Set(
-  Object.keys(fulfilledToastMap).map((fulfilledType) => fulfilledType.replace('/fulfilled', '/rejected'))
-);
-
 function enqueue(state: UiState, payload: Omit<ToastItem, 'id'>) {
   state.toastQueue.push({
     ...payload,
@@ -88,13 +84,18 @@ const uiSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addMatcher(
-        (action): action is { type: string; payload: string } =>
-          rejectedToastSet.has(action.type) && typeof action.payload === 'string' && action.payload.length > 0,
+        (action): action is { type: string; payload?: unknown; error?: { message?: string } } =>
+          action.type.endsWith('/rejected') &&
+          (typeof action.payload === 'string' || typeof action.error?.message === 'string'),
         (state, action) => {
+          const detail =
+            (typeof action.payload === 'string' && action.payload.trim()) ||
+            (typeof action.error?.message === 'string' && action.error.message.trim()) ||
+            'İşlem başarısız.';
           enqueue(state, {
             severity: 'error',
             summary: 'Hata',
-            detail: action.payload
+            detail
           });
         }
       )

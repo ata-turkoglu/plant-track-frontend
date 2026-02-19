@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
@@ -15,7 +15,8 @@ import { Message } from 'primereact/message';
 
 import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
-import type { RootState } from '../../store';
+import type { AppDispatch, RootState } from '../../store';
+import { enqueueToast } from '../../store/uiSlice';
 
 type UnitRow = {
   id: number;
@@ -41,13 +42,13 @@ function deriveCodeFromEnName(enName: string) {
 }
 
 export default function UnitsPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const { t } = useI18n();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
 
   const [rows, setRows] = useState<UnitRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
-  const [error, setError] = useState('');
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<DataTableFilterMeta>({
@@ -79,12 +80,11 @@ export default function UnitsPage() {
   const fetchRows = async () => {
     if (!organizationId) return;
     setLoading(true);
-    setError('');
     try {
       const response = await api.get(`/api/organizations/${organizationId}/units`);
       setRows(response.data.units ?? []);
     } catch {
-      setError('Birimler yuklenemedi.');
+      dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Birimler yuklenemedi.' }));
     } finally {
       setLoading(false);
     }
@@ -131,8 +131,8 @@ export default function UnitsPage() {
     if (!payload.tr_name || !payload.en_name) return;
 
     setMutating(true);
-    setError('');
     try {
+      const isEdit = Boolean(editing);
       if (editing) {
         await api.patch(`/api/units/${editing.id}`, payload);
       } else {
@@ -141,9 +141,22 @@ export default function UnitsPage() {
 
       setDialogOpen(false);
       resetForm();
+      dispatch(
+        enqueueToast({
+          severity: 'success',
+          summary: 'Basarili',
+          detail: isEdit ? 'Birim guncellendi.' : 'Birim olusturuldu.'
+        })
+      );
       await fetchRows();
     } catch {
-      setError('Kaydetme basarisiz. Kod benzersiz olmali, EN ad lowercase olur, symbol varsa TR/EN birlikte girilmeli.');
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Kaydetme basarisiz. Kod benzersiz olmali, EN ad lowercase olur, symbol varsa TR/EN birlikte girilmeli.'
+        })
+      );
     } finally {
       setMutating(false);
     }
@@ -162,12 +175,12 @@ export default function UnitsPage() {
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {
         setMutating(true);
-        setError('');
         try {
           await api.delete(`/api/units/${row.id}`);
+          dispatch(enqueueToast({ severity: 'success', summary: 'Basarili', detail: 'Birim pasif edildi.' }));
           await fetchRows();
         } catch {
-          setError('Birim pasif edilemedi.');
+          dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Birim pasif edilemedi.' }));
         } finally {
           setMutating(false);
         }
@@ -233,8 +246,6 @@ export default function UnitsPage() {
 
   return (
     <div className="grid gap-4">
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
-
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <IconField iconPosition="left" className="w-full sm:w-auto">

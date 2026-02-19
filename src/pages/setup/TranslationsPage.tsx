@@ -14,6 +14,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { fetchI18nTranslations } from '../../store/i18nSlice';
 import type { AppDispatch, RootState } from '../../store';
+import { enqueueToast } from '../../store/uiSlice';
 import { useI18n } from '../../hooks/useI18n';
 
 type TranslationRow = {
@@ -37,7 +38,6 @@ export default function TranslationsPage() {
 
   const [rows, setRows] = useState<TranslationRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<TranslationRow | null>(null);
@@ -66,14 +66,13 @@ export default function TranslationsPage() {
   const fetchRows = async () => {
     if (!organizationId) return;
     setLoading(true);
-    setError('');
     try {
       const response = await api.get(`/api/organizations/${organizationId}/translations`, {
         params: namespaceFilter ? { namespace: namespaceFilter } : undefined
       });
       setRows(response.data.translations ?? []);
     } catch {
-      setError('Ceviri kayitlari yuklenemedi.');
+      dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Ceviri kayitlari yuklenemedi.' }));
     } finally {
       setLoading(false);
     }
@@ -110,10 +109,11 @@ export default function TranslationsPage() {
       accept: async () => {
         try {
           await api.delete(`/api/organizations/${organizationId}/translations/${row.id}`);
+          dispatch(enqueueToast({ severity: 'success', summary: 'Basarili', detail: 'Ceviri silindi.' }));
           await fetchRows();
           await dispatch(fetchI18nTranslations({ organizationId, locale: activeLocale }));
         } catch {
-          setError('Ceviri silinemedi.');
+          dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Ceviri silinemedi.' }));
         }
       }
     });
@@ -133,18 +133,31 @@ export default function TranslationsPage() {
     if (!payload.namespace || !payload.entry_key || !payload.tr || !payload.en) return;
 
     setLoading(true);
-    setError('');
     try {
+      const isEdit = Boolean(editingRow);
       if (editingRow) {
         await api.put(`/api/organizations/${organizationId}/translations/${editingRow.id}`, payload);
       } else {
         await api.post(`/api/organizations/${organizationId}/translations`, payload);
       }
       setDialogOpen(false);
+      dispatch(
+        enqueueToast({
+          severity: 'success',
+          summary: 'Basarili',
+          detail: isEdit ? 'Ceviri guncellendi.' : 'Ceviri olusturuldu.'
+        })
+      );
       await fetchRows();
       await dispatch(fetchI18nTranslations({ organizationId, locale: activeLocale }));
     } catch {
-      setError('Kaydetme basarisiz. Ayni namespace + key kaydi mevcut olabilir.');
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Kaydetme basarisiz. Ayni namespace + key kaydi mevcut olabilir.'
+        })
+      );
     } finally {
       setLoading(false);
     }
@@ -173,8 +186,6 @@ export default function TranslationsPage() {
 
   return (
     <div className="grid gap-4">
-      {error ? <Message severity="error" text={error} className="w-full" /> : null}
-
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <IconField iconPosition="left" className="w-full sm:w-auto">
