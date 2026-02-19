@@ -240,7 +240,7 @@ export default function WarehousesPage() {
             tableStyle={{ minWidth: '52rem' }}
           >
             <Column field="name" header={t('warehouse.col.name', 'Depo')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
-            <Column field="warehouse_type_label" header={t('warehouse.col.type', 'Tur')} sortable filter filterPlaceholder={t('common.search', 'Ara')} style={{ width: '12rem' }} />
+            <Column field="warehouse_type_label" header={t('warehouse.col.type', 'Tür')} sortable filter filterPlaceholder={t('common.search', 'Ara')} style={{ width: '12rem' }} />
             <Column field="location_label" header={t('warehouse.col.location', 'Lokasyon')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
             <Column header="" body={actionsBody} style={{ width: '8rem' }} />
           </DataTable>

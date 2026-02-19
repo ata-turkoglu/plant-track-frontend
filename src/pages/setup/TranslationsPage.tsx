@@ -3,7 +3,6 @@ import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
@@ -28,18 +27,6 @@ type TranslationRow = {
   updated_at: string;
 };
 
-const namespaceOptions = [
-  { label: 'warehouse_type', value: 'warehouse_type' },
-  { label: 'inventory', value: 'inventory' },
-  { label: 'common', value: 'common' },
-  { label: 'nav', value: 'nav' },
-  { label: 'profile', value: 'profile' },
-  { label: 'setup', value: 'setup' },
-  { label: 'unit', value: 'unit' },
-  { label: 'unit_symbol', value: 'unit_symbol' },
-  { label: 'ui', value: 'ui' }
-];
-
 export default function TranslationsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useI18n();
@@ -55,10 +42,18 @@ export default function TranslationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<TranslationRow | null>(null);
   const [search, setSearch] = useState('');
-  const [namespace, setNamespace] = useState('warehouse_type');
+  const [namespace, setNamespace] = useState(namespaceFilter || 'custom');
   const [entryKey, setEntryKey] = useState('');
   const [trValue, setTrValue] = useState('');
   const [enValue, setEnValue] = useState('');
+
+  const resetForm = () => {
+    setEditingRow(null);
+    setNamespace(namespaceFilter || 'custom');
+    setEntryKey('');
+    setTrValue('');
+    setEnValue('');
+  };
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -89,11 +84,7 @@ export default function TranslationsPage() {
   }, [organizationId, namespaceFilter]);
 
   const openCreate = () => {
-    setEditingRow(null);
-    setNamespace(namespaceFilter || 'warehouse_type');
-    setEntryKey('');
-    setTrValue('');
-    setEnValue('');
+    resetForm();
     setDialogOpen(true);
   };
 
@@ -200,9 +191,9 @@ export default function TranslationsPage() {
 
         <div className="overflow-x-auto">
           <DataTable className="translations-datatable" value={filteredRows} loading={loading} size="small" emptyMessage={t('setup.translations.no_data', 'Kayit yok.')}> 
-            <Column field="namespace" header={t('setup.translations.namespace', 'Namespace')} sortable />
+            <Column field="namespace" header={t('setup.translations.namespace', 'Ad Alani')} sortable />
             <Column field="entry_key" header={t('setup.translations.key', 'Key')} sortable />
-            <Column field="tr" header={t('setup.translations.tr', 'Turkce')} />
+            <Column field="tr" header={t('setup.translations.tr', 'Türkçe')} />
             <Column field="en" header={t('setup.translations.en', 'English')} />
             <Column header="" body={actionsBody} style={{ width: '8rem' }} />
           </DataTable>
@@ -212,30 +203,20 @@ export default function TranslationsPage() {
       <Dialog
         header={editingRow ? 'Ceviri Duzenle' : 'Yeni Ceviri'}
         visible={dialogOpen}
-        onHide={() => setDialogOpen(false)}
+        onHide={() => {
+          setDialogOpen(false);
+          resetForm();
+        }}
         className="w-full max-w-xl"
       >
-        <form className="grid gap-3" onSubmit={submit}>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Namespace</span>
-            <Dropdown
-              value={namespace}
-              options={namespaceOptions}
-              onChange={(ev) => setNamespace(String(ev.value ?? ''))}
-              optionLabel="label"
-              optionValue="value"
-              editable
-              className="w-full"
-            />
-          </label>
-
+        <form className="grid gap-3" onSubmit={submit} autoComplete="off">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">Key (kod tabanli)</span>
-            <InputText value={entryKey} onChange={(ev) => setEntryKey(ev.target.value)} className="w-full" placeholder="RAW_MATERIAL" />
+            <InputText value={entryKey} onChange={(ev) => setEntryKey(ev.target.value)} className="w-full" autoComplete="off" />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('setup.translations.tr', 'Turkce')}</span>
+            <span className="text-sm font-medium text-slate-700">{t('setup.translations.tr', 'Türkçe')}</span>
             <InputText value={trValue} onChange={(ev) => setTrValue(ev.target.value)} className="w-full" />
           </label>
 
@@ -243,10 +224,6 @@ export default function TranslationsPage() {
             <span className="text-sm font-medium text-slate-700">{t('setup.translations.en', 'English')}</span>
             <InputText value={enValue} onChange={(ev) => setEnValue(ev.target.value)} className="w-full" />
           </label>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            Oneri: `warehouse_type.RAW_MATERIAL` icin `namespace=warehouse_type` + `key=RAW_MATERIAL`; `inventory.tab.movements` icin `namespace=inventory` + `key=tab.movements`.
-          </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button label="Vazgec" size="small" text type="button" onClick={() => setDialogOpen(false)} />
