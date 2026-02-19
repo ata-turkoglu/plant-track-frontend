@@ -59,6 +59,7 @@ export type NodeRow = {
 export type MovementRow = {
   id: number;
   organization_id: number;
+  status?: 'DRAFT' | 'POSTED' | 'CANCELLED' | string;
   movement_group_id?: string | null;
   from_kind?: string | null;
   from_ref?: string | null;
@@ -84,6 +85,12 @@ export type MovementRow = {
   item_name?: string;
   location_name?: string;
 };
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const message = (error as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+  if (typeof message === 'string' && message.trim().length > 0) return message;
+  return fallback;
+}
 
 export type BalanceRow = {
   organization_id: number;
@@ -140,7 +147,7 @@ type UpsertMovementPayload = {
   movementId?: number;
   payload: {
     event_type: 'MOVE';
-    status: 'POSTED';
+    status: 'DRAFT';
     lines: MovementLinePayload[];
     reference_type: string | null;
     occurred_at: string;
@@ -178,7 +185,9 @@ async function fetchInventoryDynamicData(organizationId: number): Promise<Invent
   const [movementsRes, nodesRes, balancesRes] = await Promise.all([
     api.get(`/api/organizations/${organizationId}/inventory-movements?limit=200`),
     api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE,LOCATION,SUPPLIER,CUSTOMER`),
-    api.get(`/api/organizations/${organizationId}/inventory-balances`)
+    api.get(`/api/organizations/${organizationId}/inventory-balances`, {
+      params: { statuses: 'POSTED,DRAFT' }
+    })
   ]);
 
   return {
@@ -250,8 +259,8 @@ export const upsertInventoryMovement = createAsyncThunk<void, UpsertMovementPayl
 
       // Hareket sonrasi join alanlari güncel kalmasi icin dinamik veriler tazelenir.
       await thunkApi.dispatch(refreshInventoryDynamicData(organizationId));
-    } catch {
-      return thunkApi.rejectWithValue('Kaydetme başarısız.');
+    } catch (error) {
+      return thunkApi.rejectWithValue(getApiErrorMessage(error, 'Kaydetme başarısız.'));
     }
   }
 );

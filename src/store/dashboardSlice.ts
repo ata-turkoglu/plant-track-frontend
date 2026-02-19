@@ -103,16 +103,16 @@ function formatDayLabel(date: Date) {
 
 export const fetchProductionDailyStock = createAsyncThunk<
   ProductionDailyStock,
-  { organizationId: number; startDate?: string | null; endDate?: string | null },
+  { organizationId: number; startDate?: string | null; endDate?: string | null; warehouseIds?: number[] | null },
   { rejectValue: string }
 >(
   'dashboard/fetchProductionDailyStock',
   async (
-    params: { organizationId: number; startDate?: string | null; endDate?: string | null },
+    params: { organizationId: number; startDate?: string | null; endDate?: string | null; warehouseIds?: number[] | null },
     thunkApi
   ) => {
     try {
-      const { organizationId, startDate, endDate } = params;
+      const { organizationId, startDate, endDate, warehouseIds } = params;
       const [warehouseTypesRes, warehousesRes, nodesRes, itemsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
@@ -137,6 +137,11 @@ export const fetchProductionDailyStock = createAsyncThunk<
       );
 
       const productionWarehouses = warehouses.filter((warehouse) => productionTypeIds.has(warehouse.warehouse_type_id));
+      const selectedWarehouseIdSet = new Set((warehouseIds ?? []).filter((id) => Number.isFinite(id)));
+      const scopedProductionWarehouses =
+        selectedWarehouseIdSet.size > 0
+          ? productionWarehouses.filter((warehouse) => selectedWarehouseIdSet.has(warehouse.id))
+          : productionWarehouses;
 
       const warehouseNodeByRefId = new Map<number, number>();
       for (const node of nodes) {
@@ -146,7 +151,7 @@ export const fetchProductionDailyStock = createAsyncThunk<
         warehouseNodeByRefId.set(warehouseId, node.id);
       }
 
-      const productionNodeIds = productionWarehouses
+      const productionNodeIds = scopedProductionWarehouses
         .map((warehouse) => warehouseNodeByRefId.get(warehouse.id))
         .filter((nodeId): nodeId is number => Number.isFinite(nodeId));
 
@@ -188,7 +193,7 @@ export const fetchProductionDailyStock = createAsyncThunk<
             params: {
               node_ids: productionNodeIds.join(','),
               item_ids: finishedGoodItemIds.join(','),
-              statuses: 'POSTED',
+              statuses: 'POSTED,DRAFT',
               to_date: dayEndDate.toISOString()
             }
           });
@@ -230,16 +235,16 @@ export const fetchProductionDailyStock = createAsyncThunk<
 
 export const fetchRawMaterialDailyStock = createAsyncThunk<
   ProductionDailyStock,
-  { organizationId: number; startDate?: string | null; endDate?: string | null },
+  { organizationId: number; startDate?: string | null; endDate?: string | null; warehouseIds?: number[] | null },
   { rejectValue: string }
 >(
   'dashboard/fetchRawMaterialDailyStock',
   async (
-    params: { organizationId: number; startDate?: string | null; endDate?: string | null },
+    params: { organizationId: number; startDate?: string | null; endDate?: string | null; warehouseIds?: number[] | null },
     thunkApi
   ) => {
     try {
-      const { organizationId, startDate, endDate } = params;
+      const { organizationId, startDate, endDate, warehouseIds } = params;
       const [warehouseTypesRes, warehousesRes, nodesRes, itemsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
@@ -263,6 +268,11 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
       );
 
       const rawMaterialWarehouses = warehouses.filter((warehouse) => rawMaterialTypeIds.has(warehouse.warehouse_type_id));
+      const selectedWarehouseIdSet = new Set((warehouseIds ?? []).filter((id) => Number.isFinite(id)));
+      const scopedRawMaterialWarehouses =
+        selectedWarehouseIdSet.size > 0
+          ? rawMaterialWarehouses.filter((warehouse) => selectedWarehouseIdSet.has(warehouse.id))
+          : rawMaterialWarehouses;
 
       const warehouseNodeByRefId = new Map<number, number>();
       for (const node of nodes) {
@@ -272,7 +282,7 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
         warehouseNodeByRefId.set(warehouseId, node.id);
       }
 
-      const rawMaterialNodeIds = rawMaterialWarehouses
+      const rawMaterialNodeIds = scopedRawMaterialWarehouses
         .map((warehouse) => warehouseNodeByRefId.get(warehouse.id))
         .filter((nodeId): nodeId is number => Number.isFinite(nodeId));
 
@@ -314,7 +324,7 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
             params: {
               node_ids: rawMaterialNodeIds.join(','),
               item_ids: rawMaterialItemIds.join(','),
-              statuses: 'POSTED',
+              statuses: 'POSTED,DRAFT',
               to_date: dayEndDate.toISOString()
             }
           });

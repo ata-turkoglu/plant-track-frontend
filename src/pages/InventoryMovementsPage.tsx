@@ -401,7 +401,7 @@ export default function InventoryMovementsPage() {
     try {
       const payload = {
         event_type: 'MOVE' as const,
-        status: 'POSTED' as const,
+        status: 'DRAFT' as const,
         lines: linesPayload,
         reference_type: referenceType || null,
         occurred_at: occurredAt.toISOString()
@@ -417,13 +417,7 @@ export default function InventoryMovementsPage() {
       setEntryOpen(false);
       setEditingMovementId(null);
     } catch {
-      dispatch(
-        enqueueToast({
-          severity: 'error',
-          summary: 'Hata',
-          detail: t('inventory.error.save_failed', 'Kaydetme basarisiz.')
-        })
-      );
+      // Global rejected-action toast handler displays error message.
     }
   };
 
@@ -489,13 +483,7 @@ export default function InventoryMovementsPage() {
       }
       setItemDraft(emptyItemDraft);
     } catch {
-      dispatch(
-        enqueueToast({
-          severity: 'error',
-          summary: 'Hata',
-          detail: t('inventory.error.item_upsert_failed', 'Urun/Malzeme kaydedilemedi (kod benzersiz olmali).')
-        })
-      );
+      // Global rejected-action toast handler displays error message.
     }
   };
 
@@ -505,6 +493,7 @@ export default function InventoryMovementsPage() {
   };
 
   const actionsBody = useCallback((row: MovementDisplayRow) => {
+    const src = row._sourceMovementId ? movementById.get(row._sourceMovementId) : undefined;
     return (
       <div className="flex items-center justify-end gap-1">
         <Button
@@ -513,8 +502,18 @@ export default function InventoryMovementsPage() {
           text
           rounded
           onClick={() => {
-            const src = row._sourceMovementId ? movementById.get(row._sourceMovementId) : undefined;
-            if (src) openEdit(src);
+            if (!src) return;
+            if (src.status !== 'DRAFT') {
+              dispatch(
+                enqueueToast({
+                  severity: 'warn',
+                  summary: 'Uyari',
+                  detail: t('inventory.error.movement_immutable', 'Sadece taslak (DRAFT) hareketler duzenlenebilir.')
+                })
+              );
+              return;
+            }
+            openEdit(src);
           }}
           aria-label={t('inventory.action.edit', 'Duzenle')}
         />
@@ -543,13 +542,7 @@ export default function InventoryMovementsPage() {
                     })
                   ).unwrap();
                 } catch {
-                  dispatch(
-                    enqueueToast({
-                      severity: 'error',
-                      summary: 'Hata',
-                      detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
-                    })
-                  );
+                  // Global rejected-action toast handler displays error message.
                 }
               }
             });
@@ -608,13 +601,7 @@ export default function InventoryMovementsPage() {
                   })
                 ).unwrap();
               } catch {
-                dispatch(
-                  enqueueToast({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: t('inventory.error.delete_failed', 'Silme basarisiz.')
-                  })
-                );
+                // Global rejected-action toast handler displays error message.
               }
             }
           });

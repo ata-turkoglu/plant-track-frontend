@@ -177,6 +177,31 @@ textarea[readonly]:focus-visible,
   height: 1.95rem;
 }
 
+.dashboard-card-select.p-dropdown,
+.dashboard-card-select.p-multiselect {
+  height: 1.95rem;
+}
+
+.dashboard-card-select .p-dropdown-label,
+.dashboard-card-select .p-multiselect-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  height: 1.95rem;
+  line-height: 1;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.dashboard-card-select .p-multiselect-label {
+  transform: translateY(-1px);
+}
+
+.dashboard-card-select .p-dropdown-trigger,
+.dashboard-card-select .p-multiselect-trigger {
+  height: 1.95rem;
+}
+
 .dashboard-chart-card .p-card-content {
   padding-block: 0 !important;
 }

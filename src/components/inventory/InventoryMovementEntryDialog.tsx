@@ -129,13 +129,15 @@ export default function InventoryMovementEntryDialog({
                 onClick={onOpenCreateItem}
                 aria-label={translate('inventory.new_item', 'Yeni Item')}
               />
-              <Button
-                label={translate('inventory.add_line', 'Satir Ekle')}
-                icon="pi pi-plus"
-                size="small"
-                onClick={onAddLine}
-                aria-label={translate('inventory.add_line', 'Satir Ekle')}
-              />
+              {!editingMovement && (
+                <Button
+                  label={translate('inventory.add_line', 'Satir Ekle')}
+                  icon="pi pi-plus"
+                  size="small"
+                  onClick={onAddLine}
+                  aria-label={translate('inventory.add_line', 'Satir Ekle')}
+                />
+              )}
             </div>
           </div>
           {eventLines.map((line) => (
