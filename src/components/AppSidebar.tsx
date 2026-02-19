@@ -6,15 +6,16 @@ import { Button } from 'primereact/button';
 import type { RootState } from '../store';
 import { toggleSidebar } from '../store/uiSlice';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useI18n } from '../hooks/useI18n';
 
 const items = [
-  { label: 'Ana Sayfa', icon: 'pi pi-chart-line', to: '/' },
-  { label: 'Stok Hareketleri', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
-  { label: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
-  { label: 'Tedarikçiler', icon: 'pi pi-truck', to: '/suppliers' },
-  { label: 'Müşteriler', icon: 'pi pi-users', to: '/customers' },
-  { label: 'Raporlar', icon: 'pi pi-table', to: '/reports' },
-  { label: 'Ayarlar', icon: 'pi pi-cog', to: '/setup' }
+  { key: 'nav.dashboard', fallback: 'Ana Sayfa', icon: 'pi pi-chart-line', to: '/' },
+  { key: 'nav.inventory', fallback: 'Stok Hareketleri', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
+  { key: 'nav.materials', fallback: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
+  { key: 'nav.suppliers', fallback: 'Tedarikciler', icon: 'pi pi-truck', to: '/suppliers' },
+  { key: 'nav.customers', fallback: 'Musteriler', icon: 'pi pi-users', to: '/customers' },
+  { key: 'nav.reports', fallback: 'Raporlar', icon: 'pi pi-table', to: '/reports' },
+  { key: 'nav.settings', fallback: 'Ayarlar', icon: 'pi pi-cog', to: '/setup' }
 ];
 
 type AppSidebarProps = {
@@ -23,6 +24,7 @@ type AppSidebarProps = {
 };
 
 export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebarProps) {
+  const { t } = useI18n();
   const dispatch = useDispatch();
   const collapsedFromStore = useSelector((state: RootState) => state.ui.sidebarCollapsed);
   const location = useLocation();
@@ -49,6 +51,7 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
           </div>
         ) : null}
         {items.map((item) => {
+          const label = t(item.key, item.fallback);
           const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
           const isBottom = item.to === '/setup';
           return (
@@ -74,13 +77,13 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
               >
                 <i className={`${item.icon} text-base`} />
                 </span>
-                {!collapsed && <span className="truncate font-medium">{item.label}</span>}
+                {!collapsed && <span className="truncate font-medium">{label}</span>}
                 {collapsed && (
                   <span
                     className="pointer-events-none absolute left-full z-[1000] ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block"
                     role="tooltip"
                   >
-                    {item.label}
+                    {label}
                   </span>
                 )}
               </Link>

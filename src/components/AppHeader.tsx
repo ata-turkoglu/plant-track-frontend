@@ -5,42 +5,46 @@ import { Avatar } from 'primereact/avatar';
 import { Menu } from 'primereact/menu';
 import type { Menu as MenuType } from 'primereact/menu';
 
-import type { RootState } from '../store';
+import type { AppDispatch, RootState } from '../store';
 import { closeMobileSidebar } from '../store/uiSlice';
 import { logout } from '../store/userSlice';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useI18n } from '../hooks/useI18n';
 
 export default function AppHeader() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef = useRef<MenuType>(null);
   const user = useSelector((state: RootState) => state.user);
   const isDesktop = useMediaQuery('(min-width: 768px)');
-
+  const { t } = useI18n();
   useEffect(() => {
     if (isDesktop) dispatch(closeMobileSidebar());
   }, [dispatch, isDesktop]);
 
   const pageTitle = (() => {
     const path = location.pathname;
-    if (path === '/') return 'Dashboard';
-    if (path.startsWith('/inventory')) return 'Inventory';
-    if (path.startsWith('/materials')) return 'Malzemeler';
-    if (path.startsWith('/suppliers')) return 'Suppliers';
-    if (path.startsWith('/customers')) return 'Customers';
-    if (path.startsWith('/reports')) return 'Reports';
-    if (path === '/setup') return 'Setup';
-    if (path.startsWith('/setup/organization')) return 'Setup / Organization';
-    if (path.startsWith('/setup/warehouses')) return 'Setup / Warehouses';
-    if (path.startsWith('/setup')) return 'Setup';
+    if (path === '/') return t('nav.dashboard', 'Dashboard');
+    if (path.startsWith('/inventory')) return t('nav.inventory', 'Inventory');
+    if (path.startsWith('/materials')) return t('nav.materials', 'Materials');
+    if (path.startsWith('/suppliers')) return t('nav.suppliers', 'Suppliers');
+    if (path.startsWith('/customers')) return t('nav.customers', 'Customers');
+    if (path.startsWith('/reports')) return t('nav.reports', 'Reports');
+    if (path.startsWith('/profile')) return t('nav.profile', 'Profile');
+    if (path === '/setup') return t('nav.settings', 'Settings');
+    if (path.startsWith('/setup/organization')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.organization', 'Organization')}`;
+    if (path.startsWith('/setup/warehouses')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.warehouses', 'Warehouses')}`;
+    if (path.startsWith('/setup/translations')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.translations', 'Translations')}`;
+    if (path.startsWith('/setup')) return t('nav.settings', 'Settings');
     return '';
   })();
 
   const menuItems = [
     {
       label: 'Profile',
-      icon: 'pi pi-user'
+      icon: 'pi pi-user',
+      command: () => navigate('/profile')
     },
     {
       label: 'Logout',

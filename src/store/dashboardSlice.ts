@@ -30,7 +30,7 @@ type BalanceRow = {
 
 type ItemRow = {
   id: number;
-  type: string;
+  warehouse_type_id?: number;
 };
 
 type ProductionItemSeries = {
@@ -151,7 +151,7 @@ export const fetchProductionDailyStock = createAsyncThunk<
         .filter((nodeId): nodeId is number => Number.isFinite(nodeId));
 
       const finishedGoodItemIds = items
-        .filter((item) => item.type === 'FINISHED_GOOD')
+        .filter((item) => item.warehouse_type_id && productionTypeIds.has(item.warehouse_type_id))
         .map((item) => item.id);
 
       if (productionNodeIds.length === 0 || finishedGoodItemIds.length === 0) {
@@ -276,7 +276,9 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
         .map((warehouse) => warehouseNodeByRefId.get(warehouse.id))
         .filter((nodeId): nodeId is number => Number.isFinite(nodeId));
 
-      const rawMaterialItemIds = items.filter((item) => item.type === 'RAW_MATERIAL').map((item) => item.id);
+      const rawMaterialItemIds = items
+        .filter((item) => item.warehouse_type_id && rawMaterialTypeIds.has(item.warehouse_type_id))
+        .map((item) => item.id);
 
       if (rawMaterialNodeIds.length === 0 || rawMaterialItemIds.length === 0) {
         return { labels: [], totals: [], itemSeries: [] };

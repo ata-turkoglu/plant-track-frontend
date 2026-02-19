@@ -22,7 +22,6 @@ export type ItemRow = {
   id: number;
   organization_id: number;
   warehouse_type_id: number;
-  type: string;
   code: string;
   name: string;
   brand?: string | null;

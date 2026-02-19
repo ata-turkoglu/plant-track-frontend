@@ -15,6 +15,7 @@ import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemForm
 import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
 import { formatUnitLabel } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
+import { useI18n } from '../hooks/useI18n';
 import {
   createMaterialItem,
   deleteMaterialItem,
@@ -51,6 +52,7 @@ const emptyDraft: ItemFormDraft = {
 };
 
 function MaterialsPageImpl() {
+  const { t, tWarehouseType } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { warehouseTypes, units, items, loading: fetchLoading, mutating, error } = useSelector(
@@ -91,7 +93,7 @@ function MaterialsPageImpl() {
   const tabItems = useMemo<MenuItem[]>(
     () =>
       warehouseTypes.map((wt) => ({
-        label: normalizeWarehouseLabel(wt.name),
+        label: tWarehouseType(wt.code, normalizeWarehouseLabel(wt.name)),
         command: () => setActiveWarehouseTypeId(wt.id),
         template: (item, options) => {
           const iconClass = warehouseIconByType(wt.name, wt.code);
@@ -105,7 +107,7 @@ function MaterialsPageImpl() {
           );
         }
       })),
-    [warehouseTypes]
+    [warehouseTypes, tWarehouseType]
   );
 
   const activeTabIndex = useMemo(() => {
@@ -125,8 +127,8 @@ function MaterialsPageImpl() {
   );
 
   const warehouseTypeOptions = useMemo(
-    () => warehouseTypes.map((wt) => ({ label: wt.name, value: wt.id })),
-    [warehouseTypes]
+    () => warehouseTypes.map((wt) => ({ label: tWarehouseType(wt.code, wt.name), value: wt.id })),
+    [warehouseTypes, tWarehouseType]
   );
 
   const openCreate = () => {
@@ -204,12 +206,12 @@ function MaterialsPageImpl() {
   const remove = (row: ItemTableRow) => {
     if (!organizationId) return;
     confirmDialog({
-      message: `${row.code} - ${row.name} kaydını pasif etmek istiyor musun?`,
-      header: 'Silme Onayı',
+      message: t('materials.confirm.deactivate', 'Kaydi pasif etmek istiyor musun?'),
+      header: t('inventory.confirm.title', 'Silme Onayi'),
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
-      acceptLabel: 'Pasif Et',
-      rejectLabel: 'Vazgeç',
+      acceptLabel: t('materials.deactivate', 'Pasif Et'),
+      rejectLabel: t('common.cancel', 'Vazgec'),
       accept: async () => {
         try {
           await dispatch(
@@ -227,7 +229,7 @@ function MaterialsPageImpl() {
   const globalFilterFields = useMemo(() => ['code', 'name', 'brand', 'model', 'size_spec'], []);
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
+    return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   return (
@@ -238,10 +240,10 @@ function MaterialsPageImpl() {
             {tabItems.length > 0 ? (
               <TabMenu model={tabItems} activeIndex={activeTabIndex} />
             ) : (
-              <span className="text-sm text-slate-500">Depo tipi bulunamadı.</span>
+              <span className="text-sm text-slate-500">{t('materials.type_not_found', 'Depo tipi bulunamadi.')}</span>
             )}
           </div>
-          <Button label="Yeni Malzeme" icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
+          <Button label={t('materials.new', 'Yeni Malzeme')} icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
         </div>
       </div>
 
@@ -255,7 +257,7 @@ function MaterialsPageImpl() {
               setSearch(v);
               setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
             }}
-            placeholder="Ara"
+            placeholder={t('common.search', 'Ara')}
             className="w-full sm:w-72"
           />
         </IconField>
@@ -268,7 +270,7 @@ function MaterialsPageImpl() {
           items={rows}
           units={units}
           loading={loading}
-          emptyMessage="Malzeme yok."
+          emptyMessage={t('materials.empty', 'Malzeme yok.')}
           showFilters
           filters={filters}
           onFilter={(e) => setFilters(e.filters)}

@@ -22,6 +22,7 @@ import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemForm
 import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
 import { formatUnitLabel } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
+import { useI18n } from '../hooks/useI18n';
 import {
   deleteInventoryItem,
   deleteInventoryMovement,
@@ -85,6 +86,7 @@ const emptyItemDraft: ItemFormDraft = {
 };
 
 export default function InventoryMovementsPage() {
+  const { t, tWarehouseType } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating, error } =
@@ -146,9 +148,9 @@ export default function InventoryMovementsPage() {
 
   const warehouseTypeNameById = useMemo(() => {
     const map = new Map<number, string>();
-    for (const wt of warehouseTypes) map.set(wt.id, wt.name);
+    for (const wt of warehouseTypes) map.set(wt.id, tWarehouseType(wt.code, wt.name));
     return map;
-  }, [warehouseTypes]);
+  }, [warehouseTypes, tWarehouseType]);
 
   const warehousesByType = useMemo(() => {
     return activeWarehouseTypeId === null
@@ -209,12 +211,12 @@ export default function InventoryMovementsPage() {
       .map((node) => ({ label: nodeLabel(node), value: node.id }));
 
     const groups: { label: string; items: { label: string; value: number }[] }[] = [];
-    if (warehouseGroup.length > 0) groups.push({ label: 'Warehouses', items: warehouseGroup });
-    if (locationGroup.length > 0) groups.push({ label: 'Locations', items: locationGroup });
-    if (supplierGroup.length > 0) groups.push({ label: 'Suppliers', items: supplierGroup });
-    if (customerGroup.length > 0) groups.push({ label: 'Customers', items: customerGroup });
+    if (warehouseGroup.length > 0) groups.push({ label: t('inventory.group.warehouses', 'Warehouses'), items: warehouseGroup });
+    if (locationGroup.length > 0) groups.push({ label: t('inventory.group.locations', 'Locations'), items: locationGroup });
+    if (supplierGroup.length > 0) groups.push({ label: t('inventory.group.suppliers', 'Suppliers'), items: supplierGroup });
+    if (customerGroup.length > 0) groups.push({ label: t('inventory.group.customers', 'Customers'), items: customerGroup });
     return groups;
-  }, [nodes, warehousesByType]);
+  }, [nodes, warehousesByType, t]);
 
   const movementsForType = useMemo(() => {
     if (activeWarehouseTypeId === null) return movements;
@@ -289,8 +291,8 @@ export default function InventoryMovementsPage() {
   );
 
   const warehouseTypeOptions = useMemo(
-    () => warehouseTypes.map((wt) => ({ label: wt.name, value: wt.id })),
-    [warehouseTypes]
+    () => warehouseTypes.map((wt) => ({ label: tWarehouseType(wt.code, wt.name), value: wt.id })),
+    [warehouseTypes, tWarehouseType]
   );
 
   const createDraftLine = (seed?: Partial<EventLineDraft>): EventLineDraft => ({
@@ -418,7 +420,7 @@ export default function InventoryMovementsPage() {
       setEntryOpen(false);
       setEditingMovementId(null);
     } catch {
-      setLocalError('Kaydetme başarısız.');
+      setLocalError(t('inventory.error.save_failed', 'Kaydetme basarisiz.'));
     }
   };
 
@@ -426,7 +428,7 @@ export default function InventoryMovementsPage() {
     if (!organizationId) return;
     const warehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!warehouseTypeId) {
-      setLocalError('Depo tipi seçili değil.');
+      setLocalError(t('inventory.error.type_not_selected', 'Depo tipi secili degil.'));
       return;
     }
     const code = itemDraft.code.trim();
@@ -479,7 +481,7 @@ export default function InventoryMovementsPage() {
       }
       setItemDraft(emptyItemDraft);
     } catch {
-      setLocalError('Ürün/Malzeme eklenemedi (kod benzersiz olmali).');
+      setLocalError(t('inventory.error.item_upsert_failed', 'Urun/Malzeme kaydedilemedi (kod benzersiz olmali).'));
     }
   };
 
@@ -500,7 +502,7 @@ export default function InventoryMovementsPage() {
             const src = movements.find((m) => m.id === row._sourceMovementId);
             if (src) openEdit(src);
           }}
-          aria-label="Duzelt"
+          aria-label={t('inventory.action.edit', 'Duzenle')}
         />
         <Button
           icon="pi pi-trash"
@@ -511,12 +513,12 @@ export default function InventoryMovementsPage() {
           onClick={() => {
             if (!organizationId) return;
             confirmDialog({
-              message: 'Bu stok hareketini silmek istiyor musun?',
-              header: 'Silme Onayı',
+              message: t('inventory.confirm.delete_movement', 'Bu stok hareketini silmek istiyor musun?'),
+              header: t('inventory.confirm.title', 'Silme Onayi'),
               icon: 'pi pi-exclamation-triangle',
               acceptClassName: 'p-button-danger p-button-sm',
-              acceptLabel: 'Sil',
-              rejectLabel: 'Vazgeç',
+              acceptLabel: t('common.delete', 'Sil'),
+              rejectLabel: t('common.cancel', 'Vazgec'),
               accept: async () => {
                 setLocalError('');
                 try {
@@ -528,23 +530,23 @@ export default function InventoryMovementsPage() {
                     })
                   ).unwrap();
                 } catch {
-                  setLocalError('Silme başarısız.');
+                  setLocalError(t('inventory.error.delete_failed', 'Silme basarisiz.'));
                 }
               }
             });
           }}
-          aria-label="Sil"
+          aria-label={t('common.delete', 'Sil')}
         />
       </div>
     );
   };
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
+    return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   const tabItems: MenuItem[] = warehouseTypes.map((wt) => ({
-    label: normalizeWarehouseLabel(wt.name),
+    label: tWarehouseType(wt.code, normalizeWarehouseLabel(wt.name)),
     command: () => setActiveWarehouseTypeId(wt.id),
     template: (item, options) => {
       const iconClass = warehouseIconByType(wt.name, wt.code);
@@ -559,8 +561,8 @@ export default function InventoryMovementsPage() {
     }
   }));
   const contentTabItems: MenuItem[] = [
-    { label: 'Hareketler', icon: 'pi pi-arrow-right-arrow-left', command: () => setContentTab('movements') },
-    { label: 'Stok', icon: 'pi pi-table', command: () => setContentTab('balances') }
+    { label: t('inventory.tab.movements', 'Hareketler'), icon: 'pi pi-arrow-right-arrow-left', command: () => setContentTab('movements') },
+    { label: t('inventory.tab.stock', 'Stok'), icon: 'pi pi-table', command: () => setContentTab('balances') }
   ];
 
   const activeIndex = Math.max(0, warehouseTypes.findIndex((t) => t.id === activeWarehouseTypeId));
@@ -578,11 +580,14 @@ export default function InventoryMovementsPage() {
 
   return (
     <div className="grid gap-4">
-      <Tooltip
+        <Tooltip
         ref={refTooltip}
         target="#inventory-ref-info"
         position="top"
-        content="Bu stok hareketi hangi belge/isten kaynaklandi? Ornek: PO (Satin Alma), WO (Is Emri), SO (Satis), INV (Fatura)."
+        content={t(
+          'inventory.reference.tooltip',
+          'Bu stok hareketi hangi belge/isten kaynaklandi? Ornek: PO (Satin Alma), WO (Is Emri), SO (Satis), INV (Fatura).'
+        )}
       />
 
       <div className="rounded-xl border border-slate-200 bg-white pb-2">
@@ -600,7 +605,7 @@ export default function InventoryMovementsPage() {
       {contentTab === 'movements' ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
-            label={`Malzemeler (${activeWarehouseTypeName})`}
+            label={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
             icon="pi pi-list"
             size="small"
             outlined
@@ -616,16 +621,16 @@ export default function InventoryMovementsPage() {
                 setMovementSearch(v);
                 setMovementFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
               }}
-              placeholder="Ara: kod, ürün, depo..."
+              placeholder={t('common.search', 'Ara')}
               className="w-full sm:w-72"
             />
           </IconField>
-          <Button label="Yeni Hareket" icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
+          <Button label={t('inventory.new_movement', 'Yeni Hareket')} icon="pi pi-plus" size="small" onClick={openEntry} disabled={!canCreateMovement} />
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
-            label={`Malzemeler (${activeWarehouseTypeName})`}
+            label={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
             icon="pi pi-list"
             size="small"
             outlined
@@ -637,7 +642,7 @@ export default function InventoryMovementsPage() {
             onChange={(e) => setSelectedBalanceWarehouseId(e.value ?? null)}
             options={balanceWarehouseOptions}
             className="w-full sm:w-72"
-            placeholder="Depo seç"
+            placeholder={t('inventory.select_warehouse', 'Depo sec')}
             filter
             disabled={balanceWarehouseOptions.length === 0}
           />
@@ -653,7 +658,7 @@ export default function InventoryMovementsPage() {
               value={displayMovements}
               loading={loading}
               size="small"
-              emptyMessage="Hareket yok."
+              emptyMessage={t('inventory.empty.movements', 'Hareket yok.')}
               removableSort
               sortMode="multiple"
               sortField="occurred_at"
@@ -664,13 +669,13 @@ export default function InventoryMovementsPage() {
               dataKey="row_key"
               tableStyle={{ minWidth: '70rem' }}
             >
-              <Column field="item_code" header="Kod" sortable filter filterPlaceholder="Ara" />
-              <Column field="item_name" header="Ürün" sortable filter filterPlaceholder="Ara" />
-              <Column field="from_label" header="Nereden" sortable filter filterPlaceholder="Ara" />
-              <Column field="to_label" header="Nereye" sortable filter filterPlaceholder="Ara" />
-              <Column field="quantity" header="Miktar" sortable style={{ width: '8rem' }} />
-              <Column field="uom" header="Birim" sortable filter filterPlaceholder="Ara" />
-              <Column header="Tarih" body={occurredAtBody} sortField="occurred_at" sortable />
+              <Column field="item_code" header={t('inventory.col.code', 'Kod')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+              <Column field="item_name" header={t('inventory.col.item', 'Urun')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+              <Column field="from_label" header={t('inventory.col.from', 'Nereden')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+              <Column field="to_label" header={t('inventory.col.to', 'Nereye')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+              <Column field="quantity" header={t('inventory.col.qty', 'Miktar')} sortable style={{ width: '8rem' }} />
+              <Column field="uom" header={t('inventory.col.unit', 'Birim')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+              <Column header={t('inventory.col.date', 'Tarih')} body={occurredAtBody} sortField="occurred_at" sortable />
               <Column header="" body={actionsBody} />
             </DataTable>
           </div>
@@ -679,16 +684,16 @@ export default function InventoryMovementsPage() {
         <div className="rounded-xl border border-slate-200 bg-white">
           <div className="py-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">Stok Bilgisi</span>
+              <span className="text-sm font-medium text-slate-700">{t('inventory.stock_info', 'Stok Bilgisi')}</span>
             </div>
             <div className="overflow-x-auto">
-              <DataTable value={balancesForType} size="small" emptyMessage="Bakiye yok." paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
-                <Column field="item_code" header="Kod" sortable />
-                <Column field="item_name" header="Ürün" sortable />
-                <Column field="balance_qty" header="Bakiye" sortable />
+              <DataTable value={balancesForType} size="small" emptyMessage={t('inventory.empty.balance', 'Bakiye yok.')} paginator rows={12} tableStyle={{ minWidth: '44rem' }}>
+                <Column field="item_code" header={t('inventory.col.code', 'Kod')} sortable />
+                <Column field="item_name" header={t('inventory.col.item', 'Urun')} sortable />
+                <Column field="balance_qty" header={t('inventory.col.balance', 'Bakiye')} sortable />
                 <Column
                   field="unit_code"
-                  header="Birim"
+                  header={t('inventory.col.unit', 'Birim')}
                   sortable
                   body={(row: { unit_code?: string | null }) =>
                     row.unit_code ? unitLabelByCode.get(row.unit_code.toLowerCase()) ?? row.unit_code : '-'
@@ -701,7 +706,7 @@ export default function InventoryMovementsPage() {
       )}
 
       <Dialog
-        header={editingMovementId ? 'Stok Hareketi Duzelt' : 'Yeni Stok Hareketi'}
+        header={editingMovementId ? t('inventory.edit_movement', 'Stok Hareketi Duzelt') : t('inventory.new_movement_dialog', 'Yeni Stok Hareketi')}
         visible={entryOpen}
         onHide={() => {
           setEntryOpen(false);
@@ -711,13 +716,13 @@ export default function InventoryMovementsPage() {
       >
         <div className="grid gap-3">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Tarih</span>
+            <span className="text-sm font-medium text-slate-700">{t('inventory.col.date', 'Tarih')}</span>
             <Calendar value={occurredAt} onChange={(e) => setOccurredAt(e.value ?? new Date())} showTime className="w-full" />
           </label>
 
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">From Node</span>
+              <span className="text-sm font-medium text-slate-700">{t('inventory.from_node', 'From Node')}</span>
               <Dropdown
                 value={fromNodeId}
                 onChange={(e) => setFromNodeId(e.value ?? null)}
@@ -726,11 +731,11 @@ export default function InventoryMovementsPage() {
                 optionGroupChildren="items"
                 className="w-full inventory-node-dropdown"
                 filter
-                placeholder="Kaynak node seç"
+                placeholder={t('inventory.select_source_node', 'Kaynak node sec')}
               />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">To Node</span>
+              <span className="text-sm font-medium text-slate-700">{t('inventory.to_node', 'To Node')}</span>
               <Dropdown
                 value={toNodeId}
                 onChange={(e) => setToNodeId(e.value ?? null)}
@@ -739,17 +744,17 @@ export default function InventoryMovementsPage() {
                 optionGroupChildren="items"
                 className="w-full inventory-node-dropdown"
                 filter
-                placeholder="Hedef node seç"
+                placeholder={t('inventory.select_target_node', 'Hedef node sec')}
               />
             </label>
           </div>
 
           <div className="grid gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-700">Hareket Satirlari</span>
+              <span className="text-sm font-medium text-slate-700">{t('inventory.lines', 'Hareket Satirlari')}</span>
               <div className="flex items-center gap-2">
-                <Button label="Yeni Item" icon="pi pi-plus" size="small" outlined onClick={openCreateItem} />
-                <Button label="Satir Ekle" icon="pi pi-plus" size="small" onClick={addLine} />
+                <Button label={t('inventory.new_item', 'Yeni Item')} icon="pi pi-plus" size="small" outlined onClick={openCreateItem} />
+                <Button label={t('inventory.add_line', 'Satir Ekle')} icon="pi pi-plus" size="small" onClick={addLine} />
               </div>
             </div>
             {eventLines.map((line) => {
@@ -769,7 +774,7 @@ export default function InventoryMovementsPage() {
                     options={itemOptions}
                     className="w-full min-w-0"
                     filter
-                    placeholder="Ürün/Malzeme"
+                    placeholder={t('inventory.item_or_material', 'Urun/Malzeme')}
                   />
                   <InputNumber
                     value={line.quantity}
@@ -777,7 +782,7 @@ export default function InventoryMovementsPage() {
                     className="w-full min-w-0"
                     inputClassName="w-full"
                     min={0}
-                    placeholder="Miktar"
+                    placeholder={t('inventory.col.qty', 'Miktar')}
                   />
                   <InputText value={unitLabel} readOnly className="w-full min-w-0 text-sm" />
                   <Button
@@ -795,21 +800,21 @@ export default function InventoryMovementsPage() {
 
           <label className="grid gap-2">
             <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              Referans
+              {t('inventory.reference', 'Referans')}
               <i
                 id="inventory-ref-info"
                 className="pi pi-info-circle cursor-help text-xs text-slate-400 hover:text-slate-700"
-                aria-label="Referans aciklamasi"
+                aria-label={t('inventory.reference_info', 'Referans aciklamasi')}
                 tabIndex={0}
               />
             </span>
-            <InputText value={referenceType} onChange={(e) => setReferenceType(e.target.value)} placeholder="PO, WO, ..." className="w-full" />
+            <InputText value={referenceType} onChange={(e) => setReferenceType(e.target.value)} placeholder={t('inventory.reference_placeholder', 'PO, WO, ...')} className="w-full" />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgeç" size="small" text onClick={() => setEntryOpen(false)} />
+            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setEntryOpen(false)} />
             <Button
-              label="Kaydet"
+              label={t('common.save', 'Kaydet')}
               size="small"
               onClick={submitEntry}
               loading={loading}
@@ -839,7 +844,7 @@ export default function InventoryMovementsPage() {
       />
 
       <Dialog
-        header={`Malzemeler (${activeWarehouseTypeName})`}
+        header={`${t('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
         visible={itemsListOpen}
         onHide={() => setItemsListOpen(false)}
         className="w-full max-w-4xl"
@@ -852,22 +857,22 @@ export default function InventoryMovementsPage() {
               <InputText
                 value={itemsSearch}
                 onChange={(e) => setItemsSearch(e.target.value)}
-                placeholder="Ara: kod veya isim"
+                placeholder={t('common.search', 'Ara')}
                 className="w-full sm:w-72"
               />
             </IconField>
-            <Button label="Yeni Item" icon="pi pi-plus" size="small" onClick={openCreateItem} disabled={!activeWarehouseTypeId} />
+            <Button label={t('inventory.new_item', 'Yeni Item')} icon="pi pi-plus" size="small" onClick={openCreateItem} disabled={!activeWarehouseTypeId} />
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
             <ItemsTable
               items={itemsList}
               units={units}
-              emptyMessage="Item yok."
+              emptyMessage={t('inventory.empty.items', 'Item yok.')}
               tableStyle={{ minWidth: '62rem' }}
               actionBody={(row) => (
                 <div className="flex items-center justify-end gap-1">
-                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label="Düzenle" />
+                  <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEditItem(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
                   <Button
                     icon="pi pi-trash"
                     size="small"
@@ -877,12 +882,12 @@ export default function InventoryMovementsPage() {
                     onClick={() => {
                       if (!organizationId) return;
                       confirmDialog({
-                        message: 'Bu item silinsin mi? (Pasife alinacak)',
-                        header: 'Silme Onayı',
+                        message: t('inventory.confirm.delete_item', 'Bu item silinsin mi? (Pasife alinacak)'),
+                        header: t('inventory.confirm.title', 'Silme Onayi'),
                         icon: 'pi pi-exclamation-triangle',
                         acceptClassName: 'p-button-danger p-button-sm',
-                        acceptLabel: 'Sil',
-                        rejectLabel: 'Vazgeç',
+                        acceptLabel: t('common.delete', 'Sil'),
+                        rejectLabel: t('common.cancel', 'Vazgec'),
                         accept: async () => {
                           setLocalError('');
                           try {
@@ -893,12 +898,12 @@ export default function InventoryMovementsPage() {
                               })
                             ).unwrap();
                           } catch {
-                            setLocalError('Silme başarısız.');
+                            setLocalError(t('inventory.error.delete_failed', 'Silme basarisiz.'));
                           }
                         }
                       });
                     }}
-                    aria-label="Sil"
+                    aria-label={t('common.delete', 'Sil')}
                   />
                 </div>
               )}

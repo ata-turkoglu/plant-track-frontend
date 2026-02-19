@@ -97,7 +97,7 @@ export default function DashboardPage() {
             <div className="font-medium text-slate-900">Hammadde Stok Ozeti</div>
             <div>Guncel toplam stok: {latestRawTotal.toLocaleString('tr-TR')}</div>
             <div>Depo tipi filtre: raw / hammadde</div>
-            <div>Ürün filtre: sadece `items.type = RAW_MATERIAL`</div>
+            <div>Ürün filtre: sadece `items.warehouse_type_id` hammadde tipleri</div>
             <div>Periyot: son 7 gun (gun sonu bakiye)</div>
           </div>
         </Card>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <div className="font-medium text-slate-900">Üretim Stok Ozeti</div>
             <div>Guncel toplam stok: {latestTotal.toLocaleString('tr-TR')}</div>
             <div>Depo tipi filtre: production / üretim / finished / mamul</div>
-            <div>Ürün filtre: sadece `items.type = FINISHED_GOOD`</div>
+            <div>Ürün filtre: sadece `items.warehouse_type_id` üretim tipleri</div>
             <div>Periyot: son 7 gun (gun sonu bakiye)</div>
           </div>
         </Card>

@@ -4,6 +4,7 @@ import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta, DataTableStateEvent } from 'primereact/datatable';
 
 import { formatUnitLabel, type UnitLike } from './itemUtils';
+import { useI18n } from '../../hooks/useI18n';
 
 export type ItemTableRow = {
   id: number;
@@ -49,6 +50,7 @@ export default function ItemsTable({
   actionBody,
   actionStyle
 }: ItemsTableProps) {
+  const { t } = useI18n();
   const unitById = new Map<number, UnitLike>();
   for (const unit of units) unitById.set(unit.id, unit);
 
@@ -68,32 +70,45 @@ export default function ItemsTable({
       removableSort
       sortMode="multiple"
     >
-      <Column field="code" header="Kod" sortable filter={showFilters} filterPlaceholder={showFilters ? 'Ara' : undefined} style={{ width: '12rem' }} />
-      <Column field="name" header="Ürün" sortable filter={showFilters} filterPlaceholder={showFilters ? 'Ara' : undefined} />
       <Column
-        field="brand"
-        header="Marka"
+        field="code"
+        header={t('inventory.col.code', 'Kod')}
         sortable
         filter={showFilters}
-        filterPlaceholder={showFilters ? 'Ara' : undefined}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
+        style={{ width: '12rem' }}
+      />
+      <Column
+        field="name"
+        header={t('inventory.col.item', 'Urun')}
+        sortable
+        filter={showFilters}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
+      />
+      <Column
+        field="brand"
+        header={t('item.col.brand', 'Marka')}
+        sortable
+        filter={showFilters}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
         style={{ width: '10rem' }}
         body={(row: ItemTableRow) => row.brand ?? '-'}
       />
       <Column
         field="model"
-        header="Model"
+        header={t('item.col.model', 'Model')}
         sortable
         filter={showFilters}
-        filterPlaceholder={showFilters ? 'Ara' : undefined}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
         style={{ width: '10rem' }}
         body={(row: ItemTableRow) => row.model ?? '-'}
       />
       <Column
         field="size_spec"
-        header="Ölçü"
+        header={t('item.col.size', 'Olcu')}
         sortable
         filter={showFilters}
-        filterPlaceholder={showFilters ? 'Ara' : undefined}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
         style={{ width: '12rem' }}
         body={(row: ItemTableRow) => {
           if (!row.size_spec) return '-';
@@ -103,17 +118,17 @@ export default function ItemsTable({
       />
       <Column
         field="unit_id"
-        header="Birim"
+        header={t('inventory.col.unit', 'Birim')}
         sortable
         style={{ width: '12rem' }}
         body={(row: ItemTableRow) => formatUnitLabel(row.unit_id ? unitById.get(row.unit_id) : null)}
       />
       <Column
         field="active"
-        header="Aktif"
+        header={t('common.active', 'Aktif')}
         sortable
         style={{ width: '7rem' }}
-        body={(row: ItemTableRow) => <span>{row.active ? 'Evet' : 'Hayır'}</span>}
+        body={(row: ItemTableRow) => <span>{row.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}</span>}
       />
       {actionBody ? <Column header="" style={actionStyle ?? { width: '7rem' }} body={actionBody} /> : null}
     </DataTable>

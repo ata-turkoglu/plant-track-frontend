@@ -7,12 +7,15 @@ import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 
 import type { AppDispatch, RootState } from '../store';
+import { useI18n } from '../hooks/useI18n';
 import {
   createCustomer,
   deleteCustomer,
@@ -22,6 +25,7 @@ import {
 } from '../store/customersSlice';
 
 export default function CustomersPage() {
+  const { t } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { rows, loading: fetchLoading, mutating, error } = useSelector((s: RootState) => s.customers);
@@ -110,12 +114,12 @@ export default function CustomersPage() {
   const remove = (row: CustomerRow) => {
     if (!organizationId) return;
     confirmDialog({
-      message: `${row.name} kaydını silmek istiyor musun?`,
-      header: 'Silme Onayı',
+      message: t('customer.confirm.delete', `${row.name} kaydini silmek istiyor musun?`),
+      header: t('inventory.confirm.title', 'Silme Onayi'),
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
-      acceptLabel: 'Sil',
-      rejectLabel: 'Vazgeç',
+      acceptLabel: t('common.delete', 'Sil'),
+      rejectLabel: t('common.cancel', 'Vazgec'),
       accept: async () => {
         try {
           await dispatch(deleteCustomer({ organizationId, id: row.id })).unwrap();
@@ -126,23 +130,26 @@ export default function CustomersPage() {
   };
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
+    return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <InputText
-          value={search}
-          onChange={(e) => {
-            const v = e.target.value;
-            setSearch(v);
-            setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-          }}
-          placeholder="Ara: isim"
-          className="w-full sm:w-72"
-        />
-        <Button label="Yeni Müşteri" icon="pi pi-plus" size="small" onClick={openCreate} />
+        <IconField iconPosition="left" className="w-full sm:w-auto">
+          <InputIcon className="pi pi-search text-slate-400" />
+          <InputText
+            value={search}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearch(v);
+              setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+            }}
+            placeholder={t('common.search', 'Ara')}
+            className="w-full sm:w-72"
+          />
+        </IconField>
+        <Button label={t('customer.new', 'Yeni Musteri')} icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
@@ -152,7 +159,7 @@ export default function CustomersPage() {
           value={rows}
           size="small"
           loading={loading}
-          emptyMessage="Müşteri yok."
+          emptyMessage={t('customer.empty', 'Musteri yok.')}
           dataKey="id"
           paginator
           rows={12}
@@ -161,15 +168,15 @@ export default function CustomersPage() {
           globalFilterFields={globalFilterFields}
           tableStyle={{ minWidth: '48rem' }}
         >
-          <Column field="name" header="İsim" sortable filter />
-          <Column field="phone" header="Telefon" sortable filter style={{ width: '12rem' }} />
-          <Column field="email" header="E-posta" sortable filter style={{ width: '16rem' }} />
+          <Column field="name" header={t('common.name', 'Isim')} sortable filter />
+          <Column field="phone" header={t('common.phone', 'Telefon')} sortable filter style={{ width: '12rem' }} />
+          <Column field="email" header={t('common.email', 'E-posta')} sortable filter style={{ width: '16rem' }} />
           <Column
             field="active"
-            header="Aktif"
+            header={t('common.active', 'Aktif')}
             sortable
             style={{ width: '7rem' }}
-            body={(row: CustomerRow) => <span>{row.active ? 'Evet' : 'Hayır'}</span>}
+            body={(row: CustomerRow) => <span>{row.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}</span>}
           />
           <Column
             header=""
@@ -185,51 +192,51 @@ export default function CustomersPage() {
       </div>
 
       <Dialog
-        header={mode === 'edit' ? 'Müşteri Düzenle' : 'Yeni Müşteri'}
+        header={mode === 'edit' ? t('customer.edit', 'Musteri Duzenle') : t('customer.new', 'Yeni Musteri')}
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         className="w-full max-w-lg"
       >
         <div className="grid gap-3">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">İsim</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Telefon</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.phone', 'Telefon')}</span>
               <InputText value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full" />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">E-posta</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.email', 'E-posta')}</span>
               <InputText value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" />
             </label>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Yetkili</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.contact_name', 'Yetkili')}</span>
               <InputText value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full" />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Vergi No</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.tax_no', 'Vergi No')}</span>
               <InputText value={taxNo} onChange={(e) => setTaxNo(e.target.value)} className="w-full" />
             </label>
           </div>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Adres</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.address', 'Adres')}</span>
             <InputTextarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full" rows={3} />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Not</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
             <InputTextarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" rows={3} />
           </label>
           <label className="flex items-center gap-2">
             <Checkbox checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
-            <span className="text-sm text-slate-700">Aktif</span>
+            <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
           </label>
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgeç" size="small" text onClick={() => setDialogOpen(false)} />
-            <Button label="Kaydet" size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
+            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setDialogOpen(false)} />
+            <Button label={t('common.save', 'Kaydet')} size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
           </div>
         </div>
       </Dialog>

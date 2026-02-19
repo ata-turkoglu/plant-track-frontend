@@ -8,6 +8,7 @@ import dashboardReducer from './dashboardSlice';
 import authReducer from './authSlice';
 import setupReducer from './setupSlice';
 import inventoryReducer from './inventorySlice';
+import i18nReducer from './i18nSlice';
 import { loadPersistedUser, savePersistedUser, clearPersistedUser } from './persist';
 
 const persistedUser = loadPersistedUser();
@@ -23,7 +24,8 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     auth: authReducer,
     setup: setupReducer,
-    inventory: inventoryReducer
+    inventory: inventoryReducer,
+    i18n: i18nReducer
   },
   preloadedState: persistedUser
     ? {

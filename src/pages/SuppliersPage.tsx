@@ -7,6 +7,8 @@ import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -14,6 +16,7 @@ import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 
 import type { AppDispatch, RootState } from '../store';
+import { useI18n } from '../hooks/useI18n';
 import {
   createSupplier,
   deleteSupplier,
@@ -23,12 +26,8 @@ import {
   updateSupplier
 } from '../store/suppliersSlice';
 
-const kindOptions = [
-  { label: 'Dis Tedarikçi', value: 'SUPPLIER_EXTERNAL' as const },
-  { label: 'Ic Tedarikçi', value: 'SUPPLIER_INTERNAL' as const }
-];
-
 export default function SuppliersPage() {
+  const { t } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { rows, loading: fetchLoading, mutating, error } = useSelector((s: RootState) => s.suppliers);
@@ -61,6 +60,13 @@ export default function SuppliersPage() {
   }, [dispatch, organizationId]);
 
   const globalFilterFields = useMemo(() => ['kind', 'name', 'email', 'phone'], []);
+  const kindOptions = useMemo(
+    () => [
+      { label: t('supplier.kind.external', 'Dis Tedarikci'), value: 'SUPPLIER_EXTERNAL' as const },
+      { label: t('supplier.kind.internal', 'Ic Tedarikci'), value: 'SUPPLIER_INTERNAL' as const }
+    ],
+    [t]
+  );
   const loading = fetchLoading || mutating;
 
   const openCreate = () => {
@@ -122,12 +128,12 @@ export default function SuppliersPage() {
   const remove = (row: SupplierRow) => {
     if (!organizationId) return;
     confirmDialog({
-      message: `${row.name} kaydını silmek istiyor musun?`,
-      header: 'Silme Onayı',
+      message: t('supplier.confirm.delete', `${row.name} kaydini silmek istiyor musun?`),
+      header: t('inventory.confirm.title', 'Silme Onayi'),
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
-      acceptLabel: 'Sil',
-      rejectLabel: 'Vazgeç',
+      acceptLabel: t('common.delete', 'Sil'),
+      rejectLabel: t('common.cancel', 'Vazgec'),
       accept: async () => {
         try {
           await dispatch(deleteSupplier({ organizationId, id: row.id })).unwrap();
@@ -138,23 +144,26 @@ export default function SuppliersPage() {
   };
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
+    return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <InputText
-          value={search}
-          onChange={(e) => {
-            const v = e.target.value;
-            setSearch(v);
-            setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
-          }}
-          placeholder="Ara: isim veya tip"
-          className="w-full sm:w-72"
-        />
-        <Button label="Yeni Tedarikçi" icon="pi pi-plus" size="small" onClick={openCreate} />
+        <IconField iconPosition="left" className="w-full sm:w-auto">
+          <InputIcon className="pi pi-search text-slate-400" />
+          <InputText
+            value={search}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearch(v);
+              setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
+            }}
+            placeholder={t('common.search', 'Ara')}
+            className="w-full sm:w-72"
+          />
+        </IconField>
+        <Button label={t('supplier.new', 'Yeni Tedarikci')} icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
@@ -164,7 +173,7 @@ export default function SuppliersPage() {
           value={rows}
           size="small"
           loading={loading}
-          emptyMessage="Tedarikçi yok."
+          emptyMessage={t('supplier.empty', 'Tedarikci yok.')}
           dataKey="id"
           paginator
           rows={12}
@@ -173,16 +182,16 @@ export default function SuppliersPage() {
           globalFilterFields={globalFilterFields}
           tableStyle={{ minWidth: '52rem' }}
         >
-          <Column field="kind" header="Tip" sortable filter style={{ width: '14rem' }} />
-          <Column field="name" header="İsim" sortable filter />
-          <Column field="phone" header="Telefon" sortable filter style={{ width: '12rem' }} />
-          <Column field="email" header="E-posta" sortable filter style={{ width: '16rem' }} />
+          <Column field="kind" header={t('supplier.col.kind', 'Tip')} sortable filter style={{ width: '14rem' }} />
+          <Column field="name" header={t('common.name', 'Isim')} sortable filter />
+          <Column field="phone" header={t('common.phone', 'Telefon')} sortable filter style={{ width: '12rem' }} />
+          <Column field="email" header={t('common.email', 'E-posta')} sortable filter style={{ width: '16rem' }} />
           <Column
             field="active"
-            header="Aktif"
+            header={t('common.active', 'Aktif')}
             sortable
             style={{ width: '7rem' }}
-            body={(row: SupplierRow) => <span>{row.active ? 'Evet' : 'Hayır'}</span>}
+            body={(row: SupplierRow) => <span>{row.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}</span>}
           />
           <Column
             header=""
@@ -198,55 +207,55 @@ export default function SuppliersPage() {
       </div>
 
       <Dialog
-        header={mode === 'edit' ? 'Tedarikçi Düzenle' : 'Yeni Tedarikçi'}
+        header={mode === 'edit' ? t('supplier.edit', 'Tedarikci Duzenle') : t('supplier.new', 'Yeni Tedarikci')}
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         className="w-full max-w-lg"
       > 
         <div className="grid gap-3">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Tip</span>
+            <span className="text-sm font-medium text-slate-700">{t('supplier.col.kind', 'Tip')}</span>
             <Dropdown value={kind} onChange={(e) => setKind(e.value)} options={kindOptions} className="w-full" />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">İsim</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Telefon</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.phone', 'Telefon')}</span>
               <InputText value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full" />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">E-posta</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.email', 'E-posta')}</span>
               <InputText value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" />
             </label>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Yetkili</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.contact_name', 'Yetkili')}</span>
               <InputText value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full" />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Vergi No</span>
+              <span className="text-sm font-medium text-slate-700">{t('common.tax_no', 'Vergi No')}</span>
               <InputText value={taxNo} onChange={(e) => setTaxNo(e.target.value)} className="w-full" />
             </label>
           </div>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Adres</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.address', 'Adres')}</span>
             <InputTextarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full" rows={3} />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Not</span>
+            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
             <InputTextarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" rows={3} />
           </label>
           <label className="flex items-center gap-2">
             <Checkbox checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
-            <span className="text-sm text-slate-700">Aktif</span>
+            <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
           </label>
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgeç" size="small" text onClick={() => setDialogOpen(false)} />
-            <Button label="Kaydet" size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
+            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setDialogOpen(false)} />
+            <Button label={t('common.save', 'Kaydet')} size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
           </div>
         </div>
       </Dialog>

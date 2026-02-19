@@ -14,6 +14,7 @@ import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 
 import type { AppDispatch, RootState } from '../../store';
+import { useI18n } from '../../hooks/useI18n';
 import {
   createWarehouse,
   deleteWarehouse,
@@ -56,6 +57,7 @@ function buildLocationOptions(locations: LocationRow[]): LocationOption[] {
 }
 
 export default function WarehousesPage() {
+  const { t, tWarehouseType } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { locations, warehouseTypes, warehouses, loading: fetchLoading, mutating, error } = useSelector(
@@ -107,11 +109,11 @@ export default function WarehousesPage() {
 
   const onDelete = (row: WarehouseRow) => {
     confirmDialog({
-      header: 'Depo Sil',
-      message: 'Bu depoyu silmek istiyor musun?',
+      header: t('warehouse.confirm.delete_title', 'Depo Sil'),
+      message: t('warehouse.confirm.delete_message', 'Bu depoyu silmek istiyor musun?'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Sil',
-      rejectLabel: 'Vazgeç',
+      acceptLabel: t('common.delete', 'Sil'),
+      rejectLabel: t('common.cancel', 'Vazgec'),
       acceptClassName: 'p-button-danger p-button-sm',
       rejectClassName: 'p-button-text p-button-sm',
       accept: async () => {
@@ -166,7 +168,7 @@ export default function WarehousesPage() {
           rounded
           severity="danger"
           onClick={() => onDelete(row)}
-          aria-label="Delete"
+          aria-label={t('common.delete', 'Sil')}
         />
       </div>
     );
@@ -177,32 +179,36 @@ export default function WarehousesPage() {
   };
 
   const typeBody = (row: WarehouseRow) => {
-    const name = row.warehouse_type_name ?? warehouseTypes.find((t) => t.id === row.warehouse_type_id)?.name ?? '-';
+    const matched = warehouseTypes.find((t) => t.id === row.warehouse_type_id);
+    const name = tWarehouseType(matched?.code, row.warehouse_type_name ?? matched?.name ?? '-');
     return <span className="text-sm text-slate-700">{name}</span>;
   };
 
   const warehousesView = useMemo(() => {
     return warehouses.map((w) => ({
       ...w,
-      warehouse_type_label: w.warehouse_type_name ?? warehouseTypes.find((t) => t.id === w.warehouse_type_id)?.name ?? '',
+      warehouse_type_label: (() => {
+        const matched = warehouseTypes.find((t) => t.id === w.warehouse_type_id);
+        return tWarehouseType(matched?.code, w.warehouse_type_name ?? matched?.name ?? '');
+      })(),
       location_label: locationNameById.get(w.location_id) ?? ''
     }));
-  }, [warehouses, warehouseTypes, locationNameById]);
+  }, [warehouses, warehouseTypes, locationNameById, tWarehouseType]);
 
   const typeOptions = useMemo(
-    () => warehouseTypes.map((t) => ({ label: t.name, value: t.id })),
-    [warehouseTypes]
+    () => warehouseTypes.map((item) => ({ label: tWarehouseType(item.code, item.name), value: item.id })),
+    [warehouseTypes, tWarehouseType]
   );
 
   if (!organizationId) {
-    return <Message severity="warn" text="Organization bulunamadı. Lütfen tekrar giriş yap." className="w-full" />;
+    return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-slate-600">Depoları lokasyonlara bağla.</div>
-        <Button label="Yeni Depo" icon="pi pi-plus" size="small" onClick={openCreate} />
+        <div className="text-xs text-slate-600">{t('warehouse.helper', 'Depolari lokasyonlara bagla.')}</div>
+        <Button label={t('warehouse.new', 'Yeni Depo')} icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
@@ -218,7 +224,7 @@ export default function WarehousesPage() {
                 setSearch(v);
                 setFilters((prev) => ({ ...prev, global: { ...prev.global, value: v } }));
               }}
-              placeholder="Ara: depo, tur, lokasyon"
+              placeholder={t('common.search', 'Ara')}
               className="w-full sm:w-72"
             />
           </IconField>
@@ -229,7 +235,7 @@ export default function WarehousesPage() {
             value={warehousesView}
             loading={loading}
             size="small"
-            emptyMessage="Depo yok."
+            emptyMessage={t('warehouse.empty', 'Depo yok.')}
             removableSort
             sortMode="multiple"
             filters={filters}
@@ -237,28 +243,28 @@ export default function WarehousesPage() {
             globalFilterFields={['name', 'warehouse_type_label', 'location_label']}
             tableStyle={{ minWidth: '52rem' }}
           >
-            <Column field="name" header="Depo" sortable filter filterPlaceholder="Ara" />
-            <Column field="warehouse_type_label" header="Tür" sortable filter filterPlaceholder="Ara" style={{ width: '12rem' }} />
-            <Column field="location_label" header="Lokasyon" sortable filter filterPlaceholder="Ara" />
+            <Column field="name" header={t('warehouse.col.name', 'Depo')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
+            <Column field="warehouse_type_label" header={t('warehouse.col.type', 'Tur')} sortable filter filterPlaceholder={t('common.search', 'Ara')} style={{ width: '12rem' }} />
+            <Column field="location_label" header={t('warehouse.col.location', 'Lokasyon')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
             <Column header="" body={actionsBody} style={{ width: '8rem' }} />
           </DataTable>
         </div>
       </div>
 
       <Dialog
-        header={editing ? 'Depo Düzenle' : 'Yeni Depo'}
+        header={editing ? t('warehouse.edit', 'Depo Duzenle') : t('warehouse.new', 'Yeni Depo')}
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         className="w-full max-w-lg"
       >
         <form className="grid gap-3" onSubmit={onSubmit}>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Depo adı</span>
+            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.name', 'Depo adi')}</span>
             <InputText value={name} onChange={(ev) => setName(ev.target.value)} className="w-full" />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Depo türü</span>
+            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.type', 'Depo turu')}</span>
             <Dropdown
               value={warehouseTypeId}
               onChange={(ev) => setWarehouseTypeId(ev.value ?? null)}
@@ -270,7 +276,7 @@ export default function WarehousesPage() {
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Lokasyon</span>
+            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.location', 'Lokasyon')}</span>
             <Dropdown
               value={locationId}
               onChange={(ev) => setLocationId(ev.value ?? null)}
@@ -278,15 +284,15 @@ export default function WarehousesPage() {
               optionLabel="label"
               optionValue="value"
               className="w-full"
-              placeholder="Lokasyon seç"
+              placeholder={t('warehouse.select_location', 'Lokasyon sec')}
               filter
             />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgeç" size="small" text type="button" onClick={() => setDialogOpen(false)} />
+            <Button label={t('common.cancel', 'Vazgec')} size="small" text type="button" onClick={() => setDialogOpen(false)} />
             <Button
-              label="Kaydet"
+              label={t('common.save', 'Kaydet')}
               size="small"
               type="submit"
               loading={loading}

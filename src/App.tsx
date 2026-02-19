@@ -1,4 +1,5 @@
-import { useSelector } from 'react-redux';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import AppLayout from './layout/AppLayout';
@@ -10,12 +11,16 @@ import MaterialsPage from './pages/MaterialsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import CustomersPage from './pages/CustomersPage';
 import SuppliersPage from './pages/SuppliersPage';
+import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OrganizationPage from './pages/setup/OrganizationPage';
 import WarehousesPage from './pages/setup/WarehousesPage';
+import TranslationsPage from './pages/setup/TranslationsPage';
 import type { RootState } from './store';
+import type { AppDispatch } from './store';
+import { fetchI18nTranslations } from './store/i18nSlice';
 
 function ProtectedRoute() {
   const isAuthenticated = useSelector((state: RootState) => state.user.authenticated);
@@ -39,6 +44,15 @@ function AuthOnlyRoute() {
 }
 
 export default function App() {
+  const dispatch = useDispatch<AppDispatch>();
+  const organizationId = useSelector((state: RootState) => state.user.organizationId);
+  const locale = useSelector((state: RootState) => state.i18n.locale);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    dispatch(fetchI18nTranslations({ organizationId, locale }));
+  }, [dispatch, organizationId, locale]);
+
   return (
     <>
       <AppToast />
@@ -56,11 +70,13 @@ export default function App() {
             <Route path="/materials" element={<MaterialsPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
             <Route path="/setup" element={<SetupLayout />}>
               <Route index element={<Navigate to="/setup/organization" replace />} />
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
+              <Route path="translations" element={<TranslationsPage />} />
             </Route>
           </Route>
         </Route>
