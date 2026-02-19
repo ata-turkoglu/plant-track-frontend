@@ -13,7 +13,7 @@ import { FilterMatchMode } from 'primereact/api';
 
 import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemFormDialog';
 import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
-import { formatUnitLabel } from '../components/items/itemUtils';
+import { formatUnitLabelWithName } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
 import {
@@ -52,7 +52,7 @@ const emptyDraft: ItemFormDraft = {
 };
 
 function MaterialsPageImpl() {
-  const { t, tWarehouseType } = useI18n();
+  const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { warehouseTypes, units, items, loading: fetchLoading, mutating, error } = useSelector(
@@ -122,8 +122,14 @@ function MaterialsPageImpl() {
   }, [items, activeWarehouseTypeId]);
 
   const unitOptions = useMemo(
-    () => units.filter((u) => u.active).map((u) => ({ label: formatUnitLabel(u), value: u.id })),
-    [units]
+    () =>
+      units
+        .filter((u) => u.active)
+        .map((u) => ({
+          label: formatUnitLabelWithName(u, tUnit(u.code, u.name), tUnitSymbol(u.symbol ?? undefined, u.symbol ?? undefined)),
+          value: u.id
+        })),
+    [units, tUnit, tUnitSymbol]
   );
 
   const warehouseTypeOptions = useMemo(
@@ -235,7 +241,7 @@ function MaterialsPageImpl() {
   return (
     <div className="grid gap-3">
       <div className="rounded-xl border border-slate-200 bg-white pb-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="max-w-full overflow-x-auto">
             {tabItems.length > 0 ? (
               <TabMenu model={tabItems} activeIndex={activeTabIndex} />
@@ -243,7 +249,6 @@ function MaterialsPageImpl() {
               <span className="text-sm text-slate-500">{t('materials.type_not_found', 'Depo tipi bulunamadi.')}</span>
             )}
           </div>
-          <Button label={t('materials.new', 'Yeni Malzeme')} icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
         </div>
       </div>
 
@@ -261,6 +266,7 @@ function MaterialsPageImpl() {
             className="w-full sm:w-72"
           />
         </IconField>
+        <Button label={t('materials.new', 'Yeni Malzeme')} icon="pi pi-plus" size="small" onClick={openCreate} disabled={!activeWarehouseTypeId} />
       </div>
 
       {error ? <Message severity="error" text={error} className="w-full" /> : null}

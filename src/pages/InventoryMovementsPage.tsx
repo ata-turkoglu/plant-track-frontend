@@ -20,7 +20,7 @@ import type { DataTableFilterMeta } from 'primereact/datatable';
 
 import ItemFormDialog, { type ItemFormDraft } from '../components/items/ItemFormDialog';
 import ItemsTable, { type ItemTableRow } from '../components/items/ItemsTable';
-import { formatUnitLabel } from '../components/items/itemUtils';
+import { formatUnitLabelWithName } from '../components/items/itemUtils';
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
 import {
@@ -73,6 +73,14 @@ type EventLineDraft = {
   unit_id: number | null;
 };
 
+type NodeGroupKey = 'WAREHOUSE' | 'LOCATION' | 'SUPPLIER' | 'CUSTOMER';
+
+type GroupedNodeOption = {
+  label: string;
+  groupKey: NodeGroupKey;
+  items: { label: string; value: number }[];
+};
+
 const emptyItemDraft: ItemFormDraft = {
   warehouseTypeId: null,
   code: '',
@@ -86,7 +94,7 @@ const emptyItemDraft: ItemFormDraft = {
 };
 
 export default function InventoryMovementsPage() {
-  const { t, tWarehouseType } = useI18n();
+  const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating, error } =
@@ -125,7 +133,11 @@ export default function InventoryMovementsPage() {
     uom: { value: null, matchMode: FilterMatchMode.CONTAINS }
   });
   const formatInventoryUnitLabel = (unit?: { name?: string | null; symbol?: string | null; code?: string | null } | null) =>
-    formatUnitLabel(unit);
+    formatUnitLabelWithName(
+      unit ?? null,
+      unit ? tUnit(unit.code ?? undefined, unit.name ?? unit.code ?? '-') : undefined,
+      unit ? tUnitSymbol(unit.symbol ?? undefined, unit.symbol ?? undefined) : undefined
+    );
 
   useEffect(() => {
     if (!organizationId) return;
@@ -210,13 +222,38 @@ export default function InventoryMovementsPage() {
       .filter((node) => node.node_type === 'CUSTOMER')
       .map((node) => ({ label: nodeLabel(node), value: node.id }));
 
-    const groups: { label: string; items: { label: string; value: number }[] }[] = [];
-    if (warehouseGroup.length > 0) groups.push({ label: t('inventory.group.warehouses', 'Warehouses'), items: warehouseGroup });
-    if (locationGroup.length > 0) groups.push({ label: t('inventory.group.locations', 'Locations'), items: locationGroup });
-    if (supplierGroup.length > 0) groups.push({ label: t('inventory.group.suppliers', 'Suppliers'), items: supplierGroup });
-    if (customerGroup.length > 0) groups.push({ label: t('inventory.group.customers', 'Customers'), items: customerGroup });
+    const groups: GroupedNodeOption[] = [];
+    if (warehouseGroup.length > 0) {
+      groups.push({ label: t('inventory.group.warehouses', 'Warehouses'), groupKey: 'WAREHOUSE', items: warehouseGroup });
+    }
+    if (locationGroup.length > 0) {
+      groups.push({ label: t('inventory.group.locations', 'Locations'), groupKey: 'LOCATION', items: locationGroup });
+    }
+    if (supplierGroup.length > 0) {
+      groups.push({ label: t('inventory.group.suppliers', 'Suppliers'), groupKey: 'SUPPLIER', items: supplierGroup });
+    }
+    if (customerGroup.length > 0) {
+      groups.push({ label: t('inventory.group.customers', 'Customers'), groupKey: 'CUSTOMER', items: customerGroup });
+    }
     return groups;
   }, [nodes, warehousesByType, t]);
+
+  const nodeGroupTemplate = (group: GroupedNodeOption) => {
+    const iconByGroupKey: Record<NodeGroupKey, string> = {
+      WAREHOUSE: 'pi pi-building',
+      LOCATION: 'pi pi-map-marker',
+      SUPPLIER: 'pi pi-truck',
+      CUSTOMER: 'pi pi-users'
+    };
+
+    return (
+      <div className="inventory-node-group-chip">
+        <i className={`${iconByGroupKey[group.groupKey]} text-xs`} />
+        <span>{group.label}</span>
+        <span className="inventory-node-group-count">{group.items.length}</span>
+      </div>
+    );
+  };
 
   const movementsForType = useMemo(() => {
     if (activeWarehouseTypeId === null) return movements;
@@ -712,7 +749,7 @@ export default function InventoryMovementsPage() {
           setEntryOpen(false);
           setEditingMovementId(null);
         }}
-        className="w-full max-w-2xl"
+        className="w-full max-w-4xl"
       >
         <div className="grid gap-3">
           <label className="grid gap-2">
@@ -729,8 +766,12 @@ export default function InventoryMovementsPage() {
                 options={groupedNodeOptions}
                 optionGroupLabel="label"
                 optionGroupChildren="items"
+                optionGroupTemplate={nodeGroupTemplate}
                 className="w-full inventory-node-dropdown"
+                panelClassName="inventory-node-panel"
                 filter
+                filterBy="label"
+                filterPlaceholder={t('common.search', 'Ara')}
                 placeholder={t('inventory.select_source_node', 'Kaynak node sec')}
               />
             </label>
@@ -742,8 +783,12 @@ export default function InventoryMovementsPage() {
                 options={groupedNodeOptions}
                 optionGroupLabel="label"
                 optionGroupChildren="items"
+                optionGroupTemplate={nodeGroupTemplate}
                 className="w-full inventory-node-dropdown"
+                panelClassName="inventory-node-panel"
                 filter
+                filterBy="label"
+                filterPlaceholder={t('common.search', 'Ara')}
                 placeholder={t('inventory.select_target_node', 'Hedef node sec')}
               />
             </label>
@@ -784,7 +829,13 @@ export default function InventoryMovementsPage() {
                     min={0}
                     placeholder={t('inventory.col.qty', 'Miktar')}
                   />
-                  <InputText value={unitLabel} readOnly className="w-full min-w-0 text-sm" />
+                  <InputText
+                    value={unitLabel}
+                    readOnly
+                    tabIndex={-1}
+                    onFocus={(e) => e.currentTarget.blur()}
+                    className="w-full min-w-0 text-sm readonly-display-input"
+                  />
                   <Button
                     icon="pi pi-trash"
                     size="small"

@@ -3,7 +3,7 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta, DataTableStateEvent } from 'primereact/datatable';
 
-import { formatUnitLabel, type UnitLike } from './itemUtils';
+import { formatUnitLabelWithName, type UnitLike } from './itemUtils';
 import { useI18n } from '../../hooks/useI18n';
 
 export type ItemTableRow = {
@@ -50,7 +50,7 @@ export default function ItemsTable({
   actionBody,
   actionStyle
 }: ItemsTableProps) {
-  const { t } = useI18n();
+  const { t, tUnit, tUnitSymbol } = useI18n();
   const unitById = new Map<number, UnitLike>();
   for (const unit of units) unitById.set(unit.id, unit);
 
@@ -112,7 +112,14 @@ export default function ItemsTable({
         style={{ width: '12rem' }}
         body={(row: ItemTableRow) => {
           if (!row.size_spec) return '-';
-          const sizeUnitLabel = row.size_unit_id ? formatUnitLabel(unitById.get(row.size_unit_id)) : null;
+          const sizeUnit = row.size_unit_id ? unitById.get(row.size_unit_id) : null;
+          const sizeUnitLabel = sizeUnit
+            ? formatUnitLabelWithName(
+                sizeUnit,
+                tUnit(sizeUnit.code ?? undefined, sizeUnit.name ?? sizeUnit.code ?? '-'),
+                tUnitSymbol(sizeUnit.symbol ?? undefined, sizeUnit.symbol ?? undefined)
+              )
+            : null;
           return sizeUnitLabel ? `${row.size_spec} ${sizeUnitLabel}` : row.size_spec;
         }}
       />
@@ -121,7 +128,14 @@ export default function ItemsTable({
         header={t('inventory.col.unit', 'Birim')}
         sortable
         style={{ width: '12rem' }}
-        body={(row: ItemTableRow) => formatUnitLabel(row.unit_id ? unitById.get(row.unit_id) : null)}
+        body={(row: ItemTableRow) => {
+          const unit = row.unit_id ? unitById.get(row.unit_id) : null;
+          return formatUnitLabelWithName(
+            unit,
+            unit ? tUnit(unit.code ?? undefined, unit.name ?? unit.code ?? '-') : undefined,
+            unit ? tUnitSymbol(unit.symbol ?? undefined, unit.symbol ?? undefined) : undefined
+          );
+        }}
       />
       <Column
         field="active"

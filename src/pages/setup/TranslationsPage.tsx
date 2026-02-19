@@ -1,13 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 
 import { api } from '../../services/api';
 import { fetchI18nTranslations } from '../../store/i18nSlice';
@@ -33,12 +36,15 @@ const namespaceOptions = [
   { label: 'profile', value: 'profile' },
   { label: 'setup', value: 'setup' },
   { label: 'unit', value: 'unit' },
+  { label: 'unit_symbol', value: 'unit_symbol' },
   { label: 'ui', value: 'ui' }
 ];
 
 export default function TranslationsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useI18n();
+  const [searchParams] = useSearchParams();
+  const namespaceFilter = searchParams.get('namespace')?.trim() || '';
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
   const activeLocale = useSelector((s: RootState) => s.i18n.locale);
 
@@ -48,17 +54,28 @@ export default function TranslationsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<TranslationRow | null>(null);
+  const [search, setSearch] = useState('');
   const [namespace, setNamespace] = useState('warehouse_type');
   const [entryKey, setEntryKey] = useState('');
   const [trValue, setTrValue] = useState('');
   const [enValue, setEnValue] = useState('');
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) =>
+      [row.namespace, row.entry_key, row.tr, row.en].some((value) => String(value ?? '').toLowerCase().includes(q))
+    );
+  }, [rows, search]);
 
   const fetchRows = async () => {
     if (!organizationId) return;
     setLoading(true);
     setError('');
     try {
-      const response = await api.get(`/api/organizations/${organizationId}/translations`);
+      const response = await api.get(`/api/organizations/${organizationId}/translations`, {
+        params: namespaceFilter ? { namespace: namespaceFilter } : undefined
+      });
       setRows(response.data.translations ?? []);
     } catch {
       setError('Ceviri kayitlari yuklenemedi.');
@@ -69,11 +86,11 @@ export default function TranslationsPage() {
 
   useEffect(() => {
     fetchRows();
-  }, [organizationId]);
+  }, [organizationId, namespaceFilter]);
 
   const openCreate = () => {
     setEditingRow(null);
-    setNamespace('warehouse_type');
+    setNamespace(namespaceFilter || 'warehouse_type');
     setEntryKey('');
     setTrValue('');
     setEnValue('');
@@ -165,16 +182,24 @@ export default function TranslationsPage() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-slate-600">{t('setup.translations.title', 'Ceviri Sozlugu')}</div>
-        <Button label={t('setup.translations.new', 'Yeni Ceviri')} icon="pi pi-plus" size="small" onClick={openCreate} />
-      </div>
-
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+          <IconField iconPosition="left" className="w-full sm:w-auto">
+            <InputIcon className="pi pi-search text-slate-400" />
+            <InputText
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('common.search', 'Ara')}
+              className="w-full sm:w-72"
+            />
+          </IconField>
+          <Button label={t('setup.translations.new', 'Yeni Ceviri')} icon="pi pi-plus" size="small" onClick={openCreate} />
+        </div>
+
         <div className="overflow-x-auto">
-          <DataTable value={rows} loading={loading} size="small" emptyMessage={t('setup.translations.no_data', 'Kayit yok.')}> 
+          <DataTable value={filteredRows} loading={loading} size="small" emptyMessage={t('setup.translations.no_data', 'Kayit yok.')}> 
             <Column field="namespace" header={t('setup.translations.namespace', 'Namespace')} sortable />
             <Column field="entry_key" header={t('setup.translations.key', 'Key')} sortable />
             <Column field="tr" header={t('setup.translations.tr', 'Turkce')} />

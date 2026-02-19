@@ -12,42 +12,46 @@ export default function AppLayout() {
   const dispatch = useDispatch();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const mobileSidebarOpen = useSelector((s: RootState) => s.ui.mobileSidebarOpen);
+  const sidebarCollapsed = useSelector((s: RootState) => s.ui.sidebarCollapsed);
+  const desktopContentOffset = sidebarCollapsed ? 'md:pl-16' : 'md:pl-60';
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="h-screen overflow-hidden">
       <AppHeader />
-      <div className="flex min-w-0 flex-1 flex-row">
-        {isDesktop ? (
+      {isDesktop ? (
+        <div className={`fixed left-0 top-0 z-50 h-screen pt-16 transition-all duration-200 ${sidebarCollapsed ? 'w-16' : 'w-60'}`}>
           <AppSidebar />
-        ) : mobileSidebarOpen ? (
-          <div className="fixed inset-x-0 bottom-0 top-16 z-40">
-            <button
-              type="button"
-              className="absolute inset-0 cursor-default bg-slate-900/20"
-              aria-label="Close menu"
-              onClick={() => dispatch(closeMobileSidebar())}
-            />
-            <div className="absolute inset-y-0 left-0 w-72 shadow-xl">
-              <AppSidebar collapsedOverride={false} onNavigate={() => dispatch(closeMobileSidebar())} />
-            </div>
+        </div>
+      ) : mobileSidebarOpen ? (
+        <div className="fixed inset-x-0 bottom-0 top-16 z-40">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-slate-900/20"
+            aria-label="Close menu"
+            onClick={() => dispatch(closeMobileSidebar())}
+          />
+          <div className="absolute inset-y-0 left-0 w-72 shadow-xl">
+            <AppSidebar collapsedOverride={false} onNavigate={() => dispatch(closeMobileSidebar())} />
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        <main className="relative flex-1 overflow-auto p-3 sm:p-4">
-          {!isDesktop && !mobileSidebarOpen ? (
-            <Button
-              icon="pi pi-bars"
-              rounded
-              text
-              size="small"
-              aria-label="Open menu"
-              className="fixed left-3 top-20 z-30"
-              onClick={() => dispatch(toggleMobileSidebar())}
-            />
-          ) : null}
+      <main className={`h-screen pt-16 ${isDesktop ? desktopContentOffset : ''}`}>
+        {!isDesktop && !mobileSidebarOpen ? (
+          <Button
+            icon="pi pi-bars"
+            rounded
+            text
+            size="small"
+            aria-label="Open menu"
+            className="fixed left-3 top-20 z-30"
+            onClick={() => dispatch(toggleMobileSidebar())}
+          />
+        ) : null}
+        <div className="h-full overflow-auto p-3 sm:p-4">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

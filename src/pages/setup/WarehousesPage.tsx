@@ -206,15 +206,10 @@ export default function WarehousesPage() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-slate-600">{t('warehouse.helper', 'Depolari lokasyonlara bagla.')}</div>
-        <Button label={t('warehouse.new', 'Yeni Depo')} icon="pi pi-plus" size="small" onClick={openCreate} />
-      </div>
-
       {error ? <Message severity="error" text={error} className="w-full" /> : null}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <IconField iconPosition="left" className="w-full sm:w-auto">
             <InputIcon className="pi pi-search text-slate-400" />
             <InputText
@@ -228,6 +223,7 @@ export default function WarehousesPage() {
               className="w-full sm:w-72"
             />
           </IconField>
+          <Button label={t('warehouse.new', 'Yeni Depo')} icon="pi pi-plus" size="small" onClick={openCreate} />
         </div>
 
         <div className="overflow-x-auto">

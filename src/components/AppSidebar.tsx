@@ -34,14 +34,14 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
   const widthClass = useMemo(() => (collapsed ? 'w-16' : 'w-60'), [collapsed]);
 
   return (
-    <aside className={`${widthClass} relative sidebar-shadow-right border-r border-slate-300 bg-neutral-200 transition-all duration-200`}>
+    <aside className={`${widthClass} relative h-full sidebar-shadow-right border-r border-slate-300 bg-neutral-200 transition-all duration-200`}>
       {isDesktop ? (
         <Button
           icon={collapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
           rounded
           aria-label="Collapse sidebar"
           onClick={() => dispatch(toggleSidebar())}
-          className="!absolute -right-3 -top-3 z-20 !h-6 !w-6 !border !border-slate-200 !bg-neutral-300 !text-slate-600 shadow-sm hover:!bg-white"
+          className="!absolute -right-3 -top-3 z-30 !h-6 !w-6 !border !border-slate-200 !bg-neutral-300 !text-slate-600 shadow-sm hover:!bg-white"
         />
       ) : null}
       <nav className="flex h-full flex-col gap-1.5 p-3">

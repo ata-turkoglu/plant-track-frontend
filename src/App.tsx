@@ -18,6 +18,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import OrganizationPage from './pages/setup/OrganizationPage';
 import WarehousesPage from './pages/setup/WarehousesPage';
 import TranslationsPage from './pages/setup/TranslationsPage';
+import UnitsPage from './pages/setup/UnitsPage';
 import type { RootState } from './store';
 import type { AppDispatch } from './store';
 import { fetchI18nTranslations } from './store/i18nSlice';
@@ -77,6 +78,7 @@ export default function App() {
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
               <Route path="translations" element={<TranslationsPage />} />
+              <Route path="units" element={<UnitsPage />} />
             </Route>
           </Route>
         </Route>

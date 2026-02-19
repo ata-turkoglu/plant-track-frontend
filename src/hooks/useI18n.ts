@@ -26,5 +26,23 @@ export function useI18n() {
     [t]
   );
 
-  return { locale, t, tWarehouseType };
+  const tUnit = useMemo(
+    () =>
+      (code: string | undefined, fallbackName?: string) => {
+        if (!code) return fallbackName ?? '';
+        return t(`unit.${code.toLowerCase()}`, fallbackName ?? code);
+      },
+    [t]
+  );
+
+  const tUnitSymbol = useMemo(
+    () =>
+      (symbol: string | undefined, fallbackSymbol?: string) => {
+        if (!symbol) return fallbackSymbol ?? '';
+        return t(`unit_symbol.${symbol.toLowerCase()}`, fallbackSymbol ?? '');
+      },
+    [t]
+  );
+
+  return { locale, t, tWarehouseType, tUnit, tUnitSymbol };
 }

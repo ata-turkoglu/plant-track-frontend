@@ -36,6 +36,7 @@ export default function AppHeader() {
     if (path.startsWith('/setup/organization')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.organization', 'Organization')}`;
     if (path.startsWith('/setup/warehouses')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.warehouses', 'Warehouses')}`;
     if (path.startsWith('/setup/translations')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.translations', 'Translations')}`;
+    if (path.startsWith('/setup/units')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.units', 'Units')}`;
     if (path.startsWith('/setup')) return t('nav.settings', 'Settings');
     return '';
   })();
@@ -57,7 +58,7 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-neutral-200 px-4 shadow-sm">
+    <header className="fixed inset-x-0 top-0 z-50 grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-slate-300 bg-neutral-200 px-4 shadow-sm">
       <div className="flex items-center gap-3">
         <Link to="/" aria-label="Go to dashboard" className="inline-flex">
           <img src="/images/logo.webp" alt="PlantTrack" className="h-9 w-9 rounded-md object-cover" />

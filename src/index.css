@@ -74,6 +74,86 @@ tr.inventory-row-out > td {
   max-width: min(36rem, 92vw);
 }
 
+.inventory-node-panel .p-dropdown-items {
+  padding: 0.35rem;
+}
+
+.inventory-node-panel .p-dropdown-item-group {
+  margin-top: 0.55rem;
+  padding: 0.35rem 0 0 0 !important;
+  background: transparent !important;
+  border-top: 1px solid #e2e8f0;
+}
+
+.inventory-node-panel .p-dropdown-item-group:first-child {
+  margin-top: 0;
+  padding-top: 0 !important;
+  border-top: none;
+}
+
+.inventory-node-group-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0.15rem 0.25rem 0.15rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.inventory-node-group-count {
+  margin-left: auto;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+
+/* Read-only / disabled inputs: no caret/focus affordance, visually non-editable. */
+.readonly-display-input.p-inputtext,
+.readonly-display-input .p-inputtext,
+input[readonly],
+textarea[readonly],
+.p-inputtext[readonly],
+.p-inputtextarea[readonly],
+input:disabled,
+textarea:disabled,
+.p-inputtext:disabled,
+.p-inputtextarea:disabled {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #475569;
+  cursor: default;
+  caret-color: transparent;
+}
+
+.readonly-display-input {
+  pointer-events: none;
+}
+
+.readonly-display-input.p-inputtext:focus,
+.readonly-display-input .p-inputtext:focus,
+.readonly-display-input.p-inputtext:focus-visible,
+.readonly-display-input .p-inputtext:focus-visible,
+input[readonly]:focus,
+textarea[readonly]:focus,
+.p-inputtext[readonly]:focus,
+.p-inputtextarea[readonly]:focus,
+input[readonly]:focus-visible,
+textarea[readonly]:focus-visible,
+.p-inputtext[readonly]:focus-visible,
+.p-inputtextarea[readonly]:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* DataTable headers: slightly softer background across pages. */
 .p-datatable .p-datatable-thead > tr > th {
   background-color: #f8fafc !important;
