@@ -28,7 +28,7 @@ type AssetTypeFieldRow = {
   asset_type_id: number;
   name: string;
   label: string;
-  input_type: FieldType;
+  data_type: FieldType;
   required: boolean;
   unit_id: number | null;
   sort_order: number;
@@ -45,7 +45,7 @@ type SchemaFieldRow = {
 type SchemaPayloadField = {
   name: string;
   label: string;
-  input_type: FieldType;
+  data_type: FieldType;
   required: boolean;
   unit_id: number | null;
   active: boolean;
@@ -56,6 +56,16 @@ type UnitRow = { id: number; code: string; name: string; symbol: string | null; 
 function normalizeFieldType(value: unknown): FieldType {
   if (value === 'text' || value === 'number' || value === 'boolean' || value === 'date') return value;
   return 'text';
+}
+
+const DEFAULT_SCHEMA_FIELDS: SchemaFieldRow[] = [
+  { label: 'Marka', type: 'text', required: false, unitId: null },
+  { label: 'Model', type: 'text', required: false, unitId: null },
+  { label: 'Seri No', type: 'text', required: false, unitId: null }
+];
+
+function cloneDefaultSchemaFields(): SchemaFieldRow[] {
+  return DEFAULT_SCHEMA_FIELDS.map((row) => ({ ...row }));
 }
 
 function normalizeUnitId(value: unknown): number | null {
@@ -113,7 +123,7 @@ function parseSchemaRows(fields: AssetTypeFieldRow[] | null | undefined): Schema
     .filter((row) => row.active !== false)
     .map((row) => ({
       label: (row.label ?? row.name ?? '').trim(),
-      type: normalizeFieldType(row.input_type),
+      type: normalizeFieldType(row.data_type),
       required: Boolean(row.required),
       unitId: normalizeUnitId(row.unit_id)
     }))
@@ -144,7 +154,7 @@ function buildFields(rows: SchemaFieldRow[]): { ok: true; value: SchemaPayloadFi
     value: trimmed.map((row) => ({
       name: slugifyFieldName(row.label),
       label: row.label,
-      input_type: row.type,
+      data_type: row.type,
       required: row.required,
       unit_id: row.unitId,
       active: true
@@ -183,7 +193,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
     setCode('');
     setName('');
     setActive(true);
-    setSchemaRows([]);
+    setSchemaRows(cloneDefaultSchemaFields());
   }, [editing, visible]);
 
   useEffect(() => {

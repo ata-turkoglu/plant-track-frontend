@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
@@ -30,6 +30,7 @@ type AssetRow = {
   asset_type_id: number | null;
   code: string | null;
   name: string;
+  image_url: string | null;
   active: boolean;
   current_state: string;
   running_since: string | null;
@@ -54,7 +55,7 @@ type AssetTypeFieldRow = {
   asset_type_id: number;
   name: string;
   label: string;
-  input_type: SchemaFieldType;
+  data_type: SchemaFieldType;
   required: boolean;
   unit_id: number | null;
   sort_order: number;
@@ -125,7 +126,7 @@ function parseAssetTypeFields(fields: AssetTypeFieldRow[] | null | undefined): S
     .map((row) => ({
       key: (row.name ?? '').trim(),
       label: (row.label ?? row.name ?? '').trim(),
-      type: normalizeFieldType(row.input_type),
+      type: normalizeFieldType(row.data_type),
       required: Boolean(row.required),
       unitId: normalizeUnitId(row.unit_id)
     }))
@@ -250,6 +251,20 @@ function formatRuntime(secondsRaw: number | string): string {
   return `${h}h ${m}m`;
 }
 
+const MAX_ASSET_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') resolve(reader.result);
+      else reject(new Error('invalid_result'));
+    };
+    reader.onerror = () => reject(new Error('read_failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AssetsPage() {
   const { t } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
@@ -278,12 +293,16 @@ export default function AssetsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [parentAssetId, setParentAssetId] = useState<number | null>(null);
   const [assetTypeId, setAssetTypeId] = useState<number | null>(null);
   const [active, setActive] = useState(true);
   const [attributes, setAttributes] = useState<AttributeEntry[]>([]);
   const [assetTypeDialogOpen, setAssetTypeDialogOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageActionsOpen, setImageActionsOpen] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
 
   const locationOptions = useMemo(() => locations.map((l) => ({ label: l.name, value: l.id })), [locations]);
   const assetTypeOptions = useMemo(() => assetTypes.map((at) => ({ label: `${at.name} (${at.code})`, value: at.id })), [assetTypes]);
@@ -393,6 +412,9 @@ export default function AssetsPage() {
     setEditingId(null);
     setName('');
     setCode('');
+    setImageUrl(null);
+    setImageActionsOpen(false);
+    setImagePreviewOpen(false);
     setLocationId(null);
     setParentAssetId(null);
     setAssetTypeId(null);
@@ -406,12 +428,68 @@ export default function AssetsPage() {
     setEditingId(row.id);
     setName(row.name);
     setCode(row.code ?? '');
+    setImageUrl(row.image_url ?? null);
+    setImageActionsOpen(false);
+    setImagePreviewOpen(false);
     setLocationId(row.location_id ?? null);
     setParentAssetId(row.parent_asset_id ?? null);
     setAssetTypeId(row.asset_type_id ?? null);
     setActive(row.active);
     setAttributes(attributesToEntries(row.attributes_json ?? null));
     setCreateEditOpen(true);
+  };
+
+  const closeCreateEdit = () => {
+    setCreateEditOpen(false);
+    setImageActionsOpen(false);
+    setImagePreviewOpen(false);
+  };
+
+  const pickAssetImage = () => {
+    imageInputRef.current?.click();
+  };
+
+  const onAssetImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (!file.type.toLowerCase().startsWith('image/')) {
+      dispatch(
+        enqueueToast({
+          severity: 'warn',
+          summary: t('common.validation', 'Kontrol'),
+          detail: t('asset.image_invalid_type', 'Lutfen gecerli bir resim dosyasi sec.')
+        })
+      );
+      return;
+    }
+
+    if (file.size > MAX_ASSET_IMAGE_SIZE_BYTES) {
+      dispatch(
+        enqueueToast({
+          severity: 'warn',
+          summary: t('common.validation', 'Kontrol'),
+          detail: t('asset.image_too_large', 'Resim en fazla 2 MB olabilir.')
+        })
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (!dataUrl.toLowerCase().startsWith('data:image/')) throw new Error('invalid_data_url');
+      setImageUrl(dataUrl);
+      setImageActionsOpen(false);
+    } catch {
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: t('common.error', 'Hata'),
+          detail: t('asset.image_read_failed', 'Resim dosyasi okunamadi.')
+        })
+      );
+    }
   };
 
   const submit = async () => {
@@ -476,6 +554,7 @@ export default function AssetsPage() {
           asset_type_id: assetTypeId,
           code: code.trim() || null,
           name: name.trim(),
+          image_url: imageUrl,
           active,
           attributes_json: parsedAttr.value
         });
@@ -486,7 +565,7 @@ export default function AssetsPage() {
             detail: t('asset.created', 'Varlık oluşturuldu.')
           })
         );
-        setCreateEditOpen(false);
+        closeCreateEdit();
         await loadAll();
         const created = res.data.asset as AssetRow;
         navigate(`/assets/${created.id}`);
@@ -496,6 +575,7 @@ export default function AssetsPage() {
           asset_type_id: assetTypeId,
           code: code.trim() || null,
           name: name.trim(),
+          image_url: imageUrl,
           active,
           attributes_json: parsedAttr.value
         });
@@ -506,7 +586,7 @@ export default function AssetsPage() {
             detail: t('asset.updated', 'Varlık güncellendi.')
           })
         );
-        setCreateEditOpen(false);
+        closeCreateEdit();
         await loadAll();
       }
     } catch (err: unknown) {
@@ -662,10 +742,92 @@ export default function AssetsPage() {
       <Dialog
         header={createEditMode === 'edit' ? t('asset.edit', 'Varlik Duzenle') : t('asset.new', 'Yeni Varlik')}
         visible={createEditOpen}
-        onHide={() => setCreateEditOpen(false)}
+        onHide={closeCreateEdit}
         className="asset-entry-dialog w-full max-w-xl"
       >
         <div className="grid gap-3">
+          <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[8.5rem_minmax(0,1fr)]">
+            <div className="grid gap-2 self-start">
+              <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onAssetImageSelected(e)} />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setImageActionsOpen((prev) => !prev)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setImageActionsOpen((prev) => !prev);
+                  }
+                }}
+                className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white outline-none ring-offset-2 transition hover:border-sky-300 focus-visible:ring-2 focus-visible:ring-sky-300"
+                aria-label={t('asset.image_actions', 'Resim islemleri')}
+              >
+                {imageUrl ? (
+                  <img src={imageUrl} alt={name.trim() || t('asset.image', 'Resim')} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-slate-400">
+                    <i className="pi pi-image text-xl" aria-hidden />
+                  </div>
+                )}
+                <div
+                  className={`pointer-events-none absolute inset-x-2 bottom-2 flex justify-end transition-all duration-200 ${
+                    imageActionsOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+                  }`}
+                >
+                  <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur">
+                    <Button
+                      icon={imageUrl ? 'pi pi-pencil' : 'pi pi-plus'}
+                      size="small"
+                      text
+                      rounded
+                      type="button"
+                      className="h-7 w-7"
+                      aria-label={imageUrl ? t('asset.image_change', 'Resim Degistir') : t('asset.image_add', 'Resim Ekle')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        pickAssetImage();
+                      }}
+                    />
+                    {imageUrl ? (
+                      <>
+                        <Button
+                          icon="pi pi-search-plus"
+                          size="small"
+                          text
+                          rounded
+                          type="button"
+                          className="h-7 w-7"
+                          aria-label={t('asset.image_preview', 'Resmi Buyut')}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setImagePreviewOpen(true);
+                          }}
+                        />
+                        <Button
+                          icon="pi pi-trash"
+                          size="small"
+                          text
+                          rounded
+                          severity="danger"
+                          type="button"
+                          className="h-7 w-7"
+                          aria-label={t('asset.image_remove', 'Resmi Kaldir')}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setImageUrl(null);
+                            setImageActionsOpen(false);
+                          }}
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="grid content-start gap-1">
+              <span className="text-sm font-medium text-slate-700">{t('asset.image', 'Resim')}</span>
+            </div>
+          </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full p-inputtext-sm" />
@@ -871,10 +1033,25 @@ export default function AssetsPage() {
             <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
           </label>
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setCreateEditOpen(false)} />
+            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={closeCreateEdit} />
             <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void submit()} loading={mutating} disabled={!name.trim()} />
           </div>
         </div>
+      </Dialog>
+
+      <Dialog
+        header={t('asset.image', 'Resim')}
+        visible={imagePreviewOpen}
+        onHide={() => setImagePreviewOpen(false)}
+        className="w-full max-w-3xl"
+      >
+        {imageUrl ? (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+            <img src={imageUrl} alt={name.trim() || t('asset.image', 'Resim')} className="max-h-[75vh] w-full object-contain" />
+          </div>
+        ) : (
+          <Message severity="info" text={t('asset.image_missing', 'Gosterilecek resim yok.')} className="w-full" />
+        )}
       </Dialog>
 
       {organizationId ? (
