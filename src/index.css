@@ -30,6 +30,20 @@ button {
   font-family: var(--app-font);
 }
 
+/* Keep placeholders visibly lighter than input text across native + PrimeReact inputs. */
+input::placeholder,
+textarea::placeholder,
+.p-inputtext::placeholder,
+.p-inputtextarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+.p-dropdown .p-placeholder,
+.p-multiselect .p-placeholder {
+  color: #94a3b8 !important;
+}
+
 /* One-sided shadow for the app sidebar (right side only). */
 .sidebar-shadow-right {
   box-shadow: 12px 0 24px -24px rgba(15, 23, 42, 0.45);
@@ -204,4 +218,109 @@ textarea[readonly]:focus-visible,
 
 .dashboard-chart-card .p-card-content {
   padding-block: 0 !important;
+}
+
+/* New asset dialog: compact input and dropdown heights. */
+.asset-entry-dialog .p-inputtext,
+.asset-entry-dialog .p-inputtextarea,
+.asset-entry-dialog .p-inputnumber-input {
+  font-size: 0.875rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.asset-entry-dialog .p-inputtext {
+  height: 1.85rem;
+}
+
+.asset-entry-dialog .p-dropdown {
+  height: 1.85rem;
+}
+
+.asset-entry-dialog .p-dropdown .p-dropdown-label {
+  display: flex;
+  align-items: center;
+  height: 1.85rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.asset-entry-dialog .p-dropdown .p-dropdown-trigger {
+  height: 1.85rem;
+}
+
+.asset-entry-dialog .p-inputnumber .p-inputtext {
+  height: 1.85rem;
+}
+
+.asset-entry-dialog .asset-unit-readonly {
+  height: auto;
+  min-height: 0;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  font-size: 0.875rem;
+  line-height: 1.2rem;
+}
+
+.asset-entry-dialog .p-button.p-button-sm {
+  height: 1.85rem;
+  font-size: 0.8125rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.asset-entry-dialog .p-button.p-button-sm.p-button-icon-only,
+.asset-entry-dialog .p-button.p-button-sm.p-button-rounded {
+  width: 1.85rem;
+  padding: 0;
+}
+
+.asset-entry-dialog .p-button.p-button-sm .p-button-label {
+  line-height: 1;
+}
+
+/* Asset type dialog: keep field rows and controls vertically aligned on both edges. */
+.asset-type-dialog .p-inputtext,
+.asset-type-dialog .p-dropdown {
+  height: 1.9rem;
+}
+
+.asset-type-dialog .p-dropdown .p-dropdown-label {
+  display: flex;
+  align-items: center;
+  height: 1.9rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.asset-type-dialog .p-dropdown .p-dropdown-trigger {
+  height: 1.9rem;
+}
+
+.asset-type-dialog .p-button.p-button-sm {
+  height: 1.9rem;
+  font-size: 0.8125rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.asset-type-dialog .p-button.p-button-sm.p-button-icon-only,
+.asset-type-dialog .p-button.p-button-sm.p-button-rounded {
+  width: 1.9rem;
+  padding: 0;
+}
+
+.asset-type-dialog .asset-type-fields-head,
+.asset-type-dialog .asset-type-field-row {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.asset-type-dialog .asset-type-required-cell {
+  min-height: 1.9rem;
+  justify-content: center;
 }

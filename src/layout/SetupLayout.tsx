@@ -22,6 +22,11 @@ export default function SetupLayout() {
         command: () => navigate('/setup/warehouses')
       },
       {
+        label: t('setup.tab.asset_types', 'Asset Types'),
+        icon: 'pi pi-tags',
+        command: () => navigate('/setup/asset-types')
+      },
+      {
         label: t('setup.tab.translations', 'Translations'),
         icon: 'pi pi-language',
         command: () => navigate('/setup/translations')
@@ -38,8 +43,9 @@ export default function SetupLayout() {
   const activeIndex = useMemo(() => {
     if (location.pathname.startsWith('/setup/organization')) return 0;
     if (location.pathname.startsWith('/setup/warehouses')) return 1;
-    if (location.pathname.startsWith('/setup/translations')) return 2;
-    if (location.pathname.startsWith('/setup/units')) return 3;
+    if (location.pathname.startsWith('/setup/asset-types')) return 2;
+    if (location.pathname.startsWith('/setup/translations')) return 3;
+    if (location.pathname.startsWith('/setup/units')) return 4;
     return 0;
   }, [location.pathname]);
 

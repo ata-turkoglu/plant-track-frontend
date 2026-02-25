@@ -28,6 +28,7 @@ export default function AppHeader() {
     if (path === '/') return t('nav.dashboard', 'Dashboard');
     if (path.startsWith('/inventory')) return t('nav.inventory', 'Inventory');
     if (path.startsWith('/materials')) return t('nav.materials', 'Materials');
+    if (path.startsWith('/assets')) return t('nav.assets', 'Assets');
     if (path.startsWith('/suppliers')) return t('nav.suppliers', 'Suppliers');
     if (path.startsWith('/customers')) return t('nav.customers', 'Customers');
     if (path.startsWith('/reports')) return t('nav.reports', 'Reports');
@@ -35,6 +36,7 @@ export default function AppHeader() {
     if (path === '/setup') return t('nav.settings', 'Settings');
     if (path.startsWith('/setup/organization')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.organization', 'Organization')}`;
     if (path.startsWith('/setup/warehouses')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.warehouses', 'Warehouses')}`;
+    if (path.startsWith('/setup/asset-types')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.asset_types', 'Asset Types')}`;
     if (path.startsWith('/setup/translations')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.translations', 'Translations')}`;
     if (path.startsWith('/setup/units')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.units', 'Units')}`;
     if (path.startsWith('/setup')) return t('nav.settings', 'Settings');

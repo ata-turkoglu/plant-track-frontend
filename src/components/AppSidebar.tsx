@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
@@ -11,11 +11,12 @@ import { useI18n } from '../hooks/useI18n';
 const items = [
   { key: 'nav.dashboard', fallback: 'Ana Sayfa', icon: 'pi pi-chart-line', to: '/' },
   { key: 'nav.inventory', fallback: 'Stok Hareketleri', icon: 'pi pi-arrow-right-arrow-left', to: '/inventory' },
-  { key: 'nav.materials', fallback: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
+  { key: 'nav.reports', fallback: 'Raporlar', icon: 'pi pi-table', to: '/reports', dividerAfter: true },
   { key: 'nav.suppliers', fallback: 'Tedarikciler', icon: 'pi pi-truck', to: '/suppliers' },
   { key: 'nav.customers', fallback: 'Musteriler', icon: 'pi pi-users', to: '/customers' },
-  { key: 'nav.reports', fallback: 'Raporlar', icon: 'pi pi-table', to: '/reports' },
-  { key: 'nav.settings', fallback: 'Ayarlar', icon: 'pi pi-cog', to: '/setup' }
+  { key: 'nav.assets', fallback: 'Varliklar', icon: 'pi pi-sitemap', to: '/assets' },
+  { key: 'nav.materials', fallback: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
+  { key: 'nav.settings', fallback: 'Ayarlar', icon: 'pi pi-cog', to: '/setup', dividerBefore: true }
 ];
 
 type AppSidebarProps = {
@@ -55,27 +56,33 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
           const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
           const isBottom = item.to === '/setup';
           return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => onNavigate?.()}
-              className={[
-                'group relative no-underline flex items-center gap-3 rounded-xl border py-2 text-sm transition-all',
-                collapsed ? 'justify-center px-2' : 'px-3',
-                active
-                  ? 'border-2 border-sky-500 bg-white text-slate-900 shadow-sm'
-                  : 'border border-slate-100 text-slate-600 hover:bg-slate-50 hover:text-slate-800',
-                isBottom ? 'mt-auto' : ''
-              ].join(' ')}
+            <Fragment key={item.to}>
+              {item.dividerBefore ? (
+                <div className={['mx-1 my-2', isBottom ? 'mt-auto' : ''].join(' ')} aria-hidden>
+                  <div className="h-px bg-slate-500/30" />
+                  <div className="h-px bg-white/45" />
+                </div>
+              ) : null}
+              <Link
+                to={item.to}
+                onClick={() => onNavigate?.()}
+                className={[
+                  'group relative no-underline flex items-center gap-3 rounded-xl border py-2 text-sm transition-all',
+                  collapsed ? 'justify-center px-2' : 'px-3',
+                  active
+                    ? 'border-2 border-sky-500 bg-white text-slate-900 shadow-sm'
+                    : 'border border-slate-100 text-slate-600 hover:bg-slate-50 hover:text-slate-800',
+                  isBottom && !item.dividerBefore ? 'mt-auto' : ''
+                ].join(' ')}
               >
                 <span
-                className={[
-                  'inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-                  active ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-700'
-                ].join(' ')}
-                aria-hidden
-              >
-                <i className={`${item.icon} text-base`} />
+                  className={[
+                    'inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                    active ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-700'
+                  ].join(' ')}
+                  aria-hidden
+                >
+                  <i className={`${item.icon} text-base`} />
                 </span>
                 {!collapsed && <span className="truncate font-medium">{label}</span>}
                 {collapsed && (
@@ -87,6 +94,13 @@ export default function AppSidebar({ collapsedOverride, onNavigate }: AppSidebar
                   </span>
                 )}
               </Link>
+              {item.dividerAfter ? (
+                <div className="mx-1 my-2" aria-hidden>
+                  <div className="h-px bg-slate-500/30" />
+                  <div className="h-px bg-white/45" />
+                </div>
+              ) : null}
+            </Fragment>
           );
         })}
       </nav>

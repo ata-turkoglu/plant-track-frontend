@@ -11,6 +11,8 @@ import MaterialsPage from './pages/MaterialsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import CustomersPage from './pages/CustomersPage';
 import SuppliersPage from './pages/SuppliersPage';
+import AssetsPage from './pages/AssetsPage';
+import AssetDetailPage from './pages/AssetDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -19,6 +21,7 @@ import OrganizationPage from './pages/setup/OrganizationPage';
 import WarehousesPage from './pages/setup/WarehousesPage';
 import TranslationsPage from './pages/setup/TranslationsPage';
 import UnitsPage from './pages/setup/UnitsPage';
+import AssetTypesPage from './pages/setup/AssetTypesPage';
 import type { RootState } from './store';
 import type { AppDispatch } from './store';
 import { fetchI18nTranslations } from './store/i18nSlice';
@@ -69,6 +72,8 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/inventory" element={<InventoryMovementsPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/assets" element={<AssetsPage />} />
+            <Route path="/assets/:assetId" element={<AssetDetailPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
@@ -77,6 +82,7 @@ export default function App() {
               <Route index element={<Navigate to="/setup/organization" replace />} />
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
+              <Route path="asset-types" element={<AssetTypesPage />} />
               <Route path="translations" element={<TranslationsPage />} />
               <Route path="units" element={<UnitsPage />} />
             </Route>
