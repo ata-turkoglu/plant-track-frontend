@@ -45,6 +45,7 @@ const initialMovementFilters: DataTableFilterMeta = {
 
 const emptyItemDraft: ItemFormDraft = {
   warehouseTypeId: null,
+  itemGroupId: null,
   code: '',
   name: '',
   brand: '',
@@ -59,7 +60,7 @@ export default function InventoryMovementsPage() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { units, items, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating } =
+  const { units, items, itemGroups, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating } =
     useSelector((s: RootState) => s.inventory);
   const refTooltip = useRef<Tooltip>(null);
   const loading = fetchLoading || mutating;
@@ -293,11 +294,33 @@ export default function InventoryMovementsPage() {
     [warehouseTypes, tWarehouseType]
   );
 
+  const allowItemGroupEdit = useMemo(() => {
+    if (itemFormMode !== 'edit') return false;
+    const wtId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
+    if (!wtId) return false;
+    const wtCode = warehouseTypes.find((x) => x.id === wtId)?.code?.toUpperCase() ?? '';
+    return wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
+  }, [activeWarehouseTypeId, itemDraft.warehouseTypeId, itemFormMode, warehouseTypes]);
+
+  const itemGroupOptions = useMemo(() => {
+    const targetWarehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
+    return itemGroups
+      .filter((g) => g.active || g.id === itemDraft.itemGroupId)
+      .filter((g) => (targetWarehouseTypeId ? g.warehouse_type_id === targetWarehouseTypeId : true))
+      .map((g) => ({
+        label: `${g.code} - ${g.name}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
+        value: g.id,
+        amount_unit_id: g.amount_unit_id,
+        size_spec: g.size_spec,
+        size_unit_id: g.size_unit_id
+      }));
+  }, [activeWarehouseTypeId, itemDraft.itemGroupId, itemDraft.warehouseTypeId, itemGroups]);
+
   const createDraftLine = useCallback((seed?: Partial<EventLineDraft>): EventLineDraft => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     item_id: seed?.item_id ?? null,
     quantity: seed?.quantity ?? null,
-    unit_id: seed?.unit_id ?? null
+    amount_unit_id: seed?.amount_unit_id ?? null
   }), []);
 
   const openEntry = useCallback(() => {
@@ -313,7 +336,7 @@ export default function InventoryMovementsPage() {
       createDraftLine({
         item_id: firstItem?.value ?? null,
         quantity: null,
-        unit_id: firstItemRow?.unit_id ?? null
+        amount_unit_id: firstItemRow?.unit_id ?? null
       })
     ]);
     setOccurredAt(new Date());
@@ -337,6 +360,7 @@ export default function InventoryMovementsPage() {
     setEditingItemId(row.id);
     setItemDraft({
       warehouseTypeId: row.warehouse_type_id ?? activeWarehouseTypeId,
+      itemGroupId: row.item_group_id ?? null,
       code: row.code,
       name: row.name,
       brand: row.brand ?? '',
@@ -358,7 +382,7 @@ export default function InventoryMovementsPage() {
       createDraftLine({
         item_id: row.item_id,
         quantity: Number(row.quantity),
-        unit_id: item?.unit_id ?? null
+        amount_unit_id: item?.unit_id ?? null
       })
     ]);
     setOccurredAt(row.occurred_at ? new Date(row.occurred_at) : new Date());
@@ -375,7 +399,7 @@ export default function InventoryMovementsPage() {
     const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
     setEventLines((prev) => [
       ...prev,
-      createDraftLine({ item_id: firstItem?.value ?? null, unit_id: firstItemRow?.unit_id ?? null, quantity: null })
+      createDraftLine({ item_id: firstItem?.value ?? null, amount_unit_id: firstItemRow?.unit_id ?? null, quantity: null })
     ]);
   };
 
@@ -388,11 +412,11 @@ export default function InventoryMovementsPage() {
     if (eventLines.length === 0) return;
 
     const linesPayload = eventLines
-      .filter((line) => line.item_id && line.quantity && line.unit_id)
+      .filter((line) => line.item_id && line.quantity && line.amount_unit_id)
       .map((line) => ({
         item_id: Number(line.item_id),
         quantity: Number(line.quantity),
-        unit_id: Number(line.unit_id),
+        amount_unit_id: Number(line.amount_unit_id),
         from_node_id: fromNodeId,
         to_node_id: toNodeId
       }));
@@ -457,9 +481,11 @@ export default function InventoryMovementsPage() {
         setEventLines((prev) =>
           prev.length > 0
             ? prev.map((line, index) =>
-                index === 0 ? { ...line, item_id: created.id, unit_id: created.unit_id ?? line.unit_id } : line
+                index === 0
+                  ? { ...line, item_id: created.id, amount_unit_id: created.unit_id ?? line.amount_unit_id }
+                  : line
               )
-            : [createDraftLine({ item_id: created.id, unit_id: created.unit_id ?? null, quantity: null })]
+            : [createDraftLine({ item_id: created.id, amount_unit_id: created.unit_id ?? null, quantity: null })]
         );
         setItemDialogOpen(false);
       } else {
@@ -476,7 +502,8 @@ export default function InventoryMovementsPage() {
             sizeSpec: itemDraft.sizeSpec.trim() || null,
             sizeUnitId: itemDraft.sizeUnitId ?? null,
             unitId: itemDraft.unitId,
-            active: itemDraft.active
+            active: itemDraft.active,
+            itemGroupId: itemDraft.itemGroupId
           })
         ).unwrap();
         setItemDialogOpen(false);
@@ -560,7 +587,7 @@ export default function InventoryMovementsPage() {
 
   const onLineItemChange = useCallback((lineId: string, itemId: number | null) => {
     const nextItem = itemId ? itemById.get(itemId) : undefined;
-    updateLine(lineId, { item_id: itemId, unit_id: nextItem?.unit_id ?? null });
+    updateLine(lineId, { item_id: itemId, amount_unit_id: nextItem?.unit_id ?? null });
   }, [itemById]);
 
   const onLineQuantityChange = useCallback((lineId: string, quantity: number | null) => {
@@ -572,7 +599,7 @@ export default function InventoryMovementsPage() {
     !toNodeId ||
     fromNodeId === toNodeId ||
     eventLines.length === 0 ||
-    eventLines.some((line) => !line.item_id || !line.quantity || !line.unit_id);
+    eventLines.some((line) => !line.item_id || !line.quantity || !line.amount_unit_id);
 
   const itemActionsBody = useCallback((row: ItemTableRow) => (
     <div className="flex items-center justify-end gap-1">
@@ -750,10 +777,14 @@ export default function InventoryMovementsPage() {
         draft={itemDraft}
         onDraftChange={setItemDraft}
         warehouseTypeOptions={warehouseTypeOptions}
+        itemGroupOptions={allowItemGroupEdit ? itemGroupOptions : []}
+        allowItemGroupEdit={allowItemGroupEdit}
         unitOptions={unitOptions}
         loading={loading}
         warehouseTypeDisabled={itemFormMode === 'edit'}
-        onHide={() => setItemDialogOpen(false)}
+        onHide={() => {
+          setItemDialogOpen(false);
+        }}
         onSubmit={submitNewItem}
       />
 

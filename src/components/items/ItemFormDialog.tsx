@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
@@ -7,6 +8,7 @@ import { useI18n } from '../../hooks/useI18n';
 
 export type ItemFormDraft = {
   warehouseTypeId: number | null;
+  itemGroupId: number | null;
   code: string;
   name: string;
   brand: string;
@@ -18,6 +20,13 @@ export type ItemFormDraft = {
 };
 
 type Option = { label: string; value: number };
+type ItemGroupOption = {
+  label: string;
+  value: number;
+  amount_unit_id: number;
+  size_spec?: string | null;
+  size_unit_id?: number | null;
+};
 
 type ItemFormDialogProps = {
   visible: boolean;
@@ -26,6 +35,8 @@ type ItemFormDialogProps = {
   onDraftChange: (next: ItemFormDraft) => void;
   warehouseTypeOptions: Option[];
   unitOptions: Option[];
+  itemGroupOptions?: ItemGroupOption[];
+  allowItemGroupEdit?: boolean;
   loading?: boolean;
   warehouseTypeDisabled?: boolean;
   onHide: () => void;
@@ -39,6 +50,8 @@ export default function ItemFormDialog({
   onDraftChange,
   warehouseTypeOptions,
   unitOptions,
+  itemGroupOptions = [],
+  allowItemGroupEdit = false,
   loading = false,
   warehouseTypeDisabled = false,
   onHide,
@@ -46,6 +59,23 @@ export default function ItemFormDialog({
 }: ItemFormDialogProps) {
   const { t } = useI18n();
   const submitDisabled = !draft.code.trim() || !draft.name.trim() || !draft.unitId || !draft.warehouseTypeId;
+  const unitLabelById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const option of unitOptions) map.set(option.value, option.label);
+    return map;
+  }, [unitOptions]);
+
+  const selectedGroup = useMemo(() => {
+    if (mode !== 'edit' || !allowItemGroupEdit) return null;
+    const groupId = draft.itemGroupId;
+    if (!groupId) return null;
+    return itemGroupOptions.find((g) => g.value === groupId) ?? null;
+  }, [allowItemGroupEdit, draft.itemGroupId, itemGroupOptions, mode]);
+  const groupDrivenUnitLabel =
+    selectedGroup && selectedGroup.amount_unit_id ? unitLabelById.get(selectedGroup.amount_unit_id) ?? '-' : '-';
+  const groupDrivenSizeUnitLabel =
+    selectedGroup && selectedGroup.size_unit_id ? unitLabelById.get(selectedGroup.size_unit_id) ?? '-' : '-';
+  const groupDrivenSizeSpec = selectedGroup?.size_spec?.trim() ?? '';
 
   return (
     <Dialog
@@ -67,6 +97,31 @@ export default function ItemFormDialog({
           />
         </label>
 
+        {mode === 'edit' && allowItemGroupEdit ? (
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-700">{t('materials.group', 'Grup')}</span>
+            <Dropdown
+              value={draft.itemGroupId}
+              onChange={(e) => {
+                const nextId = e.value ?? null;
+                const nextGroup = nextId ? itemGroupOptions.find((g) => g.value === nextId) ?? null : null;
+                onDraftChange({
+                  ...draft,
+                  itemGroupId: nextId,
+                  unitId: nextGroup?.amount_unit_id ?? draft.unitId,
+                  sizeSpec: (nextGroup?.size_spec ?? '').trim(),
+                  sizeUnitId: nextGroup?.size_unit_id ?? null
+                });
+              }}
+              options={itemGroupOptions}
+              className="w-full"
+              filter
+              placeholder={t('common.select', 'Sec')}
+              showClear
+            />
+          </label>
+        ) : null}
+
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
           <InputText value={draft.name} onChange={(e) => onDraftChange({ ...draft, name: e.target.value })} className="w-full" />
@@ -79,12 +134,16 @@ export default function ItemFormDialog({
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('inventory.col.unit', 'Birim')}</span>
-            <Dropdown
-              value={draft.unitId}
-              onChange={(e) => onDraftChange({ ...draft, unitId: e.value ?? null })}
-              options={unitOptions}
-              className="w-full"
-            />
+            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
+              <InputText value={groupDrivenUnitLabel} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            ) : (
+              <Dropdown
+                value={draft.unitId}
+                onChange={(e) => onDraftChange({ ...draft, unitId: e.value ?? null })}
+                options={unitOptions}
+                className="w-full"
+              />
+            )}
           </label>
         </div>
 
@@ -102,21 +161,29 @@ export default function ItemFormDialog({
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.col.size', 'Olcu')} / Spec</span>
-            <InputText
-              value={draft.sizeSpec}
-              onChange={(e) => onDraftChange({ ...draft, sizeSpec: e.target.value })}
-              className="w-full"
-            />
+            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
+              <InputText value={groupDrivenSizeSpec || '-'} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            ) : (
+              <InputText
+                value={draft.sizeSpec}
+                onChange={(e) => onDraftChange({ ...draft, sizeSpec: e.target.value })}
+                className="w-full"
+              />
+            )}
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.size_unit', 'Olcu Birimi')}</span>
-            <Dropdown
-              value={draft.sizeUnitId}
-              onChange={(e) => onDraftChange({ ...draft, sizeUnitId: e.value ?? null })}
-              options={unitOptions}
-              showClear
-              className="w-full"
-            />
+            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
+              <InputText value={groupDrivenSizeUnitLabel} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            ) : (
+              <Dropdown
+                value={draft.sizeUnitId}
+                onChange={(e) => onDraftChange({ ...draft, sizeUnitId: e.value ?? null })}
+                options={unitOptions}
+                showClear
+                className="w-full"
+              />
+            )}
           </label>
         </div>
 

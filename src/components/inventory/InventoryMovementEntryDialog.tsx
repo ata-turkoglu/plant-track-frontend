@@ -162,7 +162,7 @@ export default function InventoryMovementEntryDialog({
                 placeholder={translate('inventory.col.qty', 'Miktar')}
               />
               <InputText
-                value={getUnitLabel(line.unit_id)}
+                value={getUnitLabel(line.amount_unit_id)}
                 readOnly
                 tabIndex={-1}
                 onFocus={(e) => e.currentTarget.blur()}

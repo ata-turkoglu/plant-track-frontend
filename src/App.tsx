@@ -19,6 +19,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OrganizationPage from './pages/setup/OrganizationPage';
 import WarehousesPage from './pages/setup/WarehousesPage';
+import ItemGroupsPage from './pages/setup/ItemGroupsPage';
 import TranslationsPage from './pages/setup/TranslationsPage';
 import UnitsPage from './pages/setup/UnitsPage';
 import AssetTypesPage from './pages/setup/AssetTypesPage';
@@ -82,6 +83,7 @@ export default function App() {
               <Route index element={<Navigate to="/setup/organization" replace />} />
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
+              <Route path="item-groups" element={<ItemGroupsPage />} />
               <Route path="asset-types" element={<AssetTypesPage />} />
               <Route path="translations" element={<TranslationsPage />} />
               <Route path="units" element={<UnitsPage />} />

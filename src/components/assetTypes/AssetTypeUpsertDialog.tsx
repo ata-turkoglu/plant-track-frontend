@@ -58,16 +58,6 @@ function normalizeFieldType(value: unknown): FieldType {
   return 'text';
 }
 
-const DEFAULT_SCHEMA_FIELDS: SchemaFieldRow[] = [
-  { label: 'Marka', type: 'text', required: false, unitId: null },
-  { label: 'Model', type: 'text', required: false, unitId: null },
-  { label: 'Seri No', type: 'text', required: false, unitId: null }
-];
-
-function cloneDefaultSchemaFields(): SchemaFieldRow[] {
-  return DEFAULT_SCHEMA_FIELDS.map((row) => ({ ...row }));
-}
-
 function normalizeUnitId(value: unknown): number | null {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
@@ -193,7 +183,9 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
     setCode('');
     setName('');
     setActive(true);
-    setSchemaRows(cloneDefaultSchemaFields());
+    // Default fields (Marka/Model/Seri No) are auto-inserted on the backend.
+    // Keep the schema editor focused on custom fields.
+    setSchemaRows([]);
   }, [editing, visible]);
 
   useEffect(() => {
@@ -276,7 +268,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
         enqueueToast({
           severity: 'success',
           summary: t('common.success', 'Basarili'),
-          detail: editing ? t('asset_types.updated', 'Varlik tipi guncellendi.') : t('asset_types.created', 'Varlik tipi olusturuldu.')
+          detail: editing ? t('asset_types.updated', 'Makine tipi guncellendi.') : t('asset_types.created', 'Makine tipi olusturuldu.')
         })
       );
 
@@ -347,7 +339,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
 
           {schemaRows.length > 0 ? (
             <div className="asset-type-fields-head hidden grid-cols-[minmax(12rem,1fr)_9rem_minmax(10rem,12rem)_8rem_2.5rem] gap-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
-              <span>{t('asset_types.field_label', 'Gorunen Ad')}</span>
+              <span>{t('asset_types.field_label', 'Label')}</span>
               <span>{t('asset_types.field_type', 'Tip')}</span>
               <span>{t('asset_types.field_unit', 'Birim')}</span>
               <span>{t('asset_types.field_required', 'Zorunlu')}</span>
@@ -363,7 +355,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
               <InputText
                 value={row.label}
                 onChange={(e) => setSchemaRows((prev) => prev.map((p, i) => (i === idx ? { ...p, label: e.target.value } : p)))}
-                placeholder={t('asset_types.field_label', 'Gorunen Ad')}
+                placeholder={t('asset_types.field_label', 'Label')}
                 className="w-full p-inputtext-sm"
               />
               <Dropdown

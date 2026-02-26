@@ -9,6 +9,9 @@ import { useI18n } from '../../hooks/useI18n';
 export type ItemTableRow = {
   id: number;
   warehouse_type_id?: number;
+  item_group_id?: number;
+  item_group_code?: string | null;
+  item_group_name?: string | null;
   code: string;
   name: string;
   brand?: string | null;

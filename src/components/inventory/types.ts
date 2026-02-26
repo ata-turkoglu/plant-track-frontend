@@ -18,7 +18,7 @@ export type EventLineDraft = {
   id: string;
   item_id: number | null;
   quantity: number | null;
-  unit_id: number | null;
+  amount_unit_id: number | null;
 };
 
 export type MovementDisplayRow = {

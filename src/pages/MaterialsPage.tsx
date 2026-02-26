@@ -25,6 +25,7 @@ import {
 
 const emptyDraft: ItemFormDraft = {
   warehouseTypeId: null,
+  itemGroupId: null,
   code: '',
   name: '',
   brand: '',
@@ -49,7 +50,7 @@ function MaterialsPageImpl() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { warehouseTypes, units, items, loading: fetchLoading, mutating } = useSelector(
+  const { warehouseTypes, units, items, itemGroups, loading: fetchLoading, mutating } = useSelector(
     (s: RootState) => s.materials
   );
 
@@ -133,6 +134,28 @@ function MaterialsPageImpl() {
     [warehouseTypes, tWarehouseType]
   );
 
+  const allowItemGroupEdit = useMemo(() => {
+    if (mode !== 'edit') return false;
+    const wtId = draft.warehouseTypeId ?? activeWarehouseTypeId;
+    if (!wtId) return false;
+    const wtCode = warehouseTypes.find((x) => x.id === wtId)?.code?.toUpperCase() ?? '';
+    return wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
+  }, [activeWarehouseTypeId, draft.warehouseTypeId, mode, warehouseTypes]);
+
+  const itemGroupOptions = useMemo(() => {
+    const targetWarehouseTypeId = draft.warehouseTypeId ?? activeWarehouseTypeId;
+    return itemGroups
+      .filter((g) => g.active || g.id === draft.itemGroupId)
+      .filter((g) => (targetWarehouseTypeId ? g.warehouse_type_id === targetWarehouseTypeId : true))
+      .map((g) => ({
+        label: `${g.code} - ${g.name}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
+        value: g.id,
+        amount_unit_id: g.amount_unit_id,
+        size_spec: g.size_spec,
+        size_unit_id: g.size_unit_id
+      }));
+  }, [activeWarehouseTypeId, draft.itemGroupId, draft.warehouseTypeId, itemGroups]);
+
   const openCreate = useCallback(() => {
     setMode('create');
     setEditingId(null);
@@ -149,6 +172,7 @@ function MaterialsPageImpl() {
     setEditingId(row.id);
     setDraft({
       warehouseTypeId: row.warehouse_type_id ?? activeWarehouseTypeId,
+      itemGroupId: row.item_group_id ?? null,
       code: row.code,
       name: row.name,
       brand: row.brand ?? '',
@@ -181,7 +205,8 @@ function MaterialsPageImpl() {
             sizeSpec: draft.sizeSpec.trim() || null,
             sizeUnitId: draft.sizeUnitId ?? null,
             unitId: draft.unitId,
-            active: draft.active
+            active: draft.active,
+            itemGroupId: draft.itemGroupId
           })
         ).unwrap();
       } else {
@@ -293,10 +318,14 @@ function MaterialsPageImpl() {
         draft={draft}
         onDraftChange={setDraft}
         warehouseTypeOptions={warehouseTypeOptions}
+        itemGroupOptions={allowItemGroupEdit ? itemGroupOptions : []}
+        allowItemGroupEdit={allowItemGroupEdit}
         unitOptions={unitOptions}
         loading={mutating}
         warehouseTypeDisabled={mode === 'edit'}
-        onHide={() => setDialogOpen(false)}
+        onHide={() => {
+          setDialogOpen(false);
+        }}
         onSubmit={submit}
       />
     </div>

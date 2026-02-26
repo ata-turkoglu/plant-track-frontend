@@ -22,6 +22,9 @@ export type ItemRow = {
   id: number;
   organization_id: number;
   warehouse_type_id: number;
+  item_group_id?: number;
+  item_group_code?: string | null;
+  item_group_name?: string | null;
   code: string;
   name: string;
   brand?: string | null;
@@ -32,11 +35,24 @@ export type ItemRow = {
   active: boolean;
 };
 
+export type ItemGroupRow = {
+  id: number;
+  organization_id: number;
+  warehouse_type_id: number;
+  amount_unit_id: number;
+  code: string;
+  name: string;
+  size_spec: string | null;
+  size_unit_id: number | null;
+  active: boolean;
+};
+
 type MaterialsState = {
   // Master data + liste ekrani ayni state altinda tutuluyor.
   warehouseTypes: WarehouseTypeRow[];
   units: UnitRow[];
   items: ItemRow[];
+  itemGroups: ItemGroupRow[];
   // Ilk yukleme ve liste yenileme durumu.
   loading: boolean;
   // Kaydet/sil gibi mutasyon istekleri icin ayrik loading flag.
@@ -48,6 +64,7 @@ type MaterialsFetchResponse = {
   warehouseTypes: WarehouseTypeRow[];
   units: UnitRow[];
   items: ItemRow[];
+  itemGroups: ItemGroupRow[];
 };
 
 type UpsertMaterialPayload = {
@@ -60,6 +77,7 @@ type UpsertMaterialPayload = {
   sizeUnitId?: number | null;
   unitId: number;
   active: boolean;
+  itemGroupId?: number | null;
   warehouseTypeId?: number;
   itemId?: number;
 };
@@ -68,6 +86,7 @@ const initialState: MaterialsState = {
   warehouseTypes: [],
   units: [],
   items: [],
+  itemGroups: [],
   loading: false,
   mutating: false,
   error: ''
@@ -77,16 +96,18 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
   'materials/fetchAll',
   async (organizationId, thunkApi) => {
     try {
-      const [warehouseTypesRes, unitsRes, itemsRes] = await Promise.all([
+      const [warehouseTypesRes, unitsRes, itemsRes, itemGroupsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/units`),
-        api.get(`/api/organizations/${organizationId}/items`)
+        api.get(`/api/organizations/${organizationId}/items`),
+        api.get(`/api/organizations/${organizationId}/item-groups`)
       ]);
 
       return {
         warehouseTypes: warehouseTypesRes.data.warehouse_types ?? [],
         units: unitsRes.data.units ?? [],
-        items: itemsRes.data.items ?? []
+        items: itemsRes.data.items ?? [],
+        itemGroups: itemGroupsRes.data.item_groups ?? []
       };
     } catch {
       return thunkApi.rejectWithValue('Malzemeler yüklenemedi.');
@@ -122,7 +143,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
 
 export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/updateItem',
-  async ({ organizationId, itemId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
+  async ({ organizationId, itemId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active, itemGroupId }, thunkApi) => {
     if (!itemId) {
       return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
@@ -135,7 +156,8 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         size_spec: sizeSpec ?? null,
         size_unit_id: sizeUnitId ?? null,
         unit_id: unitId,
-        active
+        active,
+        item_group_id: itemGroupId ?? undefined
       });
       // Sayfada lokal patch yerine server truth yeniden cekiliyor.
       await thunkApi.dispatch(fetchMaterialsData(organizationId));
@@ -168,6 +190,7 @@ const materialsSlice = createSlice({
       state.warehouseTypes = [];
       state.units = [];
       state.items = [];
+      state.itemGroups = [];
       state.loading = false;
       state.mutating = false;
       state.error = '';
@@ -186,6 +209,7 @@ const materialsSlice = createSlice({
         state.warehouseTypes = action.payload.warehouseTypes;
         state.units = action.payload.units;
         state.items = action.payload.items;
+        state.itemGroups = action.payload.itemGroups;
       })
       .addCase(fetchMaterialsData.rejected, (state, action) => {
         state.loading = false;

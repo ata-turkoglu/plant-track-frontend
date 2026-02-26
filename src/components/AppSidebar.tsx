@@ -14,7 +14,7 @@ const items = [
   { key: 'nav.reports', fallback: 'Raporlar', icon: 'pi pi-table', to: '/reports', dividerAfter: true },
   { key: 'nav.suppliers', fallback: 'Tedarikciler', icon: 'pi pi-truck', to: '/suppliers' },
   { key: 'nav.customers', fallback: 'Musteriler', icon: 'pi pi-users', to: '/customers' },
-  { key: 'nav.assets', fallback: 'Varliklar', icon: 'pi pi-sitemap', to: '/assets' },
+  { key: 'nav.assets', fallback: 'Makineler', icon: 'pi pi-sitemap', to: '/assets' },
   { key: 'nav.materials', fallback: 'Malzemeler', icon: 'pi pi-box', to: '/materials' },
   { key: 'nav.settings', fallback: 'Ayarlar', icon: 'pi pi-cog', to: '/setup', dividerBefore: true }
 ];

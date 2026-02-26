@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
@@ -16,7 +15,6 @@ import { api } from '../services/api';
 import { useI18n } from '../hooks/useI18n';
 import { enqueueToast } from '../store/uiSlice';
 import { fetchOrganizationSetup } from '../store/setupSlice';
-import type { ItemRow } from '../store/materialsSlice';
 import type { AppDispatch, RootState } from '../store';
 
 type FieldDataType = 'text' | 'number' | 'boolean' | 'date';
@@ -55,16 +53,28 @@ type AssetTypeRow = {
   fields: AssetTypeFieldRow[];
 };
 
+type ItemGroupRow = {
+  id: number;
+  organization_id: number;
+  warehouse_type_id: number;
+  amount_unit_id: number;
+  code: string;
+  name: string;
+  size_spec: string | null;
+  size_unit_id: number | null;
+  active: boolean;
+};
+
 type BomLineRow = {
   id: number;
-  item_id: number;
+  item_group_id: number;
   quantity: string | number;
-  preferred: boolean;
   note: string | null;
-  item_code: string;
-  item_name: string;
-  item_brand: string | null;
-  item_model: string | null;
+  item_group_code: string;
+  item_group_name: string;
+  item_group_size_spec: string | null;
+  item_group_size_unit_code: string | null;
+  item_group_size_unit_symbol: string | null;
   unit_code: string;
   unit_name: string;
   unit_symbol: string | null;
@@ -224,7 +234,7 @@ export default function AssetDetailPage() {
   const [assetTypeFields, setAssetTypeFields] = useState<AssetTypeFieldRow[]>([]);
   const [bomLines, setBomLines] = useState<BomLineRow[]>([]);
   const [events, setEvents] = useState<AssetEventRow[]>([]);
-  const [items, setItems] = useState<ItemRow[]>([]);
+  const [itemGroups, setItemGroups] = useState<ItemGroupRow[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
@@ -240,9 +250,8 @@ export default function AssetDetailPage() {
   const [stateDialogOpen, setStateDialogOpen] = useState(false);
 
   const [bomDialogOpen, setBomDialogOpen] = useState(false);
-  const [bomItemId, setBomItemId] = useState<number | null>(null);
+  const [bomItemGroupId, setBomItemGroupId] = useState<number | null>(null);
   const [bomQuantity, setBomQuantity] = useState<number>(1);
-  const [bomPreferred, setBomPreferred] = useState(true);
   const [bomNote, setBomNote] = useState('');
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -336,12 +345,12 @@ export default function AssetDetailPage() {
 
     Promise.all([
       loadCore(assetId),
-      api.get(`/api/organizations/${organizationId}/items`, {
+      api.get(`/api/organizations/${organizationId}/item-groups`, {
         params: { active: true, warehouseTypeCode: 'SPARE_PART' }
       })
     ])
-      .then(([, itemsRes]) => {
-        setItems((itemsRes.data.items ?? []) as ItemRow[]);
+      .then(([, groupsRes]) => {
+        setItemGroups(((groupsRes.data.item_groups ?? groupsRes.data.itemGroups) ?? []) as ItemGroupRow[]);
       })
       .catch(() => {
         dispatch(
@@ -449,7 +458,7 @@ export default function AssetDetailPage() {
         enqueueToast({
           severity: 'success',
           summary: t('common.success', 'Başarılı'),
-          detail: t('asset.moved', 'Varlık taşındı.')
+          detail: t('asset.moved', 'Makine tasindi.')
         })
       );
       setMoveDialogOpen(false);
@@ -514,21 +523,19 @@ export default function AssetDetailPage() {
   };
 
   const openAddBom = () => {
-    setBomItemId(null);
+    setBomItemGroupId(null);
     setBomQuantity(1);
-    setBomPreferred(true);
     setBomNote('');
     setBomDialogOpen(true);
   };
 
   const addBomLine = async () => {
-    if (!organizationId || !asset?.id || !bomItemId) return;
+    if (!organizationId || !asset?.id || !bomItemGroupId) return;
     setMutating(true);
     try {
       await api.post(`/api/organizations/${organizationId}/assets/${asset.id}/bom`, {
-        item_id: bomItemId,
+        item_group_id: bomItemGroupId,
         quantity: bomQuantity,
-        preferred: bomPreferred,
         note: bomNote.trim() || null
       });
       dispatch(
@@ -556,7 +563,7 @@ export default function AssetDetailPage() {
   const deleteBomLine = (line: BomLineRow) => {
     if (!organizationId || !asset?.id) return;
     confirmDialog({
-      message: t('asset.bom_confirm_delete', `${line.item_name} satırını silmek istiyor musun?`),
+      message: t('asset.bom_confirm_delete', `${line.item_group_name} satırını silmek istiyor musun?`),
       header: t('inventory.confirm.title', 'Silme Onayi'),
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
@@ -600,7 +607,7 @@ export default function AssetDetailPage() {
   }
 
   if (assetId == null) {
-    return <Message severity="warn" text={t('asset.details_empty', 'Varlık seçilmedi.')} className="w-full" />;
+    return <Message severity="warn" text={t('asset.details_empty', 'Makine secilmedi.')} className="w-full" />;
   }
 
   return (
@@ -788,31 +795,35 @@ export default function AssetDetailPage() {
                 <span className="text-sm font-semibold text-slate-800">{t('asset.bom', 'Yedek Parca / BOM')}</span>
                 <Button label={t('asset.bom_add', 'Satir Ekle')} icon="pi pi-plus" size="small" onClick={openAddBom} />
               </div>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
-                <DataTable value={bomLines} size="small" dataKey="id" emptyMessage={t('asset.bom_empty', 'BOM satiri yok.')}> 
-                  <Column field="item_name" header={t('common.name', 'Isim')} />
-                  <Column field="item_code" header={t('common.code', 'Kod')} style={{ width: '10rem' }} />
-                  <Column field="item_brand" header={t('common.brand', 'Marka')} style={{ width: '10rem' }} />
-                  <Column field="item_model" header={t('common.model', 'Model')} style={{ width: '10rem' }} />
-                  <Column
-                    header={t('common.quantity', 'Miktar')}
-                    style={{ width: '10rem' }}
-                    body={(row: BomLineRow) => (
+	                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
+	                <DataTable value={bomLines} size="small" dataKey="id" emptyMessage={t('asset.bom_empty', 'BOM satiri yok.')}> 
+	                  <Column field="item_group_name" header={t('common.name', 'Isim')} />
+	                  <Column field="item_group_code" header={t('common.code', 'Kod')} style={{ width: '10rem' }} />
+	                  <Column
+	                    header={t('materials.spec', 'Spec')}
+	                    style={{ width: '12rem' }}
+	                    body={(row: BomLineRow) => {
+	                      const spec = row.item_group_size_spec?.trim();
+	                      if (!spec) return <span>-</span>;
+	                      const unit = row.item_group_size_unit_symbol ?? row.item_group_size_unit_code ?? '';
+	                      const suffix = unit.trim() ? ` ${unit.trim()}` : '';
+	                      return <span>{`${spec}${suffix}`}</span>;
+	                    }}
+	                  />
+	                  <Column
+	                    header={t('common.quantity', 'Miktar')}
+	                    style={{ width: '10rem' }}
+	                    body={(row: BomLineRow) => (
                       <span>
                         {row.quantity} {row.unit_symbol ?? row.unit_code}
-                      </span>
-                    )}
-                  />
-                  <Column
-                    field="preferred"
-                    header={t('asset.bom_preferred', 'Tercih')}
-                    style={{ width: '7rem' }}
-                    body={(row: BomLineRow) => <span>{row.preferred ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}</span>}
-                  />
-                  <Column
-                    header=""
-                    style={{ width: '6rem' }}
-                    body={(row: BomLineRow) => (
+	                      </span>
+	                    )}
+	                  />
+	                  <Column field="note" header={t('common.note', 'Not')} />
+	                  <Column
+	                    header=""
+	                    style={{ width: '6rem' }}
+	                    body={(row: BomLineRow) => (
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           icon="pi pi-trash"
@@ -891,7 +902,7 @@ export default function AssetDetailPage() {
           </div>
         </div>
       ) : (
-        <Message severity="warn" text={t('asset.details_empty', 'Varlık seçilmedi.')} className="w-full" />
+        <Message severity="warn" text={t('asset.details_empty', 'Makine secilmedi.')} className="w-full" />
       )}
 
       <Dialog
@@ -951,39 +962,36 @@ export default function AssetDetailPage() {
         </div>
       </Dialog>
 
-      <Dialog header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={bomDialogOpen} onHide={() => setBomDialogOpen(false)} className="w-full max-w-lg">
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.item', 'Item')}</span>
-            <Dropdown
-              value={bomItemId}
-              onChange={(e) => setBomItemId(e.value)}
-              options={items.map((i) => ({ label: `${i.name} (${i.code})`, value: i.id }))}
-              filter
-              className="w-full p-inputtext-sm"
-              placeholder={t('common.select', 'Sec')}
-            />
-          </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.quantity', 'Miktar')}</span>
-              <InputNumber value={bomQuantity} onValueChange={(e) => setBomQuantity(Number(e.value ?? 1))} className="w-full" inputClassName="p-inputtext-sm" min={0} />
-            </label>
-            <label className="flex items-center gap-2 pt-7">
-              <Checkbox checked={bomPreferred} onChange={(e) => setBomPreferred(Boolean(e.checked))} />
-              <span className="text-sm text-slate-700">{t('asset.bom_preferred', 'Tercih')}</span>
-            </label>
-          </div>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
-            <InputTextarea value={bomNote} onChange={(e) => setBomNote(e.target.value)} className="w-full p-inputtext-sm" rows={3} />
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setBomDialogOpen(false)} />
-            <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void addBomLine()} loading={mutating} disabled={!bomItemId || bomQuantity <= 0} />
-          </div>
-        </div>
-      </Dialog>
+	      <Dialog header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={bomDialogOpen} onHide={() => setBomDialogOpen(false)} className="w-full max-w-lg">
+	        <div className="grid gap-3">
+	          <label className="grid gap-2">
+	            <span className="text-sm font-medium text-slate-700">{t('asset.bom_item_group', 'Malzeme Cinsi')}</span>
+	            <Dropdown
+	              value={bomItemGroupId}
+	              onChange={(e) => setBomItemGroupId(e.value)}
+	              options={itemGroups.map((g) => ({
+	                label: `${g.name} (${g.code})${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
+	                value: g.id
+	              }))}
+	              filter
+	              className="w-full p-inputtext-sm"
+	              placeholder={t('common.select', 'Sec')}
+	            />
+	          </label>
+	          <label className="grid gap-2">
+	            <span className="text-sm font-medium text-slate-700">{t('common.quantity', 'Miktar')}</span>
+	            <InputNumber value={bomQuantity} onValueChange={(e) => setBomQuantity(Number(e.value ?? 1))} className="w-full" inputClassName="p-inputtext-sm" min={0} />
+	          </label>
+	          <label className="grid gap-2">
+	            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
+	            <InputTextarea value={bomNote} onChange={(e) => setBomNote(e.target.value)} className="w-full p-inputtext-sm" rows={3} />
+	          </label>
+	          <div className="flex items-center justify-end gap-2 pt-2">
+	            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setBomDialogOpen(false)} />
+	            <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void addBomLine()} loading={mutating} disabled={!bomItemGroupId || bomQuantity <= 0} />
+	          </div>
+	        </div>
+	      </Dialog>
     </div>
   );
 }

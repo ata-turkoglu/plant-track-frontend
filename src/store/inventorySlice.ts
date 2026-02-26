@@ -16,6 +16,9 @@ export type ItemRow = {
   id: number;
   organization_id: number;
   warehouse_type_id?: number;
+  item_group_id?: number;
+  item_group_code?: string | null;
+  item_group_name?: string | null;
   code: string;
   name: string;
   brand?: string | null;
@@ -23,6 +26,18 @@ export type ItemRow = {
   size_spec?: string | null;
   size_unit_id?: number | null;
   unit_id?: number;
+  active: boolean;
+};
+
+export type ItemGroupRow = {
+  id: number;
+  organization_id: number;
+  warehouse_type_id: number;
+  amount_unit_id: number;
+  code: string;
+  name: string;
+  size_spec: string | null;
+  size_unit_id: number | null;
   active: boolean;
 };
 
@@ -108,6 +123,7 @@ type InventoryState = {
   // Inventory ekraninin ihtiyac duydugu tum veri setleri.
   units: UnitRow[];
   items: ItemRow[];
+  itemGroups: ItemGroupRow[];
   warehouseTypes: WarehouseTypeRow[];
   warehouses: WarehouseRow[];
   nodes: NodeRow[];
@@ -121,6 +137,7 @@ type InventoryState = {
 type InventoryBootstrapResponse = {
   units: UnitRow[];
   items: ItemRow[];
+  itemGroups: ItemGroupRow[];
   warehouseTypes: WarehouseTypeRow[];
   warehouses: WarehouseRow[];
   nodes: NodeRow[];
@@ -137,7 +154,7 @@ type InventoryDynamicResponse = {
 type MovementLinePayload = {
   item_id: number;
   quantity: number;
-  unit_id: number;
+  amount_unit_id: number;
   from_node_id: number;
   to_node_id: number;
 };
@@ -166,11 +183,13 @@ type UpsertInventoryItemPayload = {
   sizeUnitId?: number | null;
   unitId: number;
   active: boolean;
+  itemGroupId?: number | null;
 };
 
 const initialState: InventoryState = {
   units: [],
   items: [],
+  itemGroups: [],
   warehouseTypes: [],
   warehouses: [],
   nodes: [],
@@ -201,9 +220,10 @@ export const fetchInventoryData = createAsyncThunk<InventoryBootstrapResponse, n
   'inventory/fetchData',
   async (organizationId, thunkApi) => {
     try {
-      const [unitsRes, itemsRes, warehouseTypesRes, warehousesRes, dynamic] = await Promise.all([
+      const [unitsRes, itemsRes, itemGroupsRes, warehouseTypesRes, warehousesRes, dynamic] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/units`),
         api.get(`/api/organizations/${organizationId}/items`),
+        api.get(`/api/organizations/${organizationId}/item-groups`),
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
         fetchInventoryDynamicData(organizationId)
@@ -212,6 +232,7 @@ export const fetchInventoryData = createAsyncThunk<InventoryBootstrapResponse, n
       return {
         units: unitsRes.data.units ?? [],
         items: itemsRes.data.items ?? [],
+        itemGroups: itemGroupsRes.data.item_groups ?? [],
         warehouseTypes: warehouseTypesRes.data.warehouse_types ?? [],
         warehouses: warehousesRes.data.warehouses ?? [],
         nodes: dynamic.nodes,
@@ -280,7 +301,10 @@ export const deleteInventoryMovement = createAsyncThunk<
 
 export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItemPayload, { rejectValue: string }>(
   'inventory/upsertItem',
-  async ({ organizationId, itemId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
+  async (
+    { organizationId, itemId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active, itemGroupId },
+    thunkApi
+  ) => {
     try {
       const response = itemId
         ? await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
@@ -291,7 +315,8 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
             size_spec: sizeSpec ?? null,
             size_unit_id: sizeUnitId ?? null,
             unit_id: unitId,
-            active
+            active,
+            item_group_id: itemGroupId ?? undefined
           })
         : await api.post(`/api/organizations/${organizationId}/items`, {
             warehouse_type_id: warehouseTypeId,
@@ -346,6 +371,7 @@ const inventorySlice = createSlice({
         state.loading = false;
         state.units = action.payload.units;
         state.items = action.payload.items;
+        state.itemGroups = action.payload.itemGroups;
         state.warehouseTypes = action.payload.warehouseTypes;
         state.warehouses = action.payload.warehouses;
         state.nodes = action.payload.nodes;

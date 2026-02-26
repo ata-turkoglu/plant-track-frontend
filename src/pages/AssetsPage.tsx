@@ -96,6 +96,76 @@ type AttributeEntry = {
   schemaBound?: boolean;
 };
 
+function normalizeAttributeToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+const DEFAULT_ATTRIBUTE_ALIASES = {
+  brand: ['marka', 'brand'],
+  model: ['model'],
+  serial: ['seri_no', 'serial_no', 'serino', 'serialno']
+} as const;
+
+function isDefaultAttributeRow(row: AttributeEntry): boolean {
+  const key = normalizeAttributeToken(row.key);
+  const label = normalizeAttributeToken(row.label ?? '');
+  const isBrand = DEFAULT_ATTRIBUTE_ALIASES.brand.some((x) => key === normalizeAttributeToken(x) || label === normalizeAttributeToken(x));
+  const isModel = DEFAULT_ATTRIBUTE_ALIASES.model.some((x) => key === normalizeAttributeToken(x) || label === normalizeAttributeToken(x));
+  const isSerial = DEFAULT_ATTRIBUTE_ALIASES.serial.some((x) => key === normalizeAttributeToken(x) || label === normalizeAttributeToken(x));
+  return isBrand || isModel || isSerial;
+}
+
+function pickAttributeValue(attributes: AttributeEntry[], aliases: readonly string[]): string {
+  const aliasTokens = aliases.map(normalizeAttributeToken);
+  const matched = attributes.find((row) => {
+    const key = normalizeAttributeToken(row.key);
+    if (aliasTokens.includes(key)) return true;
+    const label = normalizeAttributeToken(row.label ?? '');
+    if (label && aliasTokens.includes(label)) return true;
+    return false;
+  });
+  return matched?.value ?? '';
+}
+
+function upsertAttributeValue(
+  prev: AttributeEntry[],
+  {
+    canonicalKey,
+    aliases,
+    value,
+    schemaRows
+  }: { canonicalKey: string; aliases: readonly string[]; value: string; schemaRows: SchemaFieldRow[] }
+): AttributeEntry[] {
+  const aliasTokens = aliases.map(normalizeAttributeToken);
+  const canonicalToken = normalizeAttributeToken(canonicalKey);
+  const schemaMatch = schemaRows.find((r) => normalizeAttributeToken(r.key) === canonicalToken) ?? null;
+
+  const idx = prev.findIndex((row) => {
+    const key = normalizeAttributeToken(row.key);
+    if (aliasTokens.includes(key)) return true;
+    const label = normalizeAttributeToken(row.label ?? '');
+    if (label && aliasTokens.includes(label)) return true;
+    return false;
+  });
+
+  if (idx >= 0) {
+    return prev.map((row, i) => (i === idx ? { ...row, value } : row));
+  }
+
+  return [
+    ...prev,
+    {
+      key: canonicalKey,
+      value,
+      unitId: schemaMatch?.unitId ?? null,
+      label: schemaMatch?.label ?? canonicalKey,
+      fieldType: schemaMatch?.type ?? 'text',
+      required: schemaMatch?.required ?? false,
+      schemaBound: Boolean(schemaMatch)
+    }
+  ];
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value == null) return false;
   if (typeof value !== 'object') return false;
@@ -332,6 +402,12 @@ export default function AssetsPage() {
     return map;
   }, [unitOptions]);
 
+  const brandValue = useMemo(() => pickAttributeValue(attributes, DEFAULT_ATTRIBUTE_ALIASES.brand), [attributes]);
+  const modelValue = useMemo(() => pickAttributeValue(attributes, DEFAULT_ATTRIBUTE_ALIASES.model), [attributes]);
+  const serialValue = useMemo(() => pickAttributeValue(attributes, DEFAULT_ATTRIBUTE_ALIASES.serial), [attributes]);
+
+  const visibleAttributes = useMemo(() => attributes.filter((row) => !isDefaultAttributeRow(row)), [attributes]);
+
   const parentOptions = useMemo(() => {
     return assets
       .filter((a) => (createEditMode === 'edit' && editingId ? a.id !== editingId : true))
@@ -366,7 +442,7 @@ export default function AssetsPage() {
         enqueueToast({
           severity: 'error',
           summary: t('common.error', 'Hata'),
-          detail: t('asset.load_failed', 'Varlıklar yüklenemedi.')
+          detail: t('asset.load_failed', 'Makineler yuklenemedi.')
         })
       );
     } finally {
@@ -562,7 +638,7 @@ export default function AssetsPage() {
           enqueueToast({
             severity: 'success',
             summary: t('common.success', 'Başarılı'),
-            detail: t('asset.created', 'Varlık oluşturuldu.')
+            detail: t('asset.created', 'Makine olusturuldu.')
           })
         );
         closeCreateEdit();
@@ -583,7 +659,7 @@ export default function AssetsPage() {
           enqueueToast({
             severity: 'success',
             summary: t('common.success', 'Başarılı'),
-            detail: t('asset.updated', 'Varlık güncellendi.')
+            detail: t('asset.updated', 'Makine guncellendi.')
           })
         );
         closeCreateEdit();
@@ -620,7 +696,7 @@ export default function AssetsPage() {
             enqueueToast({
               severity: 'success',
               summary: t('common.success', 'Başarılı'),
-              detail: t('asset.deleted', 'Varlık silindi.')
+              detail: t('asset.deleted', 'Makine silindi.')
             })
           );
           await loadAll();
@@ -667,7 +743,7 @@ export default function AssetsPage() {
             className="w-full p-inputtext-sm sm:w-72"
           />
         </IconField>
-        <Button label={t('asset.new', 'Yeni Varlik')} icon="pi pi-plus" size="small" onClick={openCreate} />
+        <Button label={t('asset.new', 'Yeni Makine')} icon="pi pi-plus" size="small" onClick={openCreate} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
@@ -675,7 +751,7 @@ export default function AssetsPage() {
           value={assets}
           size="small"
           loading={loading || mutating}
-          emptyMessage={t('asset.empty', 'Varlık yok.')}
+          emptyMessage={t('asset.empty', 'Makine yok.')}
           dataKey="id"
           paginator
           rows={12}
@@ -740,7 +816,7 @@ export default function AssetsPage() {
       </div>
 
       <Dialog
-        header={createEditMode === 'edit' ? t('asset.edit', 'Varlik Duzenle') : t('asset.new', 'Yeni Varlik')}
+        header={createEditMode === 'edit' ? t('asset.edit', 'Makine Duzenle') : t('asset.new', 'Yeni Makine')}
         visible={createEditOpen}
         onHide={closeCreateEdit}
         className="asset-entry-dialog w-full max-w-xl"
@@ -858,6 +934,61 @@ export default function AssetsPage() {
               </div>
             </label>
           </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">{t('asset.attr.brand', 'Marka')}</span>
+              <InputText
+                value={brandValue}
+                onChange={(e) =>
+                  setAttributes((prev) =>
+                    upsertAttributeValue(prev, {
+                      canonicalKey: 'marka',
+                      aliases: DEFAULT_ATTRIBUTE_ALIASES.brand,
+                      value: e.target.value,
+                      schemaRows
+                    })
+                  )
+                }
+                className="w-full p-inputtext-sm"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">{t('asset.attr.model', 'Model')}</span>
+              <InputText
+                value={modelValue}
+                onChange={(e) =>
+                  setAttributes((prev) =>
+                    upsertAttributeValue(prev, {
+                      canonicalKey: 'model',
+                      aliases: DEFAULT_ATTRIBUTE_ALIASES.model,
+                      value: e.target.value,
+                      schemaRows
+                    })
+                  )
+                }
+                className="w-full p-inputtext-sm"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">{t('asset.attr.serial', 'Seri No')}</span>
+              <InputText
+                value={serialValue}
+                onChange={(e) =>
+                  setAttributes((prev) =>
+                    upsertAttributeValue(prev, {
+                      canonicalKey: 'seri_no',
+                      aliases: DEFAULT_ATTRIBUTE_ALIASES.serial,
+                      value: e.target.value,
+                      schemaRows
+                    })
+                  )
+                }
+                className="w-full p-inputtext-sm"
+              />
+            </label>
+          </div>
+
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-2">
               <div className="flex h-8 items-center gap-1">
@@ -886,7 +1017,7 @@ export default function AssetsPage() {
             </label>
             <label className="grid gap-2">
               <div className="flex h-8 items-center">
-                <span className="text-sm font-medium text-slate-700">{t('asset.parent', 'Ust Varlik')}</span>
+                <span className="text-sm font-medium text-slate-700">{t('asset.parent', 'Ust Makine')}</span>
               </div>
               <Dropdown
                 value={parentAssetId}
@@ -921,7 +1052,7 @@ export default function AssetsPage() {
             <div className="grid gap-2">
               {schemaMode ? (
                 <>
-                  {attributes.map((row, idx) => (
+                  {visibleAttributes.map((row, idx) => (
                     <div
                       key={`${row.key}-${idx}`}
                       className="grid items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,1fr)_minmax(10rem,12rem)]"
@@ -971,7 +1102,7 @@ export default function AssetsPage() {
                 </>
               ) : createEditMode === 'edit' ? (
                 <>
-                  {attributes.map((row, idx) => (
+                  {visibleAttributes.map((row, idx) => (
                     <div
                       key={`${row.key}-${idx}`}
                       className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(10rem,12rem)_2.5rem]"
