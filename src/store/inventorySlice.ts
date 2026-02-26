@@ -320,6 +320,7 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
           })
         : await api.post(`/api/organizations/${organizationId}/items`, {
             warehouse_type_id: warehouseTypeId,
+            item_group_id: itemGroupId ?? undefined,
             code,
             name,
             brand: brand ?? null,

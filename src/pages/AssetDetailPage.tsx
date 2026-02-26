@@ -74,6 +74,7 @@ type BomLineRow = {
   item_group_name: string;
   item_group_size_spec: string | null;
   item_group_size_unit_code: string | null;
+  item_group_size_unit_name: string | null;
   item_group_size_unit_symbol: string | null;
   unit_code: string;
   unit_name: string;
@@ -222,8 +223,15 @@ function statePillClass(state: string): string {
   return 'border-slate-200 bg-slate-100 text-slate-800';
 }
 
+function formatQuantity(value: string | number | null | undefined): string {
+  if (value == null) return '-';
+  const asNumber = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(asNumber)) return String(value);
+  return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 3 }).format(asNumber);
+}
+
 export default function AssetDetailPage() {
-  const { t } = useI18n();
+  const { t, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const { assetId: assetIdParam } = useParams<{ assetId: string }>();
 
@@ -713,83 +721,78 @@ export default function AssetDetailPage() {
                 <span className="text-sm text-slate-500">{t('asset.attributes_empty', 'Ozellik yok.')}</span>
               )}
             </div>
-	          </div>
+		          </div>
+	
+		          <div className="grid gap-4">
+	            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+		              <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-[14rem]">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        {t('asset.machine', 'Makine')}
+                      </div>
+                      <div className="pt-1 text-2xl font-semibold text-slate-900">{asset.name}</div>
+                      <div className="pt-1 text-sm text-slate-600">
+                        {t('common.code', 'Kod')}: <span className="font-medium text-slate-800">{asset.code ?? '-'}</span>
+                      </div>
+                    </div>
 
-	          <div className="grid gap-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-	              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-	                <div className="relative overflow-hidden rounded-xl border border-sky-100 bg-sky-50 p-3">
-	                  <div className="absolute inset-x-0 top-0 h-1 bg-sky-400" />
-	                  <div className="flex items-center justify-between gap-2">
-	                    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">
-	                      <i className="pi pi-map-marker text-xs" aria-hidden />
-	                      {t('asset.location', 'Lokasyon')}
-	                    </span>
-	                    <Button
-	                      icon="pi pi-pencil"
-	                      size="small"
-	                      text
-	                      rounded
-	                      type="button"
-	                      className="h-7 w-7 text-sky-700 hover:bg-sky-100"
-	                      aria-label={t('asset.move', 'Tasi')}
-	                      onClick={() => {
-	                        setMoveToLocationId(asset.location_id ?? null);
-	                        setMoveDialogOpen(true);
-	                      }}
-	                    />
-	                  </div>
-	                  <div className="pt-2 text-base font-semibold text-slate-900">{asset.location_id ? locationNameById.get(asset.location_id) ?? '-' : '-'}</div>
-	                </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        icon="pi pi-map-marker"
+                        size="small"
+                        outlined
+                        type="button"
+                        disabled={mutating}
+                        label={t('asset.move', 'Tasi')}
+                        aria-label={t('asset.move', 'Tasi')}
+                        onClick={() => {
+                          setMoveToLocationId(asset.location_id ?? null);
+                          setMoveDialogOpen(true);
+                        }}
+                      />
+                      <Button
+                        icon="pi pi-power-off"
+                        size="small"
+                        outlined
+                        type="button"
+                        disabled={mutating}
+                        label={t('asset.state', 'Durum')}
+                        aria-label={t('asset.state', 'Durum')}
+                        onClick={() => {
+                          setNewState((asset.current_state as typeof newState) ?? 'STOPPED');
+                          setStateDialogOpen(true);
+                        }}
+                      />
+                    </div>
+		              </div>
 
-	                <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-indigo-50 p-3">
-	                  <div className="absolute inset-x-0 top-0 h-1 bg-indigo-400" />
-	                  <div className="flex items-center justify-between gap-2">
-	                    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-700">
-	                      <i className="pi pi-power-off text-xs" aria-hidden />
-	                      {t('asset.state', 'Durum')}
-	                    </span>
-	                    <Button
-	                      icon="pi pi-pencil"
-	                      size="small"
-	                      text
-	                      rounded
-	                      type="button"
-	                      className="h-7 w-7 text-indigo-700 hover:bg-indigo-100"
-	                      aria-label={t('asset.state', 'Durum')}
-	                      onClick={() => {
-	                        setNewState((asset.current_state as typeof newState) ?? 'STOPPED');
-	                        setStateDialogOpen(true);
-	                      }}
-	                    />
-	                  </div>
-	                  <div className="pt-2">
-	                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statePillClass(asset.current_state)}`}>
-	                      {asset.current_state}
-	                    </span>
-	                  </div>
-	                </div>
-
-	                <div
-	                  className={`relative overflow-hidden rounded-xl border p-3 ${
-	                    asset.active ? 'border-emerald-100 bg-emerald-50' : 'border-rose-100 bg-rose-50'
-	                  }`}
-	                >
-	                  <div className={`absolute inset-x-0 top-0 h-1 ${asset.active ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-	                  <span
-	                    className={`inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] ${
-	                      asset.active ? 'text-emerald-700' : 'text-rose-700'
-	                    }`}
-	                  >
-	                    <i className={`pi ${asset.active ? 'pi-check-circle' : 'pi-times-circle'} text-xs`} aria-hidden />
-	                    {t('common.active', 'Aktif')}
-	                  </span>
-	                  <div className="pt-2 text-base font-semibold text-slate-900">{asset.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}</div>
-	                  <div className="pt-1 text-xs text-slate-600">{new Date(asset.updated_at).toLocaleString()}</div>
-	                </div>
-	              </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-medium text-slate-500">{t('asset.location', 'Lokasyon')}</div>
+                      <div className="pt-1 text-sm font-semibold text-slate-900">
+                        {asset.location_id ? locationNameById.get(asset.location_id) ?? '-' : '-'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-medium text-slate-500">{t('asset.state', 'Durum')}</div>
+                      <div className="pt-2">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statePillClass(asset.current_state)}`}
+                        >
+                          {asset.current_state}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-medium text-slate-500">{t('common.active', 'Aktif')}</div>
+                      <div className="pt-1 text-sm font-semibold text-slate-900">
+                        {asset.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}
+                      </div>
+                      <div className="pt-1 text-xs text-slate-600">{new Date(asset.updated_at).toLocaleString()}</div>
+                    </div>
+                  </div>
 	            </div>
-
+	
             <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-800">{t('asset.bom', 'Yedek Parca / BOM')}</span>
@@ -805,17 +808,18 @@ export default function AssetDetailPage() {
 	                    body={(row: BomLineRow) => {
 	                      const spec = row.item_group_size_spec?.trim();
 	                      if (!spec) return <span>-</span>;
-	                      const unit = row.item_group_size_unit_symbol ?? row.item_group_size_unit_code ?? '';
-	                      const suffix = unit.trim() ? ` ${unit.trim()}` : '';
+	                      const rawUnit = row.item_group_size_unit_symbol ?? row.item_group_size_unit_code ?? '';
+	                      const unitLabel = rawUnit ? (tUnitSymbol(rawUnit, rawUnit) || rawUnit).trim() : '';
+	                      const suffix = unitLabel ? ` ${unitLabel}` : '';
 	                      return <span>{`${spec}${suffix}`}</span>;
 	                    }}
 	                  />
 	                  <Column
-	                    header={t('common.quantity', 'Miktar')}
+	                    header={t('asset.bom_used_quantity', 'Makinede Kullanilan')}
 	                    style={{ width: '10rem' }}
 	                    body={(row: BomLineRow) => (
                       <span>
-                        {row.quantity} {row.unit_symbol ?? row.unit_code}
+                        {formatQuantity(row.quantity)} {tUnit(row.unit_code, row.unit_name)}
 	                      </span>
 	                    )}
 	                  />

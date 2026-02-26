@@ -58,7 +58,12 @@ export default function ItemFormDialog({
   onSubmit
 }: ItemFormDialogProps) {
   const { t } = useI18n();
-  const submitDisabled = !draft.code.trim() || !draft.name.trim() || !draft.unitId || !draft.warehouseTypeId;
+  const submitDisabled =
+    !draft.code.trim() ||
+    !draft.name.trim() ||
+    !draft.warehouseTypeId ||
+    (!draft.unitId && !allowItemGroupEdit) ||
+    (allowItemGroupEdit && !draft.itemGroupId);
   const unitLabelById = useMemo(() => {
     const map = new Map<number, string>();
     for (const option of unitOptions) map.set(option.value, option.label);
@@ -66,11 +71,11 @@ export default function ItemFormDialog({
   }, [unitOptions]);
 
   const selectedGroup = useMemo(() => {
-    if (mode !== 'edit' || !allowItemGroupEdit) return null;
+    if (!allowItemGroupEdit) return null;
     const groupId = draft.itemGroupId;
     if (!groupId) return null;
     return itemGroupOptions.find((g) => g.value === groupId) ?? null;
-  }, [allowItemGroupEdit, draft.itemGroupId, itemGroupOptions, mode]);
+  }, [allowItemGroupEdit, draft.itemGroupId, itemGroupOptions]);
   const groupDrivenUnitLabel =
     selectedGroup && selectedGroup.amount_unit_id ? unitLabelById.get(selectedGroup.amount_unit_id) ?? '-' : '-';
   const groupDrivenSizeUnitLabel =
@@ -97,7 +102,7 @@ export default function ItemFormDialog({
           />
         </label>
 
-        {mode === 'edit' && allowItemGroupEdit ? (
+        {allowItemGroupEdit ? (
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('materials.group', 'Grup')}</span>
             <Dropdown
@@ -134,8 +139,14 @@ export default function ItemFormDialog({
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('inventory.col.unit', 'Birim')}</span>
-            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
-              <InputText value={groupDrivenUnitLabel} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            {allowItemGroupEdit ? (
+              <InputText
+                value={groupDrivenUnitLabel}
+                readOnly
+                tabIndex={-1}
+                onFocus={(e) => e.currentTarget.blur()}
+                className="w-full readonly-display-input"
+              />
             ) : (
               <Dropdown
                 value={draft.unitId}
@@ -161,8 +172,14 @@ export default function ItemFormDialog({
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.col.size', 'Olcu')} / Spec</span>
-            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
-              <InputText value={groupDrivenSizeSpec || '-'} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            {allowItemGroupEdit ? (
+              <InputText
+                value={groupDrivenSizeSpec || '-'}
+                readOnly
+                tabIndex={-1}
+                onFocus={(e) => e.currentTarget.blur()}
+                className="w-full readonly-display-input"
+              />
             ) : (
               <InputText
                 value={draft.sizeSpec}
@@ -173,8 +190,14 @@ export default function ItemFormDialog({
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.size_unit', 'Olcu Birimi')}</span>
-            {mode === 'edit' && allowItemGroupEdit && selectedGroup ? (
-              <InputText value={groupDrivenSizeUnitLabel} readOnly tabIndex={-1} onFocus={(e) => e.currentTarget.blur()} className="w-full readonly-display-input" />
+            {allowItemGroupEdit ? (
+              <InputText
+                value={groupDrivenSizeUnitLabel}
+                readOnly
+                tabIndex={-1}
+                onFocus={(e) => e.currentTarget.blur()}
+                className="w-full readonly-display-input"
+              />
             ) : (
               <Dropdown
                 value={draft.sizeUnitId}

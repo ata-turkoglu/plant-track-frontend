@@ -135,12 +135,11 @@ function MaterialsPageImpl() {
   );
 
   const allowItemGroupEdit = useMemo(() => {
-    if (mode !== 'edit') return false;
     const wtId = draft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!wtId) return false;
     const wtCode = warehouseTypes.find((x) => x.id === wtId)?.code?.toUpperCase() ?? '';
     return wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
-  }, [activeWarehouseTypeId, draft.warehouseTypeId, mode, warehouseTypes]);
+  }, [activeWarehouseTypeId, draft.warehouseTypeId, warehouseTypes]);
 
   const itemGroupOptions = useMemo(() => {
     const targetWarehouseTypeId = draft.warehouseTypeId ?? activeWarehouseTypeId;
@@ -159,13 +158,26 @@ function MaterialsPageImpl() {
   const openCreate = useCallback(() => {
     setMode('create');
     setEditingId(null);
+    const nextWarehouseTypeId = activeWarehouseTypeId;
+    const wtCode = warehouseTypes.find((x) => x.id === nextWarehouseTypeId)?.code?.toUpperCase() ?? '';
+    const needsGroup = wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
+    const firstGroup =
+      needsGroup && nextWarehouseTypeId
+        ? itemGroups
+            .filter((g) => g.active)
+            .find((g) => g.warehouse_type_id === nextWarehouseTypeId) ?? null
+        : null;
+
     setDraft({
       ...emptyDraft,
-      warehouseTypeId: activeWarehouseTypeId,
-      unitId: unitOptions[0]?.value ?? null
+      warehouseTypeId: nextWarehouseTypeId,
+      itemGroupId: needsGroup ? firstGroup?.id ?? null : null,
+      unitId: needsGroup ? firstGroup?.amount_unit_id ?? null : unitOptions[0]?.value ?? null,
+      sizeSpec: needsGroup ? firstGroup?.size_spec ?? '' : '',
+      sizeUnitId: needsGroup ? firstGroup?.size_unit_id ?? null : null
     });
     setDialogOpen(true);
-  }, [activeWarehouseTypeId, unitOptions]);
+  }, [activeWarehouseTypeId, itemGroups, unitOptions, warehouseTypes]);
 
   const openEdit = useCallback((row: ItemTableRow) => {
     setMode('edit');
@@ -186,7 +198,9 @@ function MaterialsPageImpl() {
   }, [activeWarehouseTypeId]);
 
   const submit = async () => {
-    if (!organizationId || !draft.warehouseTypeId || !draft.unitId) return;
+    if (!organizationId || !draft.warehouseTypeId) return;
+    if (allowItemGroupEdit && !draft.itemGroupId) return;
+    if (!draft.unitId) return;
 
     const code = draft.code.trim();
     const name = draft.name.trim();
@@ -214,6 +228,7 @@ function MaterialsPageImpl() {
           createMaterialItem({
             organizationId,
             warehouseTypeId: draft.warehouseTypeId,
+            itemGroupId: draft.itemGroupId,
             code,
             name,
             brand: draft.brand.trim() || null,

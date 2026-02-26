@@ -295,12 +295,11 @@ export default function InventoryMovementsPage() {
   );
 
   const allowItemGroupEdit = useMemo(() => {
-    if (itemFormMode !== 'edit') return false;
     const wtId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!wtId) return false;
     const wtCode = warehouseTypes.find((x) => x.id === wtId)?.code?.toUpperCase() ?? '';
     return wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
-  }, [activeWarehouseTypeId, itemDraft.warehouseTypeId, itemFormMode, warehouseTypes]);
+  }, [activeWarehouseTypeId, itemDraft.warehouseTypeId, warehouseTypes]);
 
   const itemGroupOptions = useMemo(() => {
     const targetWarehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
@@ -347,13 +346,24 @@ export default function InventoryMovementsPage() {
   const openCreateItem = useCallback(() => {
     setItemFormMode('create');
     setEditingItemId(null);
+    const wtCode = warehouseTypes.find((x) => x.id === activeWarehouseTypeId)?.code?.toUpperCase() ?? '';
+    const needsGroup = wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
+    const firstGroup =
+      needsGroup && activeWarehouseTypeId
+        ? itemGroups
+            .filter((g) => g.active)
+            .find((g) => g.warehouse_type_id === activeWarehouseTypeId) ?? null
+        : null;
     setItemDraft({
       ...emptyItemDraft,
       warehouseTypeId: activeWarehouseTypeId,
-      unitId: unitOptions[0]?.value ?? null
+      itemGroupId: needsGroup ? firstGroup?.id ?? null : null,
+      unitId: needsGroup ? firstGroup?.amount_unit_id ?? null : unitOptions[0]?.value ?? null,
+      sizeSpec: needsGroup ? firstGroup?.size_spec ?? '' : '',
+      sizeUnitId: needsGroup ? firstGroup?.size_unit_id ?? null : null
     });
     setItemDialogOpen(true);
-  }, [activeWarehouseTypeId, unitOptions]);
+  }, [activeWarehouseTypeId, emptyItemDraft, itemGroups, unitOptions, warehouseTypes]);
 
   const openEditItem = useCallback((row: ItemTableRow) => {
     setItemFormMode('edit');
@@ -461,6 +471,7 @@ export default function InventoryMovementsPage() {
     const code = itemDraft.code.trim();
     const name = itemDraft.name.trim();
     if (!code || !name || !itemDraft.unitId) return;
+    if (allowItemGroupEdit && !itemDraft.itemGroupId) return;
 
     try {
       if (itemFormMode === 'create') {
@@ -468,6 +479,7 @@ export default function InventoryMovementsPage() {
           upsertInventoryItem({
             organizationId,
             warehouseTypeId,
+            itemGroupId: itemDraft.itemGroupId,
             code,
             name,
             brand: itemDraft.brand.trim() || null,

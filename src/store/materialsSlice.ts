@@ -117,13 +117,17 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
 
 export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/createItem',
-  async ({ organizationId, warehouseTypeId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active }, thunkApi) => {
+  async (
+    { organizationId, warehouseTypeId, itemGroupId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active },
+    thunkApi
+  ) => {
     if (!warehouseTypeId) {
       return thunkApi.rejectWithValue('Kaydetme başarısız. Depo tipi seçilmedi.');
     }
     try {
       await api.post(`/api/organizations/${organizationId}/items`, {
         warehouse_type_id: warehouseTypeId,
+        item_group_id: itemGroupId ?? undefined,
         code,
         name,
         brand: brand ?? null,
