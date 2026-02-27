@@ -343,6 +343,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
   const [attributes, setAttributes] = useState<AttributeEntry[]>([]);
 
   const [assetTypeDialogOpen, setAssetTypeDialogOpen] = useState(false);
+  const loadPendingRef = useRef(0);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [imageActionsOpen, setImageActionsOpen] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -429,18 +430,27 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
 
   useEffect(() => {
     if (!visible) return;
-    setLoading(true);
-    Promise.all([
-      api.get(`/api/organizations/${organizationId}/assets`),
-      api.get(`/api/organizations/${organizationId}/asset-types`),
-      api.get(`/api/organizations/${organizationId}/units`)
-    ])
-      .then(([assetsRes, assetTypesRes, unitsRes]) => {
+    let mounted = true;
+
+    const beginLoad = () => {
+      loadPendingRef.current += 1;
+      setLoading(true);
+    };
+
+    const endLoad = () => {
+      loadPendingRef.current = Math.max(0, loadPendingRef.current - 1);
+      if (loadPendingRef.current === 0) setLoading(false);
+    };
+
+    beginLoad();
+    void api
+      .get(`/api/organizations/${organizationId}/assets`)
+      .then((assetsRes) => {
+        if (!mounted) return;
         setAssets((assetsRes.data.assets ?? []) as AssetRow[]);
-        setAssetTypes((assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[]);
-        setUnits((unitsRes.data.units ?? []) as UnitRow[]);
       })
       .catch(() => {
+        if (!mounted) return;
         dispatch(
           enqueueToast({
             severity: 'error',
@@ -449,7 +459,46 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
           })
         );
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!mounted) return;
+        endLoad();
+      });
+
+    beginLoad();
+    void api
+      .get(`/api/organizations/${organizationId}/asset-types`)
+      .then((assetTypesRes) => {
+        if (!mounted) return;
+        setAssetTypes((assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[]);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAssetTypes([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        endLoad();
+      });
+
+    beginLoad();
+    void api
+      .get(`/api/organizations/${organizationId}/units`)
+      .then((unitsRes) => {
+        if (!mounted) return;
+        setUnits((unitsRes.data.units ?? []) as UnitRow[]);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setUnits([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        endLoad();
+      });
+
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId, visible]);
 

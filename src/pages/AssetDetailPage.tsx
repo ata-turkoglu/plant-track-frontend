@@ -241,6 +241,8 @@ export default function AssetDetailPage() {
   const { locations } = useSelector((s: RootState) => s.setup);
 
   const [asset, setAsset] = useState<AssetRow | null>(null);
+  const [parentAsset, setParentAsset] = useState<AssetRow | null>(null);
+  const [childAssets, setChildAssets] = useState<AssetRow[]>([]);
   const [assetTypeFields, setAssetTypeFields] = useState<AssetTypeFieldRow[]>([]);
   const [bomLines, setBomLines] = useState<BomLineRow[]>([]);
   const [events, setEvents] = useState<AssetEventRow[]>([]);
@@ -317,6 +319,21 @@ export default function AssetDetailPage() {
     const assetTypes = (assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[];
     const selectedType = assetTypes.find((row) => row.id === resolvedAsset.asset_type_id) ?? null;
 
+    try {
+      const [parentRes, childrenRes] = await Promise.all([
+        resolvedAsset.parent_asset_id
+          ? api.get(`/api/organizations/${organizationId}/assets/${resolvedAsset.parent_asset_id}`)
+          : Promise.resolve(null),
+        api.get(`/api/organizations/${organizationId}/assets`, { params: { parentAssetId: resolvedAsset.id } })
+      ]);
+
+      setParentAsset((parentRes as { data: { asset: AssetRow } } | null)?.data.asset ?? null);
+      setChildAssets(((childrenRes as { data: { assets?: AssetRow[] } }).data.assets ?? []) as AssetRow[]);
+    } catch {
+      setParentAsset(null);
+      setChildAssets([]);
+    }
+
     setAsset(resolvedAsset);
     setAssetTypeFields(normalizeAssetTypeFields(selectedType?.fields ?? []));
     setBomLines((bomRes.data.lines ?? []) as BomLineRow[]);
@@ -353,6 +370,8 @@ export default function AssetDetailPage() {
     setEvents([]);
     setEventsLoaded(false);
     setEventsVisible(false);
+    setParentAsset(null);
+    setChildAssets([]);
 
     Promise.all([
       loadCore(assetId),
@@ -804,6 +823,49 @@ export default function AssetDetailPage() {
                         {asset.active ? t('common.yes', 'Evet') : t('common.no', 'Hayir')}
                       </div>
                       <div className="pt-1 text-xs text-slate-600">{new Date(asset.updated_at).toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-medium text-slate-500">{t('asset.parent', 'Ust Makine')}</div>
+                      <div className="pt-1 text-sm font-semibold text-slate-900">
+                        {parentAsset ? (
+                          <button
+                            type="button"
+                            className="text-left text-sky-700 hover:underline"
+                            onClick={() => navigate(`/assets/${parentAsset.id}`)}
+                          >
+                            {parentAsset.name}
+                          </button>
+                        ) : (
+                          <span className="text-slate-700">-</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-medium text-slate-500">{t('asset.children', 'Alt Makineler')}</div>
+                        <div className="text-xs font-semibold text-slate-500">{childAssets.length}</div>
+                      </div>
+                      {childAssets.length > 0 ? (
+                        <div className="mt-2 grid gap-1">
+                          {childAssets.map((row) => (
+                            <button
+                              key={row.id}
+                              type="button"
+                              className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-left text-sm hover:bg-slate-50"
+                              onClick={() => navigate(`/assets/${row.id}`)}
+                            >
+                              <span className="font-semibold text-slate-900">{row.name}</span>
+                              <span className="text-xs font-medium text-slate-500">{row.code ?? '-'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="pt-1 text-sm font-semibold text-slate-900">{t('asset.children_empty', 'Alt makine yok.')}</div>
+                      )}
                     </div>
                   </div>
 	            </div>
