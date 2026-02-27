@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
@@ -36,6 +36,7 @@ type AssetTypeFieldRow = {
 };
 
 type SchemaFieldRow = {
+  clientId: string;
   label: string;
   type: FieldType;
   required: boolean;
@@ -112,6 +113,7 @@ function parseSchemaRows(fields: AssetTypeFieldRow[] | null | undefined): Schema
     })
     .filter((row) => row.active !== false)
     .map((row) => ({
+      clientId: `field-${row.id}`,
       label: (row.label ?? row.name ?? '').trim(),
       type: normalizeFieldType(row.data_type),
       required: Boolean(row.required),
@@ -152,7 +154,7 @@ function buildFields(rows: SchemaFieldRow[]): { ok: true; value: SchemaPayloadFi
   };
 }
 
-type AssetTypeUpsertDialogProps = {
+type AssetTypeAddEditDialogProps = {
   organizationId: number;
   visible: boolean;
   onHide: () => void;
@@ -160,9 +162,16 @@ type AssetTypeUpsertDialogProps = {
   onSaved?: (row: AssetTypeRow) => void;
 };
 
-export default function AssetTypeUpsertDialog({ organizationId, visible, onHide, editing = null, onSaved }: AssetTypeUpsertDialogProps) {
+export default function AssetTypeAddEditDialog({
+  organizationId,
+  visible,
+  onHide,
+  editing = null,
+  onSaved
+}: AssetTypeAddEditDialogProps) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useI18n();
+  const nextFieldSeqRef = useRef(1);
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -178,6 +187,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
       setName(editing.name ?? '');
       setActive(Boolean(editing.active));
       setSchemaRows(parseSchemaRows(editing.fields ?? []));
+      nextFieldSeqRef.current = 1;
       return;
     }
     setCode('');
@@ -186,6 +196,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
     // Default fields (Marka/Model/Seri No) are auto-inserted on the backend.
     // Keep the schema editor focused on custom fields.
     setSchemaRows([]);
+    nextFieldSeqRef.current = 1;
   }, [editing, visible]);
 
   useEffect(() => {
@@ -225,7 +236,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
 
   const unitOptions = useMemo(() => {
     return units.map((u) => ({
-      label: u.symbol?.trim() ? u.symbol.trim() : u.name,
+      label: u.symbol?.trim() ? `${u.name} (${u.symbol.trim()})` : u.name,
       value: u.id
     }));
   }, [units]);
@@ -331,9 +342,10 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
               icon="pi pi-plus"
               size="small"
               type="button"
-              onClick={() =>
-                setSchemaRows((prev) => [...prev, { label: '', type: 'text', required: false, unitId: null }])
-              }
+              onClick={() => {
+                const seq = nextFieldSeqRef.current++;
+                setSchemaRows((prev) => [...prev, { clientId: `new-${Date.now()}-${seq}`, label: '', type: 'text', required: false, unitId: null }]);
+              }}
             />
           </div>
 
@@ -349,7 +361,7 @@ export default function AssetTypeUpsertDialog({ organizationId, visible, onHide,
 
           {schemaRows.map((row, idx) => (
             <div
-              key={`${row.label}-${idx}`}
+              key={row.clientId}
               className="asset-type-field-row grid items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 lg:grid-cols-[minmax(12rem,1fr)_9rem_minmax(10rem,12rem)_8rem_2.5rem]"
             >
               <InputText

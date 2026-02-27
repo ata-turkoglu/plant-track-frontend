@@ -4,7 +4,6 @@ import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { MultiSelect } from 'primereact/multiselect';
 import { FilterMatchMode } from 'primereact/api';
@@ -19,6 +18,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
 import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
+import ItemGroupAddEditDialog from './ItemGroupAddEditDialog';
 
 type WarehouseTypeRow = {
   id: number;
@@ -391,74 +391,31 @@ export default function ItemGroupsPage() {
         </div>
       </div>
 
-      <Dialog
-        header={editing ? t('setup.item_groups.edit', 'Malzeme Grubu Duzenle') : t('setup.item_groups.new', 'Yeni Malzeme Grubu')}
+      <ItemGroupAddEditDialog
+        t={t}
         visible={dialogOpen}
+        editing={Boolean(editing)}
+        mutating={mutating}
+        warehouseTypeOptions={warehouseTypeOptions}
+        unitOptions={unitOptions}
+        warehouseTypeId={warehouseTypeId}
+        setWarehouseTypeId={setWarehouseTypeId}
+        unitId={unitId}
+        setUnitId={setUnitId}
+        code={code}
+        setCode={setCode}
+        name={name}
+        setName={setName}
+        sizeSpec={sizeSpec}
+        setSizeSpec={setSizeSpec}
+        sizeUnitId={sizeUnitId}
+        setSizeUnitId={setSizeUnitId}
         onHide={() => {
           setDialogOpen(false);
           resetForm();
         }}
-        className="w-full max-w-2xl"
-      >
-        <form className="grid gap-3" onSubmit={submit} autoComplete="off">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.type', 'Tür')}</span>
-              <Dropdown
-                value={warehouseTypeId}
-                options={warehouseTypeOptions}
-                onChange={(e) => setWarehouseTypeId(e.value)}
-                className="w-full"
-                placeholder={t('setup.item_groups.select_type', 'Depo tipi sec')}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.unit', 'Stok Birimi')}</span>
-              <Dropdown
-                value={unitId}
-                options={unitOptions}
-                onChange={(e) => setUnitId(e.value)}
-                className="w-full"
-                placeholder={t('setup.item_groups.select_unit', 'Birim sec')}
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.code', 'Kod')}</span>
-              <InputText value={code} onChange={(e) => setCode(e.target.value)} className="w-full" />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.name', 'Ad')}</span>
-              <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
-            </label>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.spec', 'Ölçü')}</span>
-              <InputText value={sizeSpec} onChange={(e) => setSizeSpec(e.target.value)} className="w-full" placeholder={t('setup.item_groups.spec.placeholder', 'Orn: 10W/20, 6204')} />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.spec_unit', 'Ölçü Birimi')}</span>
-              <Dropdown
-                value={sizeUnitId}
-                options={unitOptions}
-                onChange={(e) => setSizeUnitId(e.value)}
-                className="w-full"
-                showClear
-                placeholder={t('setup.item_groups.select_spec_unit', 'Opsiyonel')}
-              />
-            </label>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text type="button" onClick={() => setDialogOpen(false)} />
-            <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={mutating} disabled={!warehouseTypeId || !unitId || !code.trim() || !name.trim()} />
-          </div>
-        </form>
-      </Dialog>
+        onSubmit={submit}
+      />
     </div>
   );
 }

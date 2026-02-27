@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
@@ -16,6 +15,7 @@ import { fetchI18nTranslations } from '../../store/i18nSlice';
 import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
 import { useI18n } from '../../hooks/useI18n';
+import TranslationAddEditDialog from './TranslationAddEditDialog';
 
 type TranslationRow = {
   id: number;
@@ -211,43 +211,24 @@ export default function TranslationsPage() {
         </div>
       </div>
 
-      <Dialog
-        header={editingRow ? 'Ceviri Duzenle' : 'Yeni Ceviri'}
+      <TranslationAddEditDialog
+        t={t}
         visible={dialogOpen}
+        editing={Boolean(editingRow)}
+        loading={loading}
+        namespace={namespace}
+        entryKey={entryKey}
+        setEntryKey={setEntryKey}
+        trValue={trValue}
+        setTrValue={setTrValue}
+        enValue={enValue}
+        setEnValue={setEnValue}
         onHide={() => {
           setDialogOpen(false);
           resetForm();
         }}
-        className="w-full max-w-xl"
-      >
-        <form className="grid gap-3" onSubmit={submit} autoComplete="off">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Key (kod tabanli)</span>
-            <InputText value={entryKey} onChange={(ev) => setEntryKey(ev.target.value)} className="w-full" autoComplete="off" />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('setup.translations.tr', 'Türkçe')}</span>
-            <InputText value={trValue} onChange={(ev) => setTrValue(ev.target.value)} className="w-full" />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('setup.translations.en', 'English')}</span>
-            <InputText value={enValue} onChange={(ev) => setEnValue(ev.target.value)} className="w-full" />
-          </label>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Vazgec" size="small" text type="button" onClick={() => setDialogOpen(false)} />
-            <Button
-              label="Kaydet"
-              size="small"
-              type="submit"
-              loading={loading}
-              disabled={!namespace.trim() || !entryKey.trim() || !trValue.trim() || !enValue.trim()}
-            />
-          </div>
-        </form>
-      </Dialog>
+        onSubmit={submit}
+      />
     </div>
   );
 }

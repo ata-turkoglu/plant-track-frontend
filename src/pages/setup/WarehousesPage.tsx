@@ -4,9 +4,6 @@ import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
@@ -23,6 +20,7 @@ import {
   type WarehouseRow,
   updateWarehouse
 } from '../../store/setupSlice';
+import WarehouseAddEditDialog from './WarehouseAddEditDialog';
 
 type LocationOption = { label: string; value: number };
 
@@ -235,56 +233,22 @@ export default function WarehousesPage() {
         </div>
       </div>
 
-      <Dialog
-        header={editing ? t('warehouse.edit', 'Depo Duzenle') : t('warehouse.new', 'Yeni Depo')}
+      <WarehouseAddEditDialog
+        t={t}
         visible={dialogOpen}
+        editing={Boolean(editing)}
+        loading={loading}
+        name={name}
+        setName={setName}
+        warehouseTypeId={warehouseTypeId}
+        setWarehouseTypeId={setWarehouseTypeId}
+        locationId={locationId}
+        setLocationId={setLocationId}
+        typeOptions={typeOptions}
+        locationOptions={locationOptions}
         onHide={() => setDialogOpen(false)}
-        className="w-full max-w-lg"
-      >
-        <form className="grid gap-3" onSubmit={onSubmit}>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.name', 'Depo adi')}</span>
-            <InputText value={name} onChange={(ev) => setName(ev.target.value)} className="w-full" />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.type', 'Depo turu')}</span>
-            <Dropdown
-              value={warehouseTypeId}
-              onChange={(ev) => setWarehouseTypeId(ev.value ?? null)}
-              options={typeOptions}
-              optionLabel="label"
-              optionValue="value"
-              className="w-full"
-            />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('warehouse.field.location', 'Lokasyon')}</span>
-            <Dropdown
-              value={locationId}
-              onChange={(ev) => setLocationId(ev.value ?? null)}
-              options={locationOptions}
-              optionLabel="label"
-              optionValue="value"
-              className="w-full"
-              placeholder={t('warehouse.select_location', 'Lokasyon sec')}
-              filter
-            />
-          </label>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text type="button" onClick={() => setDialogOpen(false)} />
-            <Button
-              label={t('common.save', 'Kaydet')}
-              size="small"
-              type="submit"
-              loading={loading}
-              disabled={!name.trim() || !locationId || !warehouseTypeId}
-            />
-          </div>
-        </form>
-      </Dialog>
+        onSubmit={onSubmit}
+      />
     </div>
   );
 }

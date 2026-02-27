@@ -6,7 +6,6 @@ import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
@@ -20,7 +19,7 @@ import { api } from '../services/api';
 import { useI18n } from '../hooks/useI18n';
 import { enqueueToast } from '../store/uiSlice';
 import { fetchOrganizationSetup } from '../store/setupSlice';
-import AssetTypeUpsertDialog from '../components/assetTypes/AssetTypeUpsertDialog';
+import AssetEditDialog from '../components/assets/AssetEditDialog';
 
 type AssetRow = {
   id: number;
@@ -373,6 +372,7 @@ export default function AssetsPage() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [imageActionsOpen, setImageActionsOpen] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const locationOptions = useMemo(() => locations.map((l) => ({ label: l.name, value: l.id })), [locations]);
   const assetTypeOptions = useMemo(() => assetTypes.map((at) => ({ label: `${at.name} (${at.code})`, value: at.id })), [assetTypes]);
@@ -484,19 +484,7 @@ export default function AssetsPage() {
   };
 
   const openCreate = () => {
-    setCreateEditMode('create');
-    setEditingId(null);
-    setName('');
-    setCode('');
-    setImageUrl(null);
-    setImageActionsOpen(false);
-    setImagePreviewOpen(false);
-    setLocationId(null);
-    setParentAssetId(null);
-    setAssetTypeId(null);
-    setActive(true);
-    setAttributes([]);
-    setCreateEditOpen(true);
+    setCreateDialogOpen(true);
   };
 
   const openEdit = (row: AssetRow) => {
@@ -765,15 +753,7 @@ export default function AssetsPage() {
             header={t('common.name', 'Isim')}
             sortable
             filter
-            body={(row: AssetRow) => (
-              <button
-                type="button"
-                className="cursor-pointer text-left font-medium text-sky-700 hover:text-sky-800 hover:underline"
-                onClick={() => openDetails(row)}
-              >
-                {row.name}
-              </button>
-            )}
+            body={(row: AssetRow) => <span className="font-medium text-slate-900">{row.name}</span>}
           />
           <Column field="code" header={t('common.code', 'Kod')} sortable filter style={{ width: '10rem' }} />
           <Column
@@ -807,7 +787,6 @@ export default function AssetsPage() {
             body={(row: AssetRow) => (
               <div className="flex items-center justify-end gap-1">
                 <Button icon="pi pi-eye" size="small" text rounded onClick={() => openDetails(row)} aria-label={t('common.details', 'Detay')} />
-                <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
                 <Button icon="pi pi-trash" size="small" text rounded severity="danger" onClick={() => remove(row)} aria-label={t('common.delete', 'Sil')} />
               </div>
             )}
@@ -815,383 +794,18 @@ export default function AssetsPage() {
         </DataTable>
       </div>
 
-      <Dialog
-        header={createEditMode === 'edit' ? t('asset.edit', 'Makine Duzenle') : t('asset.new', 'Yeni Makine')}
-        visible={createEditOpen}
-        onHide={closeCreateEdit}
-        className="asset-entry-dialog w-full max-w-xl"
-      >
-        <div className="grid gap-3">
-          <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[8.5rem_minmax(0,1fr)]">
-            <div className="grid gap-2 self-start">
-              <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onAssetImageSelected(e)} />
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setImageActionsOpen((prev) => !prev)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setImageActionsOpen((prev) => !prev);
-                  }
-                }}
-                className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white outline-none ring-offset-2 transition hover:border-sky-300 focus-visible:ring-2 focus-visible:ring-sky-300"
-                aria-label={t('asset.image_actions', 'Resim islemleri')}
-              >
-                {imageUrl ? (
-                  <img src={imageUrl} alt={name.trim() || t('asset.image', 'Resim')} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-slate-400">
-                    <i className="pi pi-image text-xl" aria-hidden />
-                  </div>
-                )}
-                <div
-                  className={`pointer-events-none absolute inset-x-2 bottom-2 flex justify-end transition-all duration-200 ${
-                    imageActionsOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-                  }`}
-                >
-                  <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur">
-                    <Button
-                      icon={imageUrl ? 'pi pi-pencil' : 'pi pi-plus'}
-                      size="small"
-                      text
-                      rounded
-                      type="button"
-                      className="h-7 w-7"
-                      aria-label={imageUrl ? t('asset.image_change', 'Resim Degistir') : t('asset.image_add', 'Resim Ekle')}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        pickAssetImage();
-                      }}
-                    />
-                    {imageUrl ? (
-                      <>
-                        <Button
-                          icon="pi pi-search-plus"
-                          size="small"
-                          text
-                          rounded
-                          type="button"
-                          className="h-7 w-7"
-                          aria-label={t('asset.image_preview', 'Resmi Buyut')}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setImagePreviewOpen(true);
-                          }}
-                        />
-                        <Button
-                          icon="pi pi-trash"
-                          size="small"
-                          text
-                          rounded
-                          severity="danger"
-                          type="button"
-                          className="h-7 w-7"
-                          aria-label={t('asset.image_remove', 'Resmi Kaldir')}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setImageUrl(null);
-                            setImageActionsOpen(false);
-                          }}
-                        />
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="grid content-start gap-1">
-              <span className="text-sm font-medium text-slate-700">{t('asset.image', 'Resim')}</span>
-            </div>
-          </div>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
-            <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full p-inputtext-sm" />
-          </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.code', 'Kod')}</span>
-              <InputText value={code} onChange={(e) => setCode(e.target.value)} className="w-full p-inputtext-sm" />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('asset.type', 'Tip')}</span>
-              <div className="flex items-center gap-2">
-                <Dropdown
-                  value={assetTypeId}
-                  onChange={(e) => setAssetTypeId(e.value)}
-                  options={assetTypeOptions}
-                  className="w-full p-inputtext-sm"
-                />
-                <Button
-                  icon="pi pi-plus"
-                  size="small"
-                  outlined
-                  type="button"
-                  className="h-[1.95rem] w-[1.95rem] p-0"
-                  onClick={() => setAssetTypeDialogOpen(true)}
-                  aria-label={t('asset_types.new', 'Yeni Tip')}
-                />
-              </div>
-            </label>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('asset.attr.brand', 'Marka')}</span>
-              <InputText
-                value={brandValue}
-                onChange={(e) =>
-                  setAttributes((prev) =>
-                    upsertAttributeValue(prev, {
-                      canonicalKey: 'marka',
-                      aliases: DEFAULT_ATTRIBUTE_ALIASES.brand,
-                      value: e.target.value,
-                      schemaRows
-                    })
-                  )
-                }
-                className="w-full p-inputtext-sm"
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('asset.attr.model', 'Model')}</span>
-              <InputText
-                value={modelValue}
-                onChange={(e) =>
-                  setAttributes((prev) =>
-                    upsertAttributeValue(prev, {
-                      canonicalKey: 'model',
-                      aliases: DEFAULT_ATTRIBUTE_ALIASES.model,
-                      value: e.target.value,
-                      schemaRows
-                    })
-                  )
-                }
-                className="w-full p-inputtext-sm"
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('asset.attr.serial', 'Seri No')}</span>
-              <InputText
-                value={serialValue}
-                onChange={(e) =>
-                  setAttributes((prev) =>
-                    upsertAttributeValue(prev, {
-                      canonicalKey: 'seri_no',
-                      aliases: DEFAULT_ATTRIBUTE_ALIASES.serial,
-                      value: e.target.value,
-                      schemaRows
-                    })
-                  )
-                }
-                className="w-full p-inputtext-sm"
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <div className="flex h-8 items-center gap-1">
-                <span className="text-sm font-medium text-slate-700">{t('asset.location', 'Lokasyon')}</span>
-                {createEditMode === 'edit' ? (
-                  <Button
-                    icon="pi pi-info-circle"
-                    size="small"
-                    text
-                    rounded
-                    type="button"
-                    aria-label={t('asset.location_move_hint', 'Lokasyon degisikligi icin Detay > Tasi kullan.')}
-                    tooltip={t('asset.location_move_hint', 'Lokasyon degisikligi icin Detay > Tasi kullan.')}
-                    tooltipOptions={{ position: 'top' }}
-                  />
-                ) : null}
-              </div>
-              <Dropdown
-                value={locationId}
-                onChange={(e) => setLocationId(e.value)}
-                options={locationOptions}
-                className="w-full p-inputtext-sm"
-                disabled={createEditMode === 'edit'}
-                placeholder={t('common.select', 'Sec')}
-              />
-            </label>
-            <label className="grid gap-2">
-              <div className="flex h-8 items-center">
-                <span className="text-sm font-medium text-slate-700">{t('asset.parent', 'Ust Makine')}</span>
-              </div>
-              <Dropdown
-                value={parentAssetId}
-                onChange={(e) => setParentAssetId(e.value)}
-                options={parentOptions}
-                className="w-full p-inputtext-sm"
-                showClear
-              />
-            </label>
-          </div>
-          <label className="grid gap-2">
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-medium text-slate-700">{t('asset.attributes', 'Ozellikler')}</span>
-              <Button
-                icon="pi pi-info-circle"
-                size="small"
-                text
-                rounded
-                type="button"
-                aria-label={t('asset.attributes_from_type', 'Secili tipe gore alanlar otomatik getirildi.')}
-                tooltip={
-                  schemaMode
-                    ? `${t('asset.attributes_from_type', 'Secili tipe gore alanlar otomatik getirildi.')} ${t(
-                        'asset.attributes_unit_locked',
-                        'Birimler tipten gelir ve bu ekranda degistirilemez.'
-                      )}`
-                    : t('asset.attributes_from_type', 'Secili tipe gore alanlar otomatik getirildi.')
-                }
-                tooltipOptions={{ position: 'top' }}
-              />
-            </div>
-            <div className="grid gap-2">
-              {schemaMode ? (
-                <>
-                  {visibleAttributes.map((row, idx) => (
-                    <div
-                      key={`${row.key}-${idx}`}
-                      className="grid items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,1fr)_minmax(10rem,12rem)]"
-                    >
-                      <div className="grid gap-0.5">
-                        <span className="text-sm font-medium text-slate-700">
-                          {row.label || row.key} {row.required ? <span className="text-rose-600">*</span> : null}
-                        </span>
-                      </div>
-                      {row.fieldType === 'boolean' ? (
-                        <Dropdown
-                          value={row.value}
-                          onChange={(e) => setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, value: e.value ?? '' } : p)))}
-                          options={booleanOptions}
-                          className="w-full p-inputtext-sm"
-                          placeholder={t('asset.attributes_value', 'Deger')}
-                          showClear={!row.required}
-                        />
-                      ) : row.fieldType === 'date' ? (
-                        <InputText
-                          type="date"
-                          value={row.value}
-                          onChange={(e) => setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, value: e.target.value } : p)))}
-                          className="w-full p-inputtext-sm"
-                        />
-                      ) : row.fieldType === 'number' ? (
-                        <InputText
-                          type="number"
-                          value={row.value}
-                          onChange={(e) => setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, value: e.target.value } : p)))}
-                          placeholder={t('asset.attributes_value', 'Deger')}
-                          className="w-full p-inputtext-sm"
-                        />
-                      ) : (
-                        <InputText
-                          value={row.value}
-                          onChange={(e) => setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, value: e.target.value } : p)))}
-                          placeholder={t('asset.attributes_value', 'Deger')}
-                          className="w-full p-inputtext-sm"
-                        />
-                      )}
-                      <div className="asset-unit-readonly flex items-center rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700">
-                        {row.unitId ? unitLabelById.get(row.unitId) ?? '-' : '-'}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              ) : createEditMode === 'edit' ? (
-                <>
-                  {visibleAttributes.map((row, idx) => (
-                    <div
-                      key={`${row.key}-${idx}`}
-                      className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(10rem,12rem)_2.5rem]"
-                    >
-                      <InputText
-                        value={row.key}
-                        onChange={(e) =>
-                          setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, key: e.target.value } : p)))
-                        }
-                        placeholder={t('asset.attributes_key', 'Anahtar')}
-                        className="w-full p-inputtext-sm"
-                      />
-                      <InputText
-                        value={row.value}
-                        onChange={(e) =>
-                          setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, value: e.target.value } : p)))
-                        }
-                        placeholder={t('asset.attributes_value', 'Deger')}
-                        className="w-full p-inputtext-sm"
-                      />
-                      <Dropdown
-                        value={row.unitId}
-                        onChange={(e) =>
-                          setAttributes((prev) => prev.map((p, i) => (i === idx ? { ...p, unitId: e.value ?? null } : p)))
-                        }
-                        options={unitOptions}
-                        className="w-full p-inputtext-sm"
-                        placeholder={t('asset.attributes_unit', 'Birim')}
-                        showClear
-                        filter
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        size="small"
-                        text
-                        rounded
-                        severity="danger"
-                        type="button"
-                        onClick={() => setAttributes((prev) => prev.filter((_, i) => i !== idx))}
-                        aria-label={t('common.delete', 'Sil')}
-                      />
-                    </div>
-                  ))}
-                  <div>
-                    <Button
-                      label={t('asset.attributes_add', 'Ozellik Ekle')}
-                      icon="pi pi-plus"
-                      size="small"
-                      type="button"
-                      onClick={() => setAttributes((prev) => [...prev, { key: '', value: '', unitId: null }])}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </label>
-          <label className="flex items-center gap-2">
-            <Checkbox checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
-            <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={closeCreateEdit} />
-            <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void submit()} loading={mutating} disabled={!name.trim()} />
-          </div>
-        </div>
-      </Dialog>
-
-      <Dialog
-        header={t('asset.image', 'Resim')}
-        visible={imagePreviewOpen}
-        onHide={() => setImagePreviewOpen(false)}
-        className="w-full max-w-3xl"
-      >
-        {imageUrl ? (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-            <img src={imageUrl} alt={name.trim() || t('asset.image', 'Resim')} className="max-h-[75vh] w-full object-contain" />
-          </div>
-        ) : (
-          <Message severity="info" text={t('asset.image_missing', 'Gosterilecek resim yok.')} className="w-full" />
-        )}
-      </Dialog>
-
       {organizationId ? (
-        <AssetTypeUpsertDialog
+        <AssetEditDialog
           organizationId={organizationId}
-          visible={assetTypeDialogOpen}
-          onHide={() => setAssetTypeDialogOpen(false)}
-          editing={null}
-          onSaved={(saved) => void refreshAssetTypes((saved as { id?: number }).id)}
+          mode="create"
+          asset={null}
+          visible={createDialogOpen}
+          onHide={() => setCreateDialogOpen(false)}
+          onSaved={(assetId) => {
+            setCreateDialogOpen(false);
+            void loadAll();
+            navigate(`/assets/${assetId}`);
+          }}
         />
       ) : null}
     </div>

@@ -29,6 +29,11 @@ After required operations, toast messages must be present.
 - If an operation is handled locally (page-level API call), dispatch `enqueueToast(...)` explicitly.
 - Avoid duplicate notifications (for the same event, do not show both inline success/error block and toast).
 
+## Dialog File Rule (Required)
+
+- If a dialog is self-contained (i.e., it doesn't render another locally imported component), keep it in its own `*Dialog.tsx` file located in the same folder as the page/component that owns it.
+- Prefer a single dialog that supports both add and edit modes (e.g. `*AddEditDialog.tsx`), instead of separate add and edit dialog files.
+
 ## Implementation Note
 
 Use:
@@ -38,4 +43,3 @@ Use:
 from:
 
 - `src/store/uiSlice.ts`
-

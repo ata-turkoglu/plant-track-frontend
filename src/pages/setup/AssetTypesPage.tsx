@@ -14,7 +14,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
 import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
-import AssetTypeUpsertDialog, { type AssetTypeRow } from '../../components/assetTypes/AssetTypeUpsertDialog';
+import AssetTypeAddEditDialog, { type AssetTypeRow } from '../../components/assetTypes/AssetTypeAddEditDialog';
 
 const initialFilters: DataTableFilterMeta = {
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -154,7 +154,7 @@ export default function AssetTypesPage() {
         </div>
       </div>
 
-      <AssetTypeUpsertDialog
+      <AssetTypeAddEditDialog
         organizationId={organizationId}
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}

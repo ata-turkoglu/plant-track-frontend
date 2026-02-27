@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 
 import { api } from '../services/api';
@@ -16,6 +12,11 @@ import { useI18n } from '../hooks/useI18n';
 import { enqueueToast } from '../store/uiSlice';
 import { fetchOrganizationSetup } from '../store/setupSlice';
 import type { AppDispatch, RootState } from '../store';
+import AssetEditDialog from '../components/assets/AssetEditDialog';
+import AssetBomLineDialog from './AssetBomLineDialog';
+import AssetImagePreviewDialog from './AssetImagePreviewDialog';
+import AssetMoveDialog from './AssetMoveDialog';
+import AssetStateDialog from './AssetStateDialog';
 
 type FieldDataType = 'text' | 'number' | 'boolean' | 'date';
 
@@ -233,6 +234,7 @@ function formatQuantity(value: string | number | null | undefined): string {
 export default function AssetDetailPage() {
   const { t, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { assetId: assetIdParam } = useParams<{ assetId: string }>();
 
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
@@ -256,6 +258,7 @@ export default function AssetDetailPage() {
 
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [stateDialogOpen, setStateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const [bomDialogOpen, setBomDialogOpen] = useState(false);
   const [bomItemGroupId, setBomItemGroupId] = useState<number | null>(null);
@@ -738,6 +741,18 @@ export default function AssetDetailPage() {
 
                     <div className="flex items-center gap-2">
                       <Button
+                        icon="pi pi-pencil"
+                        size="small"
+                        outlined
+                        type="button"
+                        disabled={mutating}
+                        label={t('inventory.action.edit', 'Duzenle')}
+                        aria-label={t('inventory.action.edit', 'Duzenle')}
+                        onClick={() => {
+                          setEditDialogOpen(true);
+                        }}
+                      />
+                      <Button
                         icon="pi pi-map-marker"
                         size="small"
                         outlined
@@ -909,93 +924,60 @@ export default function AssetDetailPage() {
         <Message severity="warn" text={t('asset.details_empty', 'Makine secilmedi.')} className="w-full" />
       )}
 
-      <Dialog
-        header={asset?.name ?? t('asset.image', 'Resim')}
+      <AssetImagePreviewDialog
+        t={t}
         visible={imagePreviewOpen}
         onHide={() => setImagePreviewOpen(false)}
-        className="w-full max-w-5xl"
-      >
-        {asset?.image_url ? (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-            <img src={asset.image_url} alt={asset.name} className="max-h-[80vh] w-full object-contain" />
-          </div>
-        ) : (
-          <Message severity="info" text={t('asset.image_missing', 'Gosterilecek resim yok.')} className="w-full" />
-        )}
-      </Dialog>
+        name={asset?.name ?? ''}
+        imageUrl={asset?.image_url ?? null}
+      />
 
-      <Dialog header={t('asset.move', 'Tasi')} visible={moveDialogOpen} onHide={() => setMoveDialogOpen(false)} className="w-full max-w-md">
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('asset.location', 'Lokasyon')}</span>
-            <Dropdown
-              value={moveToLocationId}
-              onChange={(e) => setMoveToLocationId(e.value)}
-              options={locationOptions}
-              className="w-full p-inputtext-sm"
-              placeholder={t('common.select', 'Sec')}
-            />
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setMoveDialogOpen(false)} />
-            <Button label={t('asset.move', 'Tasi')} size="small" onClick={() => void moveAsset()} disabled={!moveToLocationId} loading={mutating} />
-          </div>
-        </div>
-      </Dialog>
+      {organizationId ? (
+        <AssetEditDialog
+          organizationId={organizationId}
+          mode="edit"
+          asset={asset}
+          visible={editDialogOpen}
+          onHide={() => setEditDialogOpen(false)}
+          onSaved={(assetId) => void loadCore(assetId)}
+        />
+      ) : null}
 
-      <Dialog header={t('asset.state', 'Durum')} visible={stateDialogOpen} onHide={() => setStateDialogOpen(false)} className="w-full max-w-md">
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('asset.state', 'Durum')}</span>
-            <Dropdown
-              value={newState}
-              onChange={(e) => setNewState(e.value)}
-              options={[
-                { label: 'STOPPED', value: 'STOPPED' },
-                { label: 'RUNNING', value: 'RUNNING' },
-                { label: 'MAINTENANCE', value: 'MAINTENANCE' },
-                { label: 'DOWN', value: 'DOWN' }
-              ]}
-              className="w-full p-inputtext-sm"
-            />
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setStateDialogOpen(false)} />
-            <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void changeState()} loading={mutating} />
-          </div>
-        </div>
-      </Dialog>
+      <AssetMoveDialog
+        t={t}
+        visible={moveDialogOpen}
+        onHide={() => setMoveDialogOpen(false)}
+        mutating={mutating}
+        locationOptions={locationOptions}
+        moveToLocationId={moveToLocationId}
+        setMoveToLocationId={setMoveToLocationId}
+        onMove={() => void moveAsset()}
+      />
 
-	      <Dialog header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={bomDialogOpen} onHide={() => setBomDialogOpen(false)} className="w-full max-w-lg">
-	        <div className="grid gap-3">
-	          <label className="grid gap-2">
-	            <span className="text-sm font-medium text-slate-700">{t('asset.bom_item_group', 'Malzeme Cinsi')}</span>
-	            <Dropdown
-	              value={bomItemGroupId}
-	              onChange={(e) => setBomItemGroupId(e.value)}
-	              options={itemGroups.map((g) => ({
-	                label: `${g.name} (${g.code})${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
-	                value: g.id
-	              }))}
-	              filter
-	              className="w-full p-inputtext-sm"
-	              placeholder={t('common.select', 'Sec')}
-	            />
-	          </label>
-	          <label className="grid gap-2">
-	            <span className="text-sm font-medium text-slate-700">{t('common.quantity', 'Miktar')}</span>
-	            <InputNumber value={bomQuantity} onValueChange={(e) => setBomQuantity(Number(e.value ?? 1))} className="w-full" inputClassName="p-inputtext-sm" min={0} />
-	          </label>
-	          <label className="grid gap-2">
-	            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
-	            <InputTextarea value={bomNote} onChange={(e) => setBomNote(e.target.value)} className="w-full p-inputtext-sm" rows={3} />
-	          </label>
-	          <div className="flex items-center justify-end gap-2 pt-2">
-	            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setBomDialogOpen(false)} />
-	            <Button label={t('common.save', 'Kaydet')} size="small" onClick={() => void addBomLine()} loading={mutating} disabled={!bomItemGroupId || bomQuantity <= 0} />
-	          </div>
-	        </div>
-	      </Dialog>
+      <AssetStateDialog
+        t={t}
+        visible={stateDialogOpen}
+        onHide={() => setStateDialogOpen(false)}
+        mutating={mutating}
+        newState={newState}
+        setNewState={setNewState}
+        onSave={() => void changeState()}
+      />
+
+      <AssetBomLineDialog
+        t={t}
+        visible={bomDialogOpen}
+        onHide={() => setBomDialogOpen(false)}
+        mutating={mutating}
+        itemGroups={itemGroups}
+        bomItemGroupId={bomItemGroupId}
+        setBomItemGroupId={setBomItemGroupId}
+        bomQuantity={bomQuantity}
+        setBomQuantity={setBomQuantity}
+        bomNote={bomNote}
+        setBomNote={setBomNote}
+        onSave={() => void addBomLine()}
+      />
     </div>
   );
 }

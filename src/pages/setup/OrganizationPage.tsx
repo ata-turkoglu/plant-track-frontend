@@ -3,8 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { OrganizationChart } from 'primereact/organizationchart';
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import type { TreeNode } from 'primereact/treenode';
 
@@ -16,6 +14,7 @@ import {
   updateLocation,
   updateOrganizationName
 } from '../../store/setupSlice';
+import OrganizationLocationAddEditDialog from './OrganizationLocationAddEditDialog';
 
 type NodeKind = 'organization' | 'location';
 
@@ -289,30 +288,15 @@ export default function OrganizationPage() {
         <OrganizationChart value={value} nodeTemplate={nodeTemplate} />
       </div>
 
-      <Dialog
-        header={
-          dialogMode === 'edit-org'
-            ? 'Edit Organization'
-            : dialogMode === 'add-location'
-              ? 'Add Location'
-              : 'Edit Location'
-        }
+      <OrganizationLocationAddEditDialog
+        header={dialogMode === 'edit-org' ? 'Edit Organization' : dialogMode === 'add-location' ? 'Add Location' : 'Edit Location'}
         visible={dialogOpen}
+        loading={loading}
+        name={dialogName}
+        setName={setDialogName}
         onHide={() => setDialogOpen(false)}
-        className="w-full max-w-lg"
-      >
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Name</span>
-            <InputText value={dialogName} onChange={(e) => setDialogName(e.target.value)} className="w-full" />
-          </label>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label="Cancel" size="small" text onClick={() => setDialogOpen(false)} />
-            <Button label="Save" size="small" onClick={submitDialog} loading={loading} />
-          </div>
-        </div>
-      </Dialog>
+        onSave={submitDialog}
+      />
     </div>
   );
 }

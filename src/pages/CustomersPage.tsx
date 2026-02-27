@@ -1,21 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import type { DataTableFilterMeta } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 import { FilterMatchMode } from 'primereact/api';
 
 import type { AppDispatch, RootState } from '../store';
 import { useI18n } from '../hooks/useI18n';
+import CustomerAddEditDialog from './CustomerAddEditDialog';
 import {
   createCustomer,
   deleteCustomer,
@@ -189,55 +187,30 @@ export default function CustomersPage() {
         </DataTable>
       </div>
 
-      <Dialog
-        header={mode === 'edit' ? t('customer.edit', 'Musteri Duzenle') : t('customer.new', 'Yeni Musteri')}
+      <CustomerAddEditDialog
+        t={t}
         visible={dialogOpen}
+        mode={mode}
+        mutating={mutating}
+        name={name}
+        setName={setName}
+        email={email}
+        setEmail={setEmail}
+        phone={phone}
+        setPhone={setPhone}
+        contactName={contactName}
+        setContactName={setContactName}
+        taxNo={taxNo}
+        setTaxNo={setTaxNo}
+        address={address}
+        setAddress={setAddress}
+        notes={notes}
+        setNotes={setNotes}
+        active={active}
+        setActive={setActive}
         onHide={() => setDialogOpen(false)}
-        className="w-full max-w-lg"
-      >
-        <div className="grid gap-3">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
-            <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
-          </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.phone', 'Telefon')}</span>
-              <InputText value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full" />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.email', 'E-posta')}</span>
-              <InputText value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" />
-            </label>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.contact_name', 'Yetkili')}</span>
-              <InputText value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full" />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('common.tax_no', 'Vergi No')}</span>
-              <InputText value={taxNo} onChange={(e) => setTaxNo(e.target.value)} className="w-full" />
-            </label>
-          </div>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.address', 'Adres')}</span>
-            <InputTextarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full" rows={3} />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('common.note', 'Not')}</span>
-            <InputTextarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" rows={3} />
-          </label>
-          <label className="flex items-center gap-2">
-            <Checkbox checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
-            <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text onClick={() => setDialogOpen(false)} />
-            <Button label={t('common.save', 'Kaydet')} size="small" onClick={submit} loading={mutating} disabled={!name.trim()} />
-          </div>
-        </div>
-      </Dialog>
+        onSubmit={() => void submit()}
+      />
     </div>
   );
 }

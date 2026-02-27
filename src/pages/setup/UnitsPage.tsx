@@ -5,7 +5,6 @@ import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { FilterMatchMode } from 'primereact/api';
 import type { DataTableFilterMeta } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
@@ -17,6 +16,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
 import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
+import UnitAddEditDialog from './UnitAddEditDialog';
 
 type UnitRow = {
   id: number;
@@ -285,71 +285,30 @@ export default function UnitsPage() {
         </div>
       </div>
 
-      <Dialog
-        header={editing ? t('setup.units.edit', 'Birim Duzenle') : t('setup.units.new', 'Yeni Birim')}
+      <UnitAddEditDialog
+        t={t}
         visible={dialogOpen}
+        editing={Boolean(editing)}
+        derivedCode={derivedCode}
+        isPieceUnit={isPieceUnit}
+        canSubmit={canSubmit}
+        mutating={mutating}
+        trName={trName}
+        setTrName={setTrName}
+        enName={enName}
+        setEnName={setEnName}
+        trSymbol={trSymbol}
+        setTrSymbol={setTrSymbol}
+        enSymbol={enSymbol}
+        setEnSymbol={setEnSymbol}
+        active={active}
+        setActive={setActive}
         onHide={() => {
           setDialogOpen(false);
           resetForm();
         }}
-        className="w-full max-w-lg"
-      >
-        <form className="grid gap-3" onSubmit={submit} autoComplete="off">
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            {t('setup.units.code_auto', 'Kod, EN ad alanindan otomatik uretilir.')}: <span className="font-semibold">{derivedCode || '-'}</span>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.units.col.tr_name', 'Ad (TR)')}</span>
-              <InputText value={trName} onChange={(e) => setTrName(e.target.value)} className="w-full" />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.units.col.en_name', 'Ad (EN)')}</span>
-              <InputText value={enName} onChange={(e) => setEnName(e.target.value)} className="w-full" />
-            </label>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.units.col.tr_symbol', 'Sembol (TR)')}</span>
-              <InputText
-                value={trSymbol}
-                onChange={(e) => setTrSymbol(e.target.value)}
-                className="w-full"
-                disabled={isPieceUnit}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">{t('setup.units.col.en_symbol', 'Sembol (EN)')}</span>
-              <InputText
-                value={enSymbol}
-                onChange={(e) => setEnSymbol(e.target.value)}
-                className="w-full"
-                disabled={isPieceUnit}
-              />
-            </label>
-          </div>
-
-          {isPieceUnit ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              {t('setup.units.piece_symbol_note', '`piece` kodu icin symbol bos birakilmalidir.')}
-            </div>
-          ) : null}
-
-          {editing ? (
-            <label className="flex items-center gap-2 pt-1">
-              <Checkbox inputId="unit-active" checked={active} onChange={(e) => setActive(Boolean(e.checked))} />
-              <span className="text-sm text-slate-700">{t('common.active', 'Aktif')}</span>
-            </label>
-          ) : null}
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button label={t('common.cancel', 'Vazgec')} size="small" text type="button" onClick={() => setDialogOpen(false)} />
-            <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={mutating} disabled={!canSubmit} />
-          </div>
-        </form>
-      </Dialog>
+        onSubmit={submit}
+      />
     </div>
   );
 }
