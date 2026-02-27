@@ -1,8 +1,8 @@
 import type { FormEvent } from 'react';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -50,7 +50,13 @@ export default function UnitAddEditDialog({
   onSubmit
 }: Props) {
   return (
-    <Dialog header={editing ? t('setup.units.edit', 'Birim Duzenle') : t('setup.units.new', 'Yeni Birim')} visible={visible} onHide={onHide} className="w-full max-w-lg">
+    <AppDialog
+      id="setup-unit-add-edit"
+      header={editing ? t('setup.units.edit', 'Birim Duzenle') : t('setup.units.new', 'Yeni Birim')}
+      visible={visible}
+      onHide={onHide}
+      className="w-full max-w-lg"
+    >
       <form className="grid gap-3" onSubmit={onSubmit} autoComplete="off">
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
           {t('setup.units.code_auto', 'Kod, EN ad alanindan otomatik uretilir.')}: <span className="font-semibold">{derivedCode || '-'}</span>
@@ -96,6 +102,6 @@ export default function UnitAddEditDialog({
           <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={mutating} disabled={!canSubmit} />
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

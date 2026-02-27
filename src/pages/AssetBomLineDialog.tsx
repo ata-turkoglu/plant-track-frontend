@@ -1,8 +1,8 @@
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputTextarea } from 'primereact/inputtextarea';
+import AppDialog from '../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -43,7 +43,7 @@ export default function AssetBomLineDialog({
   onSave
 }: Props) {
   return (
-    <Dialog header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={visible} onHide={onHide} className="w-full max-w-lg">
+    <AppDialog id="asset-bom-line" header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={visible} onHide={onHide} className="w-full max-w-lg">
       <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('asset.bom_item_group', 'Malzeme Cinsi')}</span>
@@ -78,7 +78,6 @@ export default function AssetBomLineDialog({
           <Button label={t('common.save', 'Kaydet')} size="small" onClick={onSave} loading={mutating} disabled={!bomItemGroupId || bomQuantity <= 0} />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
-

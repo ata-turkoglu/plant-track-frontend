@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 
 import SearchField from '../common/SearchField';
 import ItemsTable, { type ItemTableRow } from '../items/ItemsTable';
 import type { UnitLike } from '../items/itemUtils';
 import type { TranslateFn } from './types';
+import AppDialog from '../common/AppDialog';
 
 type InventoryItemsDialogProps = {
   translate: TranslateFn;
@@ -35,7 +35,8 @@ export default function InventoryItemsDialog({
   actionBody
 }: InventoryItemsDialogProps) {
   return (
-    <Dialog
+    <AppDialog
+      id="inventory-items"
       header={`${translate('inventory.materials', 'Malzemeler')} (${activeWarehouseTypeName})`}
       visible={visible}
       onHide={onHide}
@@ -70,6 +71,6 @@ export default function InventoryItemsDialog({
           />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }

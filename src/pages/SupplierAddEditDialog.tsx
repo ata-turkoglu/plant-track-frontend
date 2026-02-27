@@ -1,9 +1,9 @@
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import AppDialog from '../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -67,7 +67,8 @@ export default function SupplierAddEditDialog({
   onSubmit
 }: Props) {
   return (
-    <Dialog
+    <AppDialog
+      id="supplier-add-edit"
       header={mode === 'edit' ? t('supplier.edit', 'Tedarikci Duzenle') : t('supplier.new', 'Yeni Tedarikci')}
       visible={visible}
       onHide={onHide}
@@ -125,6 +126,6 @@ export default function SupplierAddEditDialog({
           />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }

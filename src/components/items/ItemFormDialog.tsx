@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { useI18n } from '../../hooks/useI18n';
+import AppDialog from '../common/AppDialog';
 
 export type ItemFormDraft = {
   warehouseTypeId: number | null;
@@ -83,7 +83,8 @@ export default function ItemFormDialog({
   const groupDrivenSizeSpec = selectedGroup?.size_spec?.trim() ?? '';
 
   return (
-    <Dialog
+    <AppDialog
+      id="item-form"
       header={mode === 'edit' ? t('materials.edit', 'Malzeme Duzenle') : t('materials.new', 'Yeni Malzeme')}
       visible={visible}
       onHide={onHide}
@@ -220,6 +221,6 @@ export default function ItemFormDialog({
           <Button label={t('common.save', 'Kaydet')} onClick={onSubmit} loading={loading} disabled={submitDisabled} />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }

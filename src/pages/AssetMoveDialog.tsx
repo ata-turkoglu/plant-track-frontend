@@ -1,6 +1,6 @@
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
+import AppDialog from '../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -28,7 +28,7 @@ export default function AssetMoveDialog({
   onMove
 }: Props) {
   return (
-    <Dialog header={t('asset.move', 'Tasi')} visible={visible} onHide={onHide} className="w-full max-w-md">
+    <AppDialog id="asset-move" header={t('asset.move', 'Tasi')} visible={visible} onHide={onHide} className="w-full max-w-md">
       <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('asset.location', 'Lokasyon')}</span>
@@ -45,7 +45,6 @@ export default function AssetMoveDialog({
           <Button label={t('asset.move', 'Tasi')} size="small" onClick={onMove} disabled={!moveToLocationId} loading={mutating} />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
-

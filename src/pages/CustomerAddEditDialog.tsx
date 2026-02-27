@@ -1,8 +1,8 @@
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import AppDialog from '../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -56,7 +56,8 @@ export default function CustomerAddEditDialog({
   onSubmit
 }: Props) {
   return (
-    <Dialog
+    <AppDialog
+      id="customer-add-edit"
       header={mode === 'edit' ? t('customer.edit', 'Musteri Duzenle') : t('customer.new', 'Yeni Musteri')}
       visible={visible}
       onHide={onHide}
@@ -110,6 +111,6 @@ export default function CustomerAddEditDialog({
           />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }

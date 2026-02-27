@@ -1,6 +1,6 @@
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../../components/common/AppDialog';
 
 type Props = {
   header: string;
@@ -14,7 +14,7 @@ type Props = {
 
 export default function OrganizationLocationAddEditDialog({ header, visible, loading, name, setName, onHide, onSave }: Props) {
   return (
-    <Dialog header={header} visible={visible} onHide={onHide} className="w-full max-w-lg">
+    <AppDialog id="setup-organization-location-add-edit" header={header} visible={visible} onHide={onHide} className="w-full max-w-lg">
       <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">Name</span>
@@ -26,6 +26,6 @@ export default function OrganizationLocationAddEditDialog({ header, visible, loa
           <Button label="Save" size="small" onClick={onSave} loading={loading} />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }

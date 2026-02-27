@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
+import AppDialog from '../common/AppDialog';
 
 import type { AppDispatch, RootState } from '../../store';
 import { api } from '../../services/api';
@@ -651,7 +651,8 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
 
   return (
     <>
-      <Dialog
+      <AppDialog
+        id="asset-edit"
         header={mode === 'create' ? t('asset.new', 'Yeni Makine') : t('asset.edit', 'Makine Duzenle')}
         visible={visible}
         onHide={() => {
@@ -1002,9 +1003,15 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
             </div>
           </div>
         )}
-      </Dialog>
+      </AppDialog>
 
-      <Dialog header={t('asset.image', 'Resim')} visible={imagePreviewOpen} onHide={() => setImagePreviewOpen(false)} className="w-full max-w-3xl">
+      <AppDialog
+        id="asset-edit-image-preview"
+        header={t('asset.image', 'Resim')}
+        visible={imagePreviewOpen}
+        onHide={() => setImagePreviewOpen(false)}
+        className="w-full max-w-3xl"
+      >
         {imageUrl ? (
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
             <img src={imageUrl} alt={name.trim() || t('asset.image', 'Resim')} className="max-h-[75vh] w-full object-contain" />
@@ -1012,7 +1019,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
         ) : (
           <Message severity="info" text={t('asset.image_missing', 'Gosterilecek resim yok.')} className="w-full" />
         )}
-      </Dialog>
+      </AppDialog>
 
       <AssetTypeAddEditDialog
         organizationId={organizationId}

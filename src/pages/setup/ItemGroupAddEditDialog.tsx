@@ -1,8 +1,8 @@
 import type { FormEvent } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -56,7 +56,8 @@ export default function ItemGroupAddEditDialog({
   const canSubmit = Boolean(warehouseTypeId && unitId && code.trim() && name.trim());
 
   return (
-    <Dialog
+    <AppDialog
+      id="setup-item-group-add-edit"
       header={editing ? t('setup.item_groups.edit', 'Malzeme Grubu Duzenle') : t('setup.item_groups.new', 'Yeni Malzeme Grubu')}
       visible={visible}
       onHide={onHide}
@@ -114,6 +115,6 @@ export default function ItemGroupAddEditDialog({
           <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={mutating} disabled={!canSubmit} />
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

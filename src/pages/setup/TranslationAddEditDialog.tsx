@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -39,7 +39,13 @@ export default function TranslationAddEditDialog({
   const canSubmit = Boolean(namespace.trim() && entryKey.trim() && trValue.trim() && enValue.trim());
 
   return (
-    <Dialog header={editing ? 'Ceviri Duzenle' : 'Yeni Ceviri'} visible={visible} onHide={onHide} className="w-full max-w-xl">
+    <AppDialog
+      id="setup-translation-add-edit"
+      header={editing ? 'Ceviri Duzenle' : 'Yeni Ceviri'}
+      visible={visible}
+      onHide={onHide}
+      className="w-full max-w-xl"
+    >
       <form className="grid gap-3" onSubmit={onSubmit} autoComplete="off">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">Key (kod tabanli)</span>
@@ -61,6 +67,6 @@ export default function TranslationAddEditDialog({
           <Button label="Kaydet" size="small" type="submit" loading={loading} disabled={!canSubmit} />
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

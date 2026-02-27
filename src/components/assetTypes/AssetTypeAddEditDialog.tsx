@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../common/AppDialog';
 
 import { api } from '../../services/api';
 import { useI18n } from '../../hooks/useI18n';
@@ -28,6 +28,7 @@ type AssetTypeFieldRow = {
   asset_type_id: number;
   name: string;
   label: string;
+  is_default?: boolean;
   data_type: FieldType;
   required: boolean;
   unit_id: number | null;
@@ -111,7 +112,7 @@ function parseSchemaRows(fields: AssetTypeFieldRow[] | null | undefined): Schema
       if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
       return a.id - b.id;
     })
-    .filter((row) => row.active !== false)
+    .filter((row) => row.active !== false && row.is_default !== true)
     .map((row) => ({
       clientId: `field-${row.id}`,
       label: (row.label ?? row.name ?? '').trim(),
@@ -299,7 +300,8 @@ export default function AssetTypeAddEditDialog({
   };
 
   return (
-    <Dialog
+    <AppDialog
+      id="asset-type-add-edit"
       header={editing ? t('asset_types.edit', 'Tip Duzenle') : t('asset_types.new', 'Yeni Tip')}
       visible={visible}
       onHide={onHide}
@@ -418,6 +420,6 @@ export default function AssetTypeAddEditDialog({
           <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={mutating} disabled={!canSubmit} />
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

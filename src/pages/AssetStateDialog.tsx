@@ -1,6 +1,6 @@
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
+import AppDialog from '../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -18,7 +18,7 @@ type Props = {
 
 export default function AssetStateDialog({ t, visible, mutating, newState, setNewState, onHide, onSave }: Props) {
   return (
-    <Dialog header={t('asset.state', 'Durum')} visible={visible} onHide={onHide} className="w-full max-w-md">
+    <AppDialog id="asset-state" header={t('asset.state', 'Durum')} visible={visible} onHide={onHide} className="w-full max-w-md">
       <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('asset.state', 'Durum')}</span>
@@ -39,7 +39,6 @@ export default function AssetStateDialog({ t, visible, mutating, newState, setNe
           <Button label={t('common.save', 'Kaydet')} size="small" onClick={onSave} loading={mutating} />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
-

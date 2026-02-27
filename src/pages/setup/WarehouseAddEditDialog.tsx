@@ -1,8 +1,8 @@
 import type { FormEvent } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import AppDialog from '../../components/common/AppDialog';
 
 type TFn = (key: string, fallback: string) => string;
 
@@ -42,7 +42,13 @@ export default function WarehouseAddEditDialog({
   onSubmit
 }: Props) {
   return (
-    <Dialog header={editing ? t('warehouse.edit', 'Depo Duzenle') : t('warehouse.new', 'Yeni Depo')} visible={visible} onHide={onHide} className="w-full max-w-lg">
+    <AppDialog
+      id="setup-warehouse-add-edit"
+      header={editing ? t('warehouse.edit', 'Depo Duzenle') : t('warehouse.new', 'Yeni Depo')}
+      visible={visible}
+      onHide={onHide}
+      className="w-full max-w-lg"
+    >
       <form className="grid gap-3" onSubmit={onSubmit}>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('warehouse.field.name', 'Depo adi')}</span>
@@ -80,6 +86,6 @@ export default function WarehouseAddEditDialog({
           <Button label={t('common.save', 'Kaydet')} size="small" type="submit" loading={loading} disabled={!name.trim() || !locationId || !warehouseTypeId} />
         </div>
       </form>
-    </Dialog>
+    </AppDialog>
   );
 }

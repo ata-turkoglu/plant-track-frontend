@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 
 import type { EventLineDraft, GroupedNodeOption, SelectOption, TranslateFn } from './types';
+import AppDialog from '../common/AppDialog';
 
 type InventoryMovementEntryDialogProps = {
   translate: TranslateFn;
@@ -64,7 +64,8 @@ export default function InventoryMovementEntryDialog({
   saveDisabled
 }: InventoryMovementEntryDialogProps) {
   return (
-    <Dialog
+    <AppDialog
+      id="inventory-movement-entry"
       header={
         editingMovement
           ? translate('inventory.edit_movement', 'Stok Hareketi Duzelt')
@@ -211,6 +212,6 @@ export default function InventoryMovementEntryDialog({
           />
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   );
 }
