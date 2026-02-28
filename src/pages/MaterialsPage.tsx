@@ -196,7 +196,7 @@ function MaterialsPageImpl() {
       model: row.model ?? '',
       sizeSpec: row.size_spec ?? '',
       sizeUnitId: row.size_unit_id ?? null,
-      unitId: row.unit_id ?? null,
+      unitId: row.amount_unit_id ?? null,
       active: row.active
     });
     setDialogOpen(true);

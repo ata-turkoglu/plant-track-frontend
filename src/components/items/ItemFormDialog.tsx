@@ -151,7 +151,7 @@ export default function ItemFormDialog({
             <InputText value={draft.code} onChange={(e) => onDraftChange({ ...draft, code: e.target.value })} className="w-full" />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('inventory.col.unit', 'Birim')}</span>
+            <span className="text-sm font-medium text-slate-700">{t('inventory.col.amount_unit', 'Stok Birimi')}</span>
             {allowInventoryItemCardEdit ? (
               <InputText
                 value={groupDrivenUnitLabel}
@@ -166,6 +166,7 @@ export default function ItemFormDialog({
                 onChange={(e) => onDraftChange({ ...draft, unitId: e.value ?? null })}
                 options={unitOptions}
                 className="w-full"
+                placeholder={t('inventory.col.amount_unit', 'Stok Birimi')}
               />
             )}
           </label>

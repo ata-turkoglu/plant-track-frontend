@@ -20,7 +20,7 @@ export type ItemTableRow = {
   model?: string | null;
   size_spec?: string | null;
   size_unit_id?: number | null;
-  unit_id?: number | null;
+  amount_unit_id?: number | null;
   active: boolean;
 };
 
@@ -58,6 +58,15 @@ export default function ItemsTable({
   const { t, tUnit, tUnitSymbol } = useI18n();
   const unitById = new Map<number, UnitLike>();
   for (const unit of units) unitById.set(unit.id, unit);
+
+  const unitLabel = (unitId?: number | null) => {
+    const unit = unitId ? unitById.get(unitId) : null;
+    return formatUnitLabelWithName(
+      unit,
+      unit ? tUnit(unit.code ?? undefined, unit.name ?? unit.code ?? '-') : undefined,
+      unit ? tUnitSymbol(unit.symbol ?? undefined, unit.symbol ?? undefined) : undefined
+    );
+  };
 
   return (
     <>
@@ -102,15 +111,6 @@ export default function ItemsTable({
           body={(row: ItemTableRow) => row.brand ?? '-'}
         />
         <Column
-          field="description"
-          header={t('common.description', 'Aciklama')}
-          sortable
-          filter={showFilters}
-          filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
-          style={{ width: '8rem' }}
-          body={(row: ItemTableRow) => <NoteTooltipIcon text={row.description} ariaLabel={t('common.description', 'Aciklama')} />}
-        />
-        <Column
           field="model"
           header={t('item.col.model', 'Model')}
           sortable
@@ -126,32 +126,30 @@ export default function ItemsTable({
           filter={showFilters}
           filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
           style={{ width: '12rem' }}
-          body={(row: ItemTableRow) => {
-            if (!row.size_spec) return '-';
-            const sizeUnit = row.size_unit_id ? unitById.get(row.size_unit_id) : null;
-            const sizeUnitLabel = sizeUnit
-              ? formatUnitLabelWithName(
-                  sizeUnit,
-                  tUnit(sizeUnit.code ?? undefined, sizeUnit.name ?? sizeUnit.code ?? '-'),
-                  tUnitSymbol(sizeUnit.symbol ?? undefined, sizeUnit.symbol ?? undefined)
-                )
-              : null;
-            return sizeUnitLabel ? `${row.size_spec} ${sizeUnitLabel}` : row.size_spec;
-          }}
+          body={(row: ItemTableRow) => row.size_spec ?? '-'}
         />
         <Column
-          field="unit_id"
-          header={t('inventory.col.unit', 'Birim')}
+          field="size_unit_id"
+          header={t('item.size_unit', 'Olcu Birimi')}
           sortable
           style={{ width: '12rem' }}
-          body={(row: ItemTableRow) => {
-            const unit = row.unit_id ? unitById.get(row.unit_id) : null;
-            return formatUnitLabelWithName(
-              unit,
-              unit ? tUnit(unit.code ?? undefined, unit.name ?? unit.code ?? '-') : undefined,
-              unit ? tUnitSymbol(unit.symbol ?? undefined, unit.symbol ?? undefined) : undefined
-            );
-          }}
+          body={(row: ItemTableRow) => unitLabel(row.size_unit_id)}
+        />
+        <Column
+          field="amount_unit_id"
+          header={t('inventory.col.amount_unit', 'Stok Birimi')}
+          sortable
+          style={{ width: '12rem' }}
+          body={(row: ItemTableRow) => unitLabel(row.amount_unit_id)}
+        />
+        <Column
+          field="description"
+          header={t('common.description', 'Aciklama')}
+          sortable
+          filter={showFilters}
+          filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
+          style={{ width: '8rem' }}
+          body={(row: ItemTableRow) => <NoteTooltipIcon text={row.description} ariaLabel={t('common.description', 'Aciklama')} />}
         />
         {actionBody ? <Column header="" style={actionStyle ?? { width: '7rem' }} body={actionBody} /> : null}
       </DataTable>

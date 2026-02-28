@@ -26,7 +26,7 @@ export type InventoryItemRow = {
   model?: string | null;
   size_spec?: string | null;
   size_unit_id?: number | null;
-  unit_id?: number;
+  amount_unit_id?: number | null;
   active: boolean;
 };
 
@@ -318,7 +318,7 @@ export const upsertInventoryItem = createAsyncThunk<InventoryItemRow, UpsertInve
             model: model ?? null,
             size_spec: sizeSpec ?? null,
             size_unit_id: sizeUnitId ?? null,
-            unit_id: unitId,
+            amount_unit_id: unitId,
             active,
             inventory_item_card_id: inventoryItemCardId ?? undefined
           })
@@ -332,7 +332,7 @@ export const upsertInventoryItem = createAsyncThunk<InventoryItemRow, UpsertInve
             model: model ?? null,
             size_spec: sizeSpec ?? null,
             size_unit_id: sizeUnitId ?? null,
-            unit_id: unitId,
+            amount_unit_id: unitId,
             active
           });
 

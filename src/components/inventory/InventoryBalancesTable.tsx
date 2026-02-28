@@ -24,7 +24,7 @@ export default function InventoryBalancesTable({ translate, rows, unitLabelResol
             <Column field="balance_qty" header={translate('inventory.col.balance', 'Bakiye')} sortable />
             <Column
               field="unit_code"
-              header={translate('inventory.col.unit', 'Birim')}
+              header={translate('inventory.col.amount_unit', 'Stok Birimi')}
               sortable
               body={(row: { unit_code?: string | null }) => unitLabelResolver(row.unit_code)}
             />

@@ -338,7 +338,7 @@ export default function InventoryMovementsPage() {
       createDraftLine({
         inventory_item_id: firstItem?.value ?? null,
         quantity: null,
-        amount_unit_id: firstItemRow?.unit_id ?? null
+        amount_unit_id: firstItemRow?.amount_unit_id ?? null
       })
     ]);
     setOccurredAt(new Date());
@@ -381,7 +381,7 @@ export default function InventoryMovementsPage() {
       model: row.model ?? '',
       sizeSpec: row.size_spec ?? '',
       sizeUnitId: row.size_unit_id ?? null,
-      unitId: row.unit_id ?? null,
+      unitId: row.amount_unit_id ?? null,
       active: row.active
     });
     setItemDialogOpen(true);
@@ -396,7 +396,7 @@ export default function InventoryMovementsPage() {
       createDraftLine({
         inventory_item_id: row.inventory_item_id,
         quantity: Number(row.quantity),
-        amount_unit_id: item?.unit_id ?? null
+        amount_unit_id: item?.amount_unit_id ?? null
       })
     ]);
     setOccurredAt(row.occurred_at ? new Date(row.occurred_at) : new Date());
@@ -413,7 +413,11 @@ export default function InventoryMovementsPage() {
     const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
     setEventLines((prev) => [
       ...prev,
-      createDraftLine({ inventory_item_id: firstItem?.value ?? null, amount_unit_id: firstItemRow?.unit_id ?? null, quantity: null })
+      createDraftLine({
+        inventory_item_id: firstItem?.value ?? null,
+        amount_unit_id: firstItemRow?.amount_unit_id ?? null,
+        quantity: null
+      })
     ]);
   };
 
@@ -498,10 +502,16 @@ export default function InventoryMovementsPage() {
           prev.length > 0
             ? prev.map((line, index) =>
                 index === 0
-                  ? { ...line, inventory_item_id: created.id, amount_unit_id: created.unit_id ?? line.amount_unit_id }
+                  ? { ...line, inventory_item_id: created.id, amount_unit_id: created.amount_unit_id ?? line.amount_unit_id }
                   : line
               )
-            : [createDraftLine({ inventory_item_id: created.id, amount_unit_id: created.unit_id ?? null, quantity: null })]
+            : [
+                createDraftLine({
+                  inventory_item_id: created.id,
+                  amount_unit_id: created.amount_unit_id ?? null,
+                  quantity: null
+                })
+              ]
         );
         setItemDialogOpen(false);
       } else {
@@ -603,7 +613,7 @@ export default function InventoryMovementsPage() {
 
   const onLineItemChange = useCallback((lineId: string, itemId: number | null) => {
     const nextItem = itemId ? itemById.get(itemId) : undefined;
-    updateLine(lineId, { inventory_item_id: itemId, amount_unit_id: nextItem?.unit_id ?? null });
+    updateLine(lineId, { inventory_item_id: itemId, amount_unit_id: nextItem?.amount_unit_id ?? null });
   }, [itemById]);
 
   const onLineQuantityChange = useCallback((lineId: string, quantity: number | null) => {

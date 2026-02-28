@@ -32,7 +32,7 @@ export type ItemRow = {
   model?: string | null;
   size_spec?: string | null;
   size_unit_id?: number | null;
-  unit_id: number;
+  amount_unit_id: number;
   active: boolean;
 };
 
@@ -138,7 +138,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         model: model ?? null,
         size_spec: sizeSpec ?? null,
         size_unit_id: sizeUnitId ?? null,
-        unit_id: unitId,
+        amount_unit_id: unitId,
         active
       });
       // Mutasyon sonrasi listeyi tek kaynaktan taze tutuyoruz.
@@ -167,7 +167,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         model: model ?? null,
         size_spec: sizeSpec ?? null,
         size_unit_id: sizeUnitId ?? null,
-        unit_id: unitId,
+        amount_unit_id: unitId,
         active,
         inventory_item_card_id: itemGroupId ?? undefined
       });

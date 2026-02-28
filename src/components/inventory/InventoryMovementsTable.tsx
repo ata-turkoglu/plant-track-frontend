@@ -35,7 +35,13 @@ export default function InventoryMovementsTable({
           <Column field="from_label" header={translate('inventory.col.from', 'Nereden')} sortable filter filterPlaceholder={translate('common.search', 'Ara')} />
           <Column field="to_label" header={translate('inventory.col.to', 'Nereye')} sortable filter filterPlaceholder={translate('common.search', 'Ara')} />
           <Column field="quantity" header={translate('inventory.col.qty', 'Miktar')} sortable style={{ width: '8rem' }} />
-          <Column field="uom" header={translate('inventory.col.unit', 'Birim')} sortable filter filterPlaceholder={translate('common.search', 'Ara')} />
+          <Column
+            field="uom"
+            header={translate('inventory.col.amount_unit', 'Stok Birimi')}
+            sortable
+            filter
+            filterPlaceholder={translate('common.search', 'Ara')}
+          />
           <Column header={translate('inventory.col.date', 'Tarih')} body={occurredAtBody} sortField="occurred_at" sortable />
           <Column header="" body={actionsBody} />
         </DataTable>
