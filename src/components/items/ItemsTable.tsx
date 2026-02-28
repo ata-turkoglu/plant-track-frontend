@@ -10,9 +10,9 @@ import NoteTooltipIcon, { NoteTooltipBinder } from '../common/NoteTooltipIcon';
 export type ItemTableRow = {
   id: number;
   warehouse_type_id?: number;
-  item_group_id?: number;
-  item_group_code?: string | null;
-  item_group_name?: string | null;
+  inventory_item_card_id?: number;
+  inventory_item_card_code?: string | null;
+  inventory_item_card_name?: string | null;
   code: string;
   name: string;
   description?: string | null;

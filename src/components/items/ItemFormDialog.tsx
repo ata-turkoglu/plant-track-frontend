@@ -9,7 +9,7 @@ import AppDialog from '../common/AppDialog';
 
 export type ItemFormDraft = {
   warehouseTypeId: number | null;
-  itemGroupId: number | null;
+  inventoryItemCardId: number | null;
   code: string;
   name: string;
   description: string;
@@ -22,7 +22,7 @@ export type ItemFormDraft = {
 };
 
 type Option = { label: string; value: number };
-type ItemGroupOption = {
+type InventoryItemCardOption = {
   label: string;
   value: number;
   amount_unit_id: number;
@@ -37,8 +37,8 @@ type ItemFormDialogProps = {
   onDraftChange: (next: ItemFormDraft) => void;
   warehouseTypeOptions: Option[];
   unitOptions: Option[];
-  itemGroupOptions?: ItemGroupOption[];
-  allowItemGroupEdit?: boolean;
+  inventoryItemCardOptions?: InventoryItemCardOption[];
+  allowInventoryItemCardEdit?: boolean;
   loading?: boolean;
   warehouseTypeDisabled?: boolean;
   onHide: () => void;
@@ -52,8 +52,8 @@ export default function ItemFormDialog({
   onDraftChange,
   warehouseTypeOptions,
   unitOptions,
-  itemGroupOptions = [],
-  allowItemGroupEdit = false,
+  inventoryItemCardOptions = [],
+  allowInventoryItemCardEdit = false,
   loading = false,
   warehouseTypeDisabled = false,
   onHide,
@@ -64,8 +64,8 @@ export default function ItemFormDialog({
     !draft.code.trim() ||
     !draft.name.trim() ||
     !draft.warehouseTypeId ||
-    (!draft.unitId && !allowItemGroupEdit) ||
-    (allowItemGroupEdit && !draft.itemGroupId);
+    (!draft.unitId && !allowInventoryItemCardEdit) ||
+    (allowInventoryItemCardEdit && !draft.inventoryItemCardId);
   const unitLabelById = useMemo(() => {
     const map = new Map<number, string>();
     for (const option of unitOptions) map.set(option.value, option.label);
@@ -73,11 +73,11 @@ export default function ItemFormDialog({
   }, [unitOptions]);
 
   const selectedGroup = useMemo(() => {
-    if (!allowItemGroupEdit) return null;
-    const groupId = draft.itemGroupId;
+    if (!allowInventoryItemCardEdit) return null;
+    const groupId = draft.inventoryItemCardId;
     if (!groupId) return null;
-    return itemGroupOptions.find((g) => g.value === groupId) ?? null;
-  }, [allowItemGroupEdit, draft.itemGroupId, itemGroupOptions]);
+    return inventoryItemCardOptions.find((g) => g.value === groupId) ?? null;
+  }, [allowInventoryItemCardEdit, draft.inventoryItemCardId, inventoryItemCardOptions]);
   const groupDrivenUnitLabel =
     selectedGroup && selectedGroup.amount_unit_id ? unitLabelById.get(selectedGroup.amount_unit_id) ?? '-' : '-';
   const groupDrivenSizeUnitLabel =
@@ -105,23 +105,23 @@ export default function ItemFormDialog({
           />
         </label>
 
-        {allowItemGroupEdit ? (
+        {allowInventoryItemCardEdit ? (
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">{t('materials.group', 'Grup')}</span>
+            <span className="text-sm font-medium text-slate-700">{t('materials.card', 'Malzeme Kartı')}</span>
             <Dropdown
-              value={draft.itemGroupId}
+              value={draft.inventoryItemCardId}
               onChange={(e) => {
                 const nextId = e.value ?? null;
-                const nextGroup = nextId ? itemGroupOptions.find((g) => g.value === nextId) ?? null : null;
+                const nextGroup = nextId ? inventoryItemCardOptions.find((g) => g.value === nextId) ?? null : null;
                 onDraftChange({
                   ...draft,
-                  itemGroupId: nextId,
+                  inventoryItemCardId: nextId,
                   unitId: nextGroup?.amount_unit_id ?? draft.unitId,
                   sizeSpec: (nextGroup?.size_spec ?? '').trim(),
                   sizeUnitId: nextGroup?.size_unit_id ?? null
                 });
               }}
-              options={itemGroupOptions}
+              options={inventoryItemCardOptions}
               className="w-full"
               filter
               placeholder={t('common.select', 'Sec')}
@@ -152,7 +152,7 @@ export default function ItemFormDialog({
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('inventory.col.unit', 'Birim')}</span>
-            {allowItemGroupEdit ? (
+            {allowInventoryItemCardEdit ? (
               <InputText
                 value={groupDrivenUnitLabel}
                 readOnly
@@ -185,7 +185,7 @@ export default function ItemFormDialog({
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.col.size', 'Olcu')} / Spec</span>
-            {allowItemGroupEdit ? (
+            {allowInventoryItemCardEdit ? (
               <InputText
                 value={groupDrivenSizeSpec || '-'}
                 readOnly
@@ -203,7 +203,7 @@ export default function ItemFormDialog({
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-700">{t('item.size_unit', 'Olcu Birimi')}</span>
-            {allowItemGroupEdit ? (
+            {allowInventoryItemCardEdit ? (
               <InputText
                 value={groupDrivenSizeUnitLabel}
                 readOnly

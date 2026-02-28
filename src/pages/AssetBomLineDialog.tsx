@@ -47,7 +47,7 @@ export default function AssetBomLineDialog({
     <AppDialog id="asset-bom-line" header={t('asset.bom_add', 'BOM Satiri Ekle')} visible={visible} onHide={onHide} className="w-full max-w-lg">
       <div className="grid gap-3">
         <label className="grid gap-2">
-          <span className="text-sm font-medium text-slate-700">{t('asset.bom_item_group', 'Malzeme Cinsi')}</span>
+          <span className="text-sm font-medium text-slate-700">{t('asset.bom_item_group', 'Malzeme Kartı')}</span>
           <Dropdown
             value={bomItemGroupId}
             onChange={(e) => setBomItemGroupId(e.value ?? null)}

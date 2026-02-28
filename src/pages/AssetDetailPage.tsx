@@ -55,7 +55,7 @@ type AssetTypeRow = {
   fields: AssetTypeFieldRow[];
 };
 
-type ItemGroupRow = {
+type InventoryItemCardRow = {
   id: number;
   organization_id: number;
   warehouse_type_id: number;
@@ -70,15 +70,15 @@ type ItemGroupRow = {
 
 type BomLineRow = {
   id: number;
-  item_group_id: number;
+  inventory_item_card_id: number;
   quantity: string | number;
   note: string | null;
-  item_group_code: string;
-  item_group_name: string;
-  item_group_size_spec: string | null;
-  item_group_size_unit_code: string | null;
-  item_group_size_unit_name: string | null;
-  item_group_size_unit_symbol: string | null;
+  inventory_item_card_code: string;
+  inventory_item_card_name: string;
+  inventory_item_card_size_spec: string | null;
+  inventory_item_card_size_unit_code: string | null;
+  inventory_item_card_size_unit_name: string | null;
+  inventory_item_card_size_unit_symbol: string | null;
   unit_code: string;
   unit_name: string;
   unit_symbol: string | null;
@@ -248,7 +248,7 @@ export default function AssetDetailPage() {
   const [assetTypeFields, setAssetTypeFields] = useState<AssetTypeFieldRow[]>([]);
   const [bomLines, setBomLines] = useState<BomLineRow[]>([]);
   const [events, setEvents] = useState<AssetEventRow[]>([]);
-  const [itemGroups, setItemGroups] = useState<ItemGroupRow[]>([]);
+  const [itemGroups, setItemGroups] = useState<InventoryItemCardRow[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
@@ -377,12 +377,12 @@ export default function AssetDetailPage() {
 
     Promise.all([
       loadCore(assetId),
-      api.get(`/api/organizations/${organizationId}/item-groups`, {
+      api.get(`/api/organizations/${organizationId}/inventory-item-cards`, {
         params: { active: true, warehouseTypeCode: 'SPARE_PART' }
       })
     ])
       .then(([, groupsRes]) => {
-        setItemGroups(((groupsRes.data.item_groups ?? groupsRes.data.itemGroups) ?? []) as ItemGroupRow[]);
+        setItemGroups(((groupsRes.data.inventory_item_cards ?? groupsRes.data.inventoryItemCards) ?? []) as InventoryItemCardRow[]);
       })
       .catch(() => {
         dispatch(
@@ -566,7 +566,7 @@ export default function AssetDetailPage() {
     setMutating(true);
     try {
       await api.post(`/api/organizations/${organizationId}/assets/${asset.id}/bom`, {
-        item_group_id: bomItemGroupId,
+        inventory_item_card_id: bomItemGroupId,
         quantity: bomQuantity,
         note: bomNote.trim() || null
       });
@@ -595,7 +595,7 @@ export default function AssetDetailPage() {
   const deleteBomLine = (line: BomLineRow) => {
     if (!organizationId || !asset?.id) return;
     confirmDialog({
-      message: t('asset.bom_confirm_delete', `${line.item_group_name} satırını silmek istiyor musun?`),
+      message: t('asset.bom_confirm_delete', `${line.inventory_item_card_name} satırını silmek istiyor musun?`),
       header: t('inventory.confirm.title', 'Silme Onayi'),
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger p-button-sm',
@@ -880,15 +880,15 @@ export default function AssetDetailPage() {
               </div>
 	                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white py-2">
 	                <DataTable value={bomLines} size="small" dataKey="id" emptyMessage={t('asset.bom_empty', 'BOM satiri yok.')}> 
-	                  <Column field="item_group_name" header={t('common.name', 'Isim')} />
-	                  <Column field="item_group_code" header={t('common.code', 'Kod')} style={{ width: '10rem' }} />
+	                  <Column field="inventory_item_card_name" header={t('common.name', 'Isim')} />
+	                  <Column field="inventory_item_card_code" header={t('common.code', 'Kod')} style={{ width: '10rem' }} />
 	                  <Column
 	                    header={t('materials.spec', 'Spec')}
 	                    style={{ width: '12rem' }}
 	                    body={(row: BomLineRow) => {
-	                      const spec = row.item_group_size_spec?.trim();
+	                      const spec = row.inventory_item_card_size_spec?.trim();
 	                      if (!spec) return <span>-</span>;
-	                      const rawUnit = row.item_group_size_unit_symbol ?? row.item_group_size_unit_code ?? '';
+	                      const rawUnit = row.inventory_item_card_size_unit_symbol ?? row.inventory_item_card_size_unit_code ?? '';
 	                      const unitLabel = rawUnit ? (tUnitSymbol(rawUnit, rawUnit) || rawUnit).trim() : '';
 	                      const suffix = unitLabel ? ` ${unitLabel}` : '';
 	                      return <span>{`${spec}${suffix}`}</span>;

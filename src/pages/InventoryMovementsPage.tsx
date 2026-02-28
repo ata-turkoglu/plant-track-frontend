@@ -27,7 +27,7 @@ import {
   deleteInventoryItem,
   deleteInventoryMovement,
   fetchInventoryData,
-  type ItemRow,
+  type InventoryItemRow,
   type MovementRow,
   type NodeRow,
   upsertInventoryItem,
@@ -45,7 +45,7 @@ const initialMovementFilters: DataTableFilterMeta = {
 
 const emptyItemDraft: ItemFormDraft = {
   warehouseTypeId: null,
-  itemGroupId: null,
+  inventoryItemCardId: null,
   code: '',
   name: '',
   description: '',
@@ -61,7 +61,7 @@ export default function InventoryMovementsPage() {
   const { t, tWarehouseType, tUnit, tUnitSymbol } = useI18n();
   const dispatch = useDispatch<AppDispatch>();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
-  const { units, items, itemGroups, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating } =
+  const { units, inventoryItems, inventoryItemCards, warehouseTypes, warehouses, nodes, movements, balances, loading: fetchLoading, mutating } =
     useSelector((s: RootState) => s.inventory);
   const refTooltip = useRef<Tooltip>(null);
   const loading = fetchLoading || mutating;
@@ -100,12 +100,14 @@ export default function InventoryMovementsPage() {
     dispatch(fetchInventoryData(organizationId));
   }, [dispatch, organizationId]);
 
+  const orderedWarehouseTypes = useMemo(() => [...warehouseTypes].reverse(), [warehouseTypes]);
+
   useEffect(() => {
-    if (warehouseTypes.length === 0) return;
-    if (activeWarehouseTypeId === null || !warehouseTypes.some((t) => t.id === activeWarehouseTypeId)) {
-      setActiveWarehouseTypeId(warehouseTypes[0].id);
+    if (orderedWarehouseTypes.length === 0) return;
+    if (activeWarehouseTypeId === null || !orderedWarehouseTypes.some((t) => t.id === activeWarehouseTypeId)) {
+      setActiveWarehouseTypeId(orderedWarehouseTypes[0].id);
     }
-  }, [warehouseTypes, activeWarehouseTypeId]);
+  }, [orderedWarehouseTypes, activeWarehouseTypeId]);
 
   useEffect(() => {
     if (!entryOpen) return;
@@ -245,8 +247,8 @@ export default function InventoryMovementsPage() {
         movement_type: m.movement_type,
         from_label: m.from_node_name ?? m.from_ref ?? '',
         to_label: m.to_node_name ?? m.to_ref ?? '',
-        item_code: m.item_code ?? '',
-        item_name: m.item_name ?? '',
+        item_code: m.inventory_item_code ?? '',
+        item_name: m.inventory_item_name ?? '',
         quantity: m.quantity,
         uom: unitLabelByCode.get(String(m.uom ?? '').toLowerCase()) ?? m.uom,
         occurred_at: m.occurred_at,
@@ -257,11 +259,11 @@ export default function InventoryMovementsPage() {
 
   const itemOptions = useMemo(
     () =>
-      items
+      inventoryItems
         .filter((i) => i.active)
         .filter((i) => (activeWarehouseTypeId ? i.warehouse_type_id === activeWarehouseTypeId : true))
         .map((i) => ({ label: `${i.code} - ${i.name}`, value: i.id })),
-    [items, activeWarehouseTypeId]
+    [inventoryItems, activeWarehouseTypeId]
   );
 
   const unitLabelById = useMemo(() => {
@@ -271,10 +273,10 @@ export default function InventoryMovementsPage() {
   }, [units]);
 
   const itemById = useMemo(() => {
-    const map = new Map<number, ItemRow>();
-    for (const i of items) map.set(i.id, i);
+    const map = new Map<number, InventoryItemRow>();
+    for (const i of inventoryItems) map.set(i.id, i);
     return map;
-  }, [items]);
+  }, [inventoryItems]);
 
   const movementById = useMemo(() => {
     const map = new Map<number, MovementRow>();
@@ -295,17 +297,17 @@ export default function InventoryMovementsPage() {
     [warehouseTypes, tWarehouseType]
   );
 
-  const allowItemGroupEdit = useMemo(() => {
+  const allowInventoryItemCardEdit = useMemo(() => {
     const wtId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
     if (!wtId) return false;
     const wtCode = warehouseTypes.find((x) => x.id === wtId)?.code?.toUpperCase() ?? '';
     return wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
   }, [activeWarehouseTypeId, itemDraft.warehouseTypeId, warehouseTypes]);
 
-  const itemGroupOptions = useMemo(() => {
+  const inventoryItemCardOptions = useMemo(() => {
     const targetWarehouseTypeId = itemDraft.warehouseTypeId ?? activeWarehouseTypeId;
-    return itemGroups
-      .filter((g) => g.active || g.id === itemDraft.itemGroupId)
+    return inventoryItemCards
+      .filter((g) => g.active || g.id === itemDraft.inventoryItemCardId)
       .filter((g) => (targetWarehouseTypeId ? g.warehouse_type_id === targetWarehouseTypeId : true))
       .map((g) => ({
         label: `${g.code} - ${g.name}${g.type_spec?.trim() ? ` · ${g.type_spec.trim()}` : ''}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
@@ -314,11 +316,11 @@ export default function InventoryMovementsPage() {
         size_spec: g.size_spec,
         size_unit_id: g.size_unit_id
       }));
-  }, [activeWarehouseTypeId, itemDraft.itemGroupId, itemDraft.warehouseTypeId, itemGroups]);
+  }, [activeWarehouseTypeId, itemDraft.inventoryItemCardId, itemDraft.warehouseTypeId, inventoryItemCards]);
 
   const createDraftLine = useCallback((seed?: Partial<EventLineDraft>): EventLineDraft => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    item_id: seed?.item_id ?? null,
+    inventory_item_id: seed?.inventory_item_id ?? null,
     quantity: seed?.quantity ?? null,
     amount_unit_id: seed?.amount_unit_id ?? null
   }), []);
@@ -334,7 +336,7 @@ export default function InventoryMovementsPage() {
     const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
     setEventLines([
       createDraftLine({
-        item_id: firstItem?.value ?? null,
+        inventory_item_id: firstItem?.value ?? null,
         quantity: null,
         amount_unit_id: firstItemRow?.unit_id ?? null
       })
@@ -348,30 +350,30 @@ export default function InventoryMovementsPage() {
     setItemFormMode('create');
     setEditingItemId(null);
     const wtCode = warehouseTypes.find((x) => x.id === activeWarehouseTypeId)?.code?.toUpperCase() ?? '';
-    const needsGroup = wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
-    const firstGroup =
-      needsGroup && activeWarehouseTypeId
-        ? itemGroups
+    const needsCard = wtCode === 'SPARE_PART' || wtCode === 'RAW_MATERIAL';
+    const firstCard =
+      needsCard && activeWarehouseTypeId
+        ? inventoryItemCards
             .filter((g) => g.active)
             .find((g) => g.warehouse_type_id === activeWarehouseTypeId) ?? null
         : null;
     setItemDraft({
       ...emptyItemDraft,
       warehouseTypeId: activeWarehouseTypeId,
-      itemGroupId: needsGroup ? firstGroup?.id ?? null : null,
-      unitId: needsGroup ? firstGroup?.amount_unit_id ?? null : unitOptions[0]?.value ?? null,
-      sizeSpec: needsGroup ? firstGroup?.size_spec ?? '' : '',
-      sizeUnitId: needsGroup ? firstGroup?.size_unit_id ?? null : null
+      inventoryItemCardId: needsCard ? firstCard?.id ?? null : null,
+      unitId: needsCard ? firstCard?.amount_unit_id ?? null : unitOptions[0]?.value ?? null,
+      sizeSpec: needsCard ? firstCard?.size_spec ?? '' : '',
+      sizeUnitId: needsCard ? firstCard?.size_unit_id ?? null : null
     });
     setItemDialogOpen(true);
-  }, [activeWarehouseTypeId, emptyItemDraft, itemGroups, unitOptions, warehouseTypes]);
+  }, [activeWarehouseTypeId, emptyItemDraft, inventoryItemCards, unitOptions, warehouseTypes]);
 
   const openEditItem = useCallback((row: ItemTableRow) => {
     setItemFormMode('edit');
     setEditingItemId(row.id);
     setItemDraft({
       warehouseTypeId: row.warehouse_type_id ?? activeWarehouseTypeId,
-      itemGroupId: row.item_group_id ?? null,
+      inventoryItemCardId: row.inventory_item_card_id ?? null,
       code: row.code,
       name: row.name,
       description: row.description ?? '',
@@ -389,10 +391,10 @@ export default function InventoryMovementsPage() {
     setEditingMovementId(row.id);
     setFromNodeId(row.from_node_id ?? null);
     setToNodeId(row.to_node_id ?? null);
-    const item = itemById.get(row.item_id);
+    const item = itemById.get(row.inventory_item_id);
     setEventLines([
       createDraftLine({
-        item_id: row.item_id,
+        inventory_item_id: row.inventory_item_id,
         quantity: Number(row.quantity),
         amount_unit_id: item?.unit_id ?? null
       })
@@ -411,7 +413,7 @@ export default function InventoryMovementsPage() {
     const firstItemRow = firstItem?.value ? itemById.get(firstItem.value) : undefined;
     setEventLines((prev) => [
       ...prev,
-      createDraftLine({ item_id: firstItem?.value ?? null, amount_unit_id: firstItemRow?.unit_id ?? null, quantity: null })
+      createDraftLine({ inventory_item_id: firstItem?.value ?? null, amount_unit_id: firstItemRow?.unit_id ?? null, quantity: null })
     ]);
   };
 
@@ -424,9 +426,9 @@ export default function InventoryMovementsPage() {
     if (eventLines.length === 0) return;
 
     const linesPayload = eventLines
-      .filter((line) => line.item_id && line.quantity && line.amount_unit_id)
+      .filter((line) => line.inventory_item_id && line.quantity && line.amount_unit_id)
       .map((line) => ({
-        item_id: Number(line.item_id),
+        inventory_item_id: Number(line.inventory_item_id),
         quantity: Number(line.quantity),
         amount_unit_id: Number(line.amount_unit_id),
         from_node_id: fromNodeId,
@@ -473,7 +475,7 @@ export default function InventoryMovementsPage() {
     const code = itemDraft.code.trim();
     const name = itemDraft.name.trim();
     if (!code || !name || !itemDraft.unitId) return;
-    if (allowItemGroupEdit && !itemDraft.itemGroupId) return;
+    if (allowInventoryItemCardEdit && !itemDraft.inventoryItemCardId) return;
 
     try {
       if (itemFormMode === 'create') {
@@ -481,7 +483,7 @@ export default function InventoryMovementsPage() {
           upsertInventoryItem({
             organizationId,
             warehouseTypeId,
-            itemGroupId: itemDraft.itemGroupId,
+            inventoryItemCardId: itemDraft.inventoryItemCardId,
             code,
             name,
             brand: itemDraft.brand.trim() || null,
@@ -496,10 +498,10 @@ export default function InventoryMovementsPage() {
           prev.length > 0
             ? prev.map((line, index) =>
                 index === 0
-                  ? { ...line, item_id: created.id, amount_unit_id: created.unit_id ?? line.amount_unit_id }
+                  ? { ...line, inventory_item_id: created.id, amount_unit_id: created.unit_id ?? line.amount_unit_id }
                   : line
               )
-            : [createDraftLine({ item_id: created.id, amount_unit_id: created.unit_id ?? null, quantity: null })]
+            : [createDraftLine({ inventory_item_id: created.id, amount_unit_id: created.unit_id ?? null, quantity: null })]
         );
         setItemDialogOpen(false);
       } else {
@@ -507,7 +509,7 @@ export default function InventoryMovementsPage() {
         await dispatch(
           upsertInventoryItem({
             organizationId,
-            itemId: editingItemId,
+            inventoryItemId: editingItemId,
             warehouseTypeId,
             code,
             name,
@@ -517,7 +519,7 @@ export default function InventoryMovementsPage() {
             sizeUnitId: itemDraft.sizeUnitId ?? null,
             unitId: itemDraft.unitId,
             active: itemDraft.active,
-            itemGroupId: itemDraft.itemGroupId
+            inventoryItemCardId: itemDraft.inventoryItemCardId
           })
         ).unwrap();
         setItemDialogOpen(false);
@@ -601,7 +603,7 @@ export default function InventoryMovementsPage() {
 
   const onLineItemChange = useCallback((lineId: string, itemId: number | null) => {
     const nextItem = itemId ? itemById.get(itemId) : undefined;
-    updateLine(lineId, { item_id: itemId, amount_unit_id: nextItem?.unit_id ?? null });
+    updateLine(lineId, { inventory_item_id: itemId, amount_unit_id: nextItem?.unit_id ?? null });
   }, [itemById]);
 
   const onLineQuantityChange = useCallback((lineId: string, quantity: number | null) => {
@@ -613,7 +615,7 @@ export default function InventoryMovementsPage() {
     !toNodeId ||
     fromNodeId === toNodeId ||
     eventLines.length === 0 ||
-    eventLines.some((line) => !line.item_id || !line.quantity || !line.amount_unit_id);
+    eventLines.some((line) => !line.inventory_item_id || !line.quantity || !line.amount_unit_id);
 
   const itemActionsBody = useCallback((row: ItemTableRow) => (
     <div className="flex items-center justify-end gap-1">
@@ -638,7 +640,7 @@ export default function InventoryMovementsPage() {
                 await dispatch(
                   deleteInventoryItem({
                     organizationId,
-                    itemId: row.id
+                    inventoryItemId: row.id
                   })
                 ).unwrap();
               } catch {
@@ -656,7 +658,7 @@ export default function InventoryMovementsPage() {
     return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;
   }
 
-  const tabItems: MenuItem[] = warehouseTypes.map((wt) => ({
+  const tabItems: MenuItem[] = orderedWarehouseTypes.map((wt) => ({
     label: tWarehouseType(wt.code, wt.name),
     command: () => setActiveWarehouseTypeId(wt.id),
     template: (item, options) => {
@@ -687,12 +689,12 @@ export default function InventoryMovementsPage() {
     { label: t('inventory.tab.stock', 'Stok'), icon: 'pi pi-table', command: () => setContentTab('balances') }
   ];
 
-  const activeIndex = Math.max(0, warehouseTypes.findIndex((t) => t.id === activeWarehouseTypeId));
+  const activeIndex = Math.max(0, orderedWarehouseTypes.findIndex((t) => t.id === activeWarehouseTypeId));
   const contentActiveIndex = contentTab === 'movements' ? 0 : 1;
   const canCreateMovement = activeWarehouseTypeId !== null && groupedNodeOptions.some((group) => group.items.length > 0);
 
   const activeWarehouseTypeName = activeWarehouseTypeId ? warehouseTypeNameById.get(activeWarehouseTypeId) ?? '-' : '-';
-  const itemsForActiveType = activeWarehouseTypeId ? items.filter((i) => i.warehouse_type_id === activeWarehouseTypeId) : [];
+  const itemsForActiveType = activeWarehouseTypeId ? inventoryItems.filter((i) => i.warehouse_type_id === activeWarehouseTypeId) : [];
   const itemsList = itemsSearch.trim()
     ? itemsForActiveType.filter((i) => {
         const q = itemsSearch.trim().toLowerCase();
@@ -791,8 +793,8 @@ export default function InventoryMovementsPage() {
         draft={itemDraft}
         onDraftChange={setItemDraft}
         warehouseTypeOptions={warehouseTypeOptions}
-        itemGroupOptions={allowItemGroupEdit ? itemGroupOptions : []}
-        allowItemGroupEdit={allowItemGroupEdit}
+        inventoryItemCardOptions={allowInventoryItemCardEdit ? inventoryItemCardOptions : []}
+        allowInventoryItemCardEdit={allowInventoryItemCardEdit}
         unitOptions={unitOptions}
         loading={loading}
         warehouseTypeDisabled={itemFormMode === 'edit'}

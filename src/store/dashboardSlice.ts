@@ -22,9 +22,9 @@ type NodeRow = {
 };
 
 type BalanceRow = {
-  item_id?: number;
-  item_code?: string;
-  item_name?: string;
+  inventory_item_id?: number;
+  inventory_item_code?: string;
+  inventory_item_name?: string;
   balance_qty: string | number;
 };
 
@@ -117,13 +117,13 @@ export const fetchProductionDailyStock = createAsyncThunk<
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
         api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE`),
-        api.get(`/api/organizations/${organizationId}/items`)
+        api.get(`/api/organizations/${organizationId}/inventory-items`)
       ]);
 
       const warehouseTypes: WarehouseTypeRow[] = warehouseTypesRes.data.warehouse_types ?? [];
       const warehouses: WarehouseRow[] = warehousesRes.data.warehouses ?? [];
       const nodes: NodeRow[] = nodesRes.data.nodes ?? [];
-      const items: ItemRow[] = itemsRes.data.items ?? [];
+      const items: ItemRow[] = itemsRes.data.inventory_items ?? [];
 
       // Üretim depolarini kod/isim anahtar kelimeleriyle seciyoruz.
       const productionKeywords = ['production', 'üretim', 'üretim', 'finished', 'mamul', 'product', 'finished_good'];
@@ -207,7 +207,7 @@ export const fetchProductionDailyStock = createAsyncThunk<
         for (const row of dayRows) {
           const qty = toNumber(row.balance_qty);
           total += qty;
-          const itemLabel = row.item_name ?? row.item_code ?? 'Bilinmeyen Ürün';
+          const itemLabel = row.inventory_item_name ?? row.inventory_item_code ?? 'Bilinmeyen Ürün';
           itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
         }
         dailyItemMaps.push(itemMap);
@@ -249,13 +249,13 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
         api.get(`/api/organizations/${organizationId}/nodes?types=WAREHOUSE`),
-        api.get(`/api/organizations/${organizationId}/items`)
+        api.get(`/api/organizations/${organizationId}/inventory-items`)
       ]);
 
       const warehouseTypes: WarehouseTypeRow[] = warehouseTypesRes.data.warehouse_types ?? [];
       const warehouses: WarehouseRow[] = warehousesRes.data.warehouses ?? [];
       const nodes: NodeRow[] = nodesRes.data.nodes ?? [];
-      const items: ItemRow[] = itemsRes.data.items ?? [];
+      const items: ItemRow[] = itemsRes.data.inventory_items ?? [];
 
       const rawMaterialKeywords = ['raw', 'raw_material', 'hammadde', 'ham madde'];
       const rawMaterialTypeIds = new Set(
@@ -338,7 +338,7 @@ export const fetchRawMaterialDailyStock = createAsyncThunk<
         for (const row of dayRows) {
           const qty = toNumber(row.balance_qty);
           total += qty;
-          const itemLabel = row.item_name ?? row.item_code ?? 'Bilinmeyen Ürün';
+          const itemLabel = row.inventory_item_name ?? row.inventory_item_code ?? 'Bilinmeyen Ürün';
           itemMap.set(itemLabel, (itemMap.get(itemLabel) ?? 0) + qty);
         }
         dailyItemMaps.push(itemMap);

@@ -83,7 +83,7 @@ export default function App() {
               <Route index element={<Navigate to="/setup/organization" replace />} />
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
-              <Route path="item-groups" element={<ItemGroupsPage />} />
+              <Route path="inventory-item-cards" element={<ItemGroupsPage />} />
               <Route path="asset-types" element={<AssetTypesPage />} />
               <Route path="translations" element={<TranslationsPage />} />
               <Route path="units" element={<UnitsPage />} />

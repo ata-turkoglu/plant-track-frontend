@@ -22,9 +22,9 @@ export type ItemRow = {
   id: number;
   organization_id: number;
   warehouse_type_id: number;
-  item_group_id?: number;
-  item_group_code?: string | null;
-  item_group_name?: string | null;
+  inventory_item_card_id?: number;
+  inventory_item_card_code?: string | null;
+  inventory_item_card_name?: string | null;
   code: string;
   name: string;
   description?: string | null;
@@ -102,15 +102,15 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
       const [warehouseTypesRes, unitsRes, itemsRes, itemGroupsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/units`),
-        api.get(`/api/organizations/${organizationId}/items`),
-        api.get(`/api/organizations/${organizationId}/item-groups`)
+        api.get(`/api/organizations/${organizationId}/inventory-items`),
+        api.get(`/api/organizations/${organizationId}/inventory-item-cards`)
       ]);
 
       return {
         warehouseTypes: warehouseTypesRes.data.warehouse_types ?? [],
         units: unitsRes.data.units ?? [],
-        items: itemsRes.data.items ?? [],
-        itemGroups: itemGroupsRes.data.item_groups ?? []
+        items: itemsRes.data.inventory_items ?? [],
+        itemGroups: itemGroupsRes.data.inventory_item_cards ?? []
       };
     } catch {
       return thunkApi.rejectWithValue('Malzemeler yüklenemedi.');
@@ -128,9 +128,9 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       return thunkApi.rejectWithValue('Kaydetme başarısız. Depo tipi seçilmedi.');
     }
     try {
-      await api.post(`/api/organizations/${organizationId}/items`, {
+      await api.post(`/api/organizations/${organizationId}/inventory-items`, {
         warehouse_type_id: warehouseTypeId,
-        item_group_id: itemGroupId ?? undefined,
+        inventory_item_card_id: itemGroupId ?? undefined,
         code,
         name,
         description: description ?? null,
@@ -159,7 +159,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
     try {
-      await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
+      await api.put(`/api/organizations/${organizationId}/inventory-items/${itemId}`, {
         code,
         name,
         description: description ?? null,
@@ -169,7 +169,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         size_unit_id: sizeUnitId ?? null,
         unit_id: unitId,
         active,
-        item_group_id: itemGroupId ?? undefined
+        inventory_item_card_id: itemGroupId ?? undefined
       });
       // Sayfada lokal patch yerine server truth yeniden cekiliyor.
       await thunkApi.dispatch(fetchMaterialsData(organizationId));
@@ -185,7 +185,7 @@ export const deleteMaterialItem = createAsyncThunk<
   { rejectValue: string }
 >('materials/deleteItem', async ({ organizationId, itemId }, thunkApi) => {
   try {
-    await api.delete(`/api/organizations/${organizationId}/items/${itemId}`);
+    await api.delete(`/api/organizations/${organizationId}/inventory-items/${itemId}`);
     // Silme sonrasi tablo tutarliligi icin yeniden fetch.
     await thunkApi.dispatch(fetchMaterialsData(organizationId));
   } catch {

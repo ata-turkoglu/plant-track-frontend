@@ -16,7 +16,7 @@ export type GroupedNodeOption = {
 
 export type EventLineDraft = {
   id: string;
-  item_id: number | null;
+  inventory_item_id: number | null;
   quantity: number | null;
   amount_unit_id: number | null;
 };

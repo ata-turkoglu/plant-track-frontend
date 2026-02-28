@@ -22,9 +22,9 @@ export default function SetupLayout() {
         command: () => navigate('/setup/warehouses')
       },
       {
-        label: t('setup.tab.item_groups', 'Malzeme Gruplari'),
+        label: t('setup.tab.item_groups', 'Malzeme Kartları'),
         icon: 'pi pi-clone',
-        command: () => navigate('/setup/item-groups')
+        command: () => navigate('/setup/inventory-item-cards')
       },
       {
         label: t('setup.tab.asset_types', 'Asset Types'),
@@ -48,7 +48,7 @@ export default function SetupLayout() {
   const activeIndex = useMemo(() => {
     if (location.pathname.startsWith('/setup/organization')) return 0;
     if (location.pathname.startsWith('/setup/warehouses')) return 1;
-    if (location.pathname.startsWith('/setup/item-groups')) return 2;
+    if (location.pathname.startsWith('/setup/inventory-item-cards')) return 2;
     if (location.pathname.startsWith('/setup/asset-types')) return 3;
     if (location.pathname.startsWith('/setup/translations')) return 4;
     if (location.pathname.startsWith('/setup/units')) return 5;

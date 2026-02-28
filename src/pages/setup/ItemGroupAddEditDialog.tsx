@@ -62,7 +62,7 @@ export default function ItemGroupAddEditDialog({
   return (
     <AppDialog
       id="setup-item-group-add-edit"
-      header={editing ? t('setup.item_groups.edit', 'Malzeme Grubu Duzenle') : t('setup.item_groups.new', 'Yeni Malzeme Grubu')}
+      header={editing ? t('setup.item_groups.edit', 'Malzeme Kartı Duzenle') : t('setup.item_groups.new', 'Yeni Malzeme Kartı')}
       visible={visible}
       onHide={onHide}
       className="w-full max-w-2xl"

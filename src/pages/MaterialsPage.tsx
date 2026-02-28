@@ -25,7 +25,7 @@ import {
 
 const emptyDraft: ItemFormDraft = {
   warehouseTypeId: null,
-  itemGroupId: null,
+  inventoryItemCardId: null,
   code: '',
   name: '',
   description: '',
@@ -148,7 +148,7 @@ function MaterialsPageImpl() {
   const itemGroupOptions = useMemo(() => {
     const targetWarehouseTypeId = draft.warehouseTypeId ?? activeWarehouseTypeId;
     return itemGroups
-      .filter((g) => g.active || g.id === draft.itemGroupId)
+      .filter((g) => g.active || g.id === draft.inventoryItemCardId)
       .filter((g) => (targetWarehouseTypeId ? g.warehouse_type_id === targetWarehouseTypeId : true))
       .map((g) => ({
         label: `${g.code} - ${g.name}${g.type_spec?.trim() ? ` · ${g.type_spec.trim()}` : ''}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
@@ -157,7 +157,7 @@ function MaterialsPageImpl() {
         size_spec: g.size_spec,
         size_unit_id: g.size_unit_id
       }));
-  }, [activeWarehouseTypeId, draft.itemGroupId, draft.warehouseTypeId, itemGroups]);
+  }, [activeWarehouseTypeId, draft.inventoryItemCardId, draft.warehouseTypeId, itemGroups]);
 
   const openCreate = useCallback(() => {
     setMode('create');
@@ -175,7 +175,7 @@ function MaterialsPageImpl() {
     setDraft({
       ...emptyDraft,
       warehouseTypeId: nextWarehouseTypeId,
-      itemGroupId: needsGroup ? firstGroup?.id ?? null : null,
+      inventoryItemCardId: needsGroup ? firstGroup?.id ?? null : null,
       unitId: needsGroup ? firstGroup?.amount_unit_id ?? null : unitOptions[0]?.value ?? null,
       sizeSpec: needsGroup ? firstGroup?.size_spec ?? '' : '',
       sizeUnitId: needsGroup ? firstGroup?.size_unit_id ?? null : null
@@ -188,7 +188,7 @@ function MaterialsPageImpl() {
     setEditingId(row.id);
     setDraft({
       warehouseTypeId: row.warehouse_type_id ?? activeWarehouseTypeId,
-      itemGroupId: row.item_group_id ?? null,
+      inventoryItemCardId: row.inventory_item_card_id ?? null,
       code: row.code,
       name: row.name,
       description: row.description ?? '',
@@ -204,7 +204,7 @@ function MaterialsPageImpl() {
 
   const submit = async () => {
     if (!organizationId || !draft.warehouseTypeId) return;
-    if (allowItemGroupEdit && !draft.itemGroupId) return;
+    if (allowItemGroupEdit && !draft.inventoryItemCardId) return;
     if (!draft.unitId) return;
 
     const code = draft.code.trim();
@@ -226,7 +226,7 @@ function MaterialsPageImpl() {
             sizeUnitId: draft.sizeUnitId ?? null,
             unitId: draft.unitId,
             active: draft.active,
-            itemGroupId: draft.itemGroupId
+            itemGroupId: draft.inventoryItemCardId
           })
         ).unwrap();
       } else {
@@ -234,7 +234,7 @@ function MaterialsPageImpl() {
           createMaterialItem({
             organizationId,
             warehouseTypeId: draft.warehouseTypeId,
-            itemGroupId: draft.itemGroupId,
+            itemGroupId: draft.inventoryItemCardId,
             code,
             name,
             description: draft.description.trim() || null,
@@ -340,8 +340,8 @@ function MaterialsPageImpl() {
         draft={draft}
         onDraftChange={setDraft}
         warehouseTypeOptions={warehouseTypeOptions}
-        itemGroupOptions={allowItemGroupEdit ? itemGroupOptions : []}
-        allowItemGroupEdit={allowItemGroupEdit}
+        inventoryItemCardOptions={allowItemGroupEdit ? itemGroupOptions : []}
+        allowInventoryItemCardEdit={allowItemGroupEdit}
         unitOptions={unitOptions}
         loading={mutating}
         warehouseTypeDisabled={mode === 'edit'}

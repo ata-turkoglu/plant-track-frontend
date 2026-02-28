@@ -12,13 +12,13 @@ export type UnitRow = {
   active: boolean;
 };
 
-export type ItemRow = {
+export type InventoryItemRow = {
   id: number;
   organization_id: number;
   warehouse_type_id?: number;
-  item_group_id?: number;
-  item_group_code?: string | null;
-  item_group_name?: string | null;
+  inventory_item_card_id?: number;
+  inventory_item_card_code?: string | null;
+  inventory_item_card_name?: string | null;
   code: string;
   name: string;
   description?: string | null;
@@ -30,7 +30,7 @@ export type ItemRow = {
   active: boolean;
 };
 
-export type ItemGroupRow = {
+export type InventoryItemCardRow = {
   id: number;
   organization_id: number;
   warehouse_type_id: number;
@@ -90,7 +90,7 @@ export type MovementRow = {
   to_node_name?: string | null;
   warehouse_id: number;
   location_id: number | null;
-  item_id: number;
+  inventory_item_id: number;
   movement_type: string;
   quantity: string | number;
   uom: string;
@@ -98,8 +98,8 @@ export type MovementRow = {
   reference_id: string | null;
   note: string | null;
   occurred_at: string;
-  item_code?: string;
-  item_name?: string;
+  inventory_item_code?: string;
+  inventory_item_name?: string;
   location_name?: string;
 };
 
@@ -114,9 +114,9 @@ export type BalanceRow = {
   node_id: number;
   node_type: string;
   node_name: string;
-  item_id: number;
-  item_code?: string;
-  item_name?: string;
+  inventory_item_id: number;
+  inventory_item_code?: string;
+  inventory_item_name?: string;
   unit_code?: string;
   balance_qty: string | number;
 };
@@ -124,8 +124,8 @@ export type BalanceRow = {
 type InventoryState = {
   // Inventory ekraninin ihtiyac duydugu tum veri setleri.
   units: UnitRow[];
-  items: ItemRow[];
-  itemGroups: ItemGroupRow[];
+  inventoryItems: InventoryItemRow[];
+  inventoryItemCards: InventoryItemCardRow[];
   warehouseTypes: WarehouseTypeRow[];
   warehouses: WarehouseRow[];
   nodes: NodeRow[];
@@ -138,8 +138,8 @@ type InventoryState = {
 
 type InventoryBootstrapResponse = {
   units: UnitRow[];
-  items: ItemRow[];
-  itemGroups: ItemGroupRow[];
+  inventoryItems: InventoryItemRow[];
+  inventoryItemCards: InventoryItemCardRow[];
   warehouseTypes: WarehouseTypeRow[];
   warehouses: WarehouseRow[];
   nodes: NodeRow[];
@@ -154,7 +154,7 @@ type InventoryDynamicResponse = {
 };
 
 type MovementLinePayload = {
-  item_id: number;
+  inventory_item_id: number;
   quantity: number;
   amount_unit_id: number;
   from_node_id: number;
@@ -175,7 +175,7 @@ type UpsertMovementPayload = {
 
 type UpsertInventoryItemPayload = {
   organizationId: number;
-  itemId?: number;
+  inventoryItemId?: number;
   warehouseTypeId: number;
   code: string;
   name: string;
@@ -186,13 +186,13 @@ type UpsertInventoryItemPayload = {
   sizeUnitId?: number | null;
   unitId: number;
   active: boolean;
-  itemGroupId?: number | null;
+  inventoryItemCardId?: number | null;
 };
 
 const initialState: InventoryState = {
   units: [],
-  items: [],
-  itemGroups: [],
+  inventoryItems: [],
+  inventoryItemCards: [],
   warehouseTypes: [],
   warehouses: [],
   nodes: [],
@@ -223,10 +223,10 @@ export const fetchInventoryData = createAsyncThunk<InventoryBootstrapResponse, n
   'inventory/fetchData',
   async (organizationId, thunkApi) => {
     try {
-      const [unitsRes, itemsRes, itemGroupsRes, warehouseTypesRes, warehousesRes, dynamic] = await Promise.all([
+      const [unitsRes, inventoryItemsRes, inventoryItemCardsRes, warehouseTypesRes, warehousesRes, dynamic] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/units`),
-        api.get(`/api/organizations/${organizationId}/items`),
-        api.get(`/api/organizations/${organizationId}/item-groups`),
+        api.get(`/api/organizations/${organizationId}/inventory-items`),
+        api.get(`/api/organizations/${organizationId}/inventory-item-cards`),
         api.get(`/api/organizations/${organizationId}/warehouse-types`),
         api.get(`/api/organizations/${organizationId}/warehouses`),
         fetchInventoryDynamicData(organizationId)
@@ -234,8 +234,8 @@ export const fetchInventoryData = createAsyncThunk<InventoryBootstrapResponse, n
 
       return {
         units: unitsRes.data.units ?? [],
-        items: itemsRes.data.items ?? [],
-        itemGroups: itemGroupsRes.data.item_groups ?? [],
+        inventoryItems: inventoryItemsRes.data.inventory_items ?? [],
+        inventoryItemCards: inventoryItemCardsRes.data.inventory_item_cards ?? [],
         warehouseTypes: warehouseTypesRes.data.warehouse_types ?? [],
         warehouses: warehousesRes.data.warehouses ?? [],
         nodes: dynamic.nodes,
@@ -259,12 +259,12 @@ export const refreshInventoryDynamicData = createAsyncThunk<InventoryDynamicResp
   }
 );
 
-export const refreshInventoryItems = createAsyncThunk<ItemRow[], number, { rejectValue: string }>(
+export const refreshInventoryItems = createAsyncThunk<InventoryItemRow[], number, { rejectValue: string }>(
   'inventory/refreshItems',
   async (organizationId, thunkApi) => {
     try {
-      const response = await api.get(`/api/organizations/${organizationId}/items`);
-      return response.data.items ?? [];
+      const response = await api.get(`/api/organizations/${organizationId}/inventory-items`);
+      return response.data.inventory_items ?? [];
     } catch {
       return thunkApi.rejectWithValue('Ürünler yüklenemedi.');
     }
@@ -302,15 +302,15 @@ export const deleteInventoryMovement = createAsyncThunk<
   }
 });
 
-export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItemPayload, { rejectValue: string }>(
+export const upsertInventoryItem = createAsyncThunk<InventoryItemRow, UpsertInventoryItemPayload, { rejectValue: string }>(
   'inventory/upsertItem',
   async (
-    { organizationId, itemId, warehouseTypeId, code, name, description, brand, model, sizeSpec, sizeUnitId, unitId, active, itemGroupId },
+    { organizationId, inventoryItemId, warehouseTypeId, code, name, description, brand, model, sizeSpec, sizeUnitId, unitId, active, inventoryItemCardId },
     thunkApi
   ) => {
     try {
-      const response = itemId
-        ? await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
+      const response = inventoryItemId
+        ? await api.put(`/api/organizations/${organizationId}/inventory-items/${inventoryItemId}`, {
             code,
             name,
             description: description ?? null,
@@ -320,11 +320,11 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
             size_unit_id: sizeUnitId ?? null,
             unit_id: unitId,
             active,
-            item_group_id: itemGroupId ?? undefined
+            inventory_item_card_id: inventoryItemCardId ?? undefined
           })
-        : await api.post(`/api/organizations/${organizationId}/items`, {
+        : await api.post(`/api/organizations/${organizationId}/inventory-items`, {
             warehouse_type_id: warehouseTypeId,
-            item_group_id: itemGroupId ?? undefined,
+            inventory_item_card_id: inventoryItemCardId ?? undefined,
             code,
             name,
             description: description ?? null,
@@ -336,7 +336,7 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
             active
           });
 
-      const item: ItemRow = response.data.item;
+      const item: InventoryItemRow = response.data.inventory_item;
       await thunkApi.dispatch(refreshInventoryItems(organizationId));
       return item;
     } catch {
@@ -347,11 +347,11 @@ export const upsertInventoryItem = createAsyncThunk<ItemRow, UpsertInventoryItem
 
 export const deleteInventoryItem = createAsyncThunk<
   void,
-  { organizationId: number; itemId: number },
+  { organizationId: number; inventoryItemId: number },
   { rejectValue: string }
->('inventory/deleteItem', async ({ organizationId, itemId }, thunkApi) => {
+>('inventory/deleteItem', async ({ organizationId, inventoryItemId }, thunkApi) => {
   try {
-    await api.delete(`/api/organizations/${organizationId}/items/${itemId}`);
+    await api.delete(`/api/organizations/${organizationId}/inventory-items/${inventoryItemId}`);
     await thunkApi.dispatch(refreshInventoryItems(organizationId));
   } catch {
     return thunkApi.rejectWithValue('Silme başarısız.');
@@ -376,8 +376,8 @@ const inventorySlice = createSlice({
       .addCase(fetchInventoryData.fulfilled, (state, action) => {
         state.loading = false;
         state.units = action.payload.units;
-        state.items = action.payload.items;
-        state.itemGroups = action.payload.itemGroups;
+        state.inventoryItems = action.payload.inventoryItems;
+        state.inventoryItemCards = action.payload.inventoryItemCards;
         state.warehouseTypes = action.payload.warehouseTypes;
         state.warehouses = action.payload.warehouses;
         state.nodes = action.payload.nodes;
@@ -403,7 +403,7 @@ const inventorySlice = createSlice({
         state.error = action.payload ?? 'Veriler yüklenemedi.';
       })
       .addCase(refreshInventoryItems.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.inventoryItems = action.payload;
       })
       .addCase(refreshInventoryItems.rejected, (state, action) => {
         state.error = action.payload ?? 'Ürünler yüklenemedi.';

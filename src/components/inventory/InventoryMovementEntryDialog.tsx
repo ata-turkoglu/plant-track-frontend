@@ -147,7 +147,7 @@ export default function InventoryMovementEntryDialog({
               className="grid items-center gap-2 overflow-hidden rounded-lg border border-slate-200 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,10rem)_minmax(8rem,9.5rem)_2.5rem]"
             >
               <Dropdown
-                value={line.item_id}
+                value={line.inventory_item_id}
                 onChange={(e) => onLineItemChange(line.id, e.value ?? null)}
                 options={itemOptions}
                 className="w-full min-w-0"

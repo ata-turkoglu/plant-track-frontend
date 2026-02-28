@@ -139,7 +139,7 @@ export default function ItemGroupsPage() {
     try {
       const [groupsRes, unitsRes, wtsRes] = await Promise.all([
         // Hide legacy inactive rows (we treat deletion as hard delete from now on).
-        api.get(`/api/organizations/${organizationId}/item-groups`, { params: { active: true } }),
+        api.get(`/api/organizations/${organizationId}/inventory-item-cards`, { params: { active: true } }),
         api.get(`/api/organizations/${organizationId}/units`),
         api.get(`/api/organizations/${organizationId}/warehouse-types`)
       ]);
@@ -150,11 +150,11 @@ export default function ItemGroupsPage() {
       );
       const allowedWarehouseTypeIds = new Set(allowedWarehouseTypes.map((wt) => wt.id));
 
-      const allGroups = (groupsRes.data.item_groups ?? []) as ItemGroupRow[];
+      const allGroups = (groupsRes.data.inventory_item_cards ?? []) as ItemGroupRow[];
       setRows(allGroups.filter((g) => allowedWarehouseTypeIds.has(g.warehouse_type_id)));
       setWarehouseTypes(allowedWarehouseTypes);
     } catch {
-      dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Malzeme gruplari yuklenemedi.' }));
+      dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Malzeme kartları yüklenemedi.' }));
     } finally {
       setLoading(false);
     }
@@ -212,9 +212,9 @@ export default function ItemGroupsPage() {
     try {
       const isEdit = Boolean(editing);
       if (editing) {
-        await api.put(`/api/organizations/${organizationId}/item-groups/${editing.id}`, payload);
+        await api.put(`/api/organizations/${organizationId}/inventory-item-cards/${editing.id}`, payload);
       } else {
-        await api.post(`/api/organizations/${organizationId}/item-groups`, payload);
+        await api.post(`/api/organizations/${organizationId}/inventory-item-cards`, payload);
       }
 
       setDialogOpen(false);
@@ -223,7 +223,7 @@ export default function ItemGroupsPage() {
         enqueueToast({
           severity: 'success',
           summary: 'Basarili',
-          detail: isEdit ? 'Malzeme grubu guncellendi.' : 'Malzeme grubu olusturuldu.'
+          detail: isEdit ? 'Malzeme kartı güncellendi.' : 'Malzeme kartı oluşturuldu.'
         })
       );
       await fetchAll();
@@ -245,8 +245,8 @@ export default function ItemGroupsPage() {
       if (!organizationId) return;
 
       confirmDialog({
-        header: t('setup.item_groups.confirm.delete_title', 'Malzeme Grubunu Sil'),
-        message: t('setup.item_groups.confirm.delete_message', 'Bu malzeme grubunu silmek istiyor musun?'),
+        header: t('setup.item_groups.confirm.delete_title', 'Malzeme Kartını Sil'),
+        message: t('setup.item_groups.confirm.delete_message', 'Bu malzeme kartını silmek istiyor musun?'),
         icon: 'pi pi-exclamation-triangle',
         acceptLabel: t('common.delete', 'Sil'),
         rejectLabel: t('common.cancel', 'Vazgec'),
@@ -255,15 +255,15 @@ export default function ItemGroupsPage() {
         accept: async () => {
           setMutating(true);
           try {
-            await api.delete(`/api/organizations/${organizationId}/item-groups/${row.id}`);
-            dispatch(enqueueToast({ severity: 'success', summary: 'Basarili', detail: 'Malzeme grubu silindi.' }));
+            await api.delete(`/api/organizations/${organizationId}/inventory-item-cards/${row.id}`);
+            dispatch(enqueueToast({ severity: 'success', summary: 'Basarili', detail: 'Malzeme kartı silindi.' }));
             await fetchAll();
           } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 409) {
-              dispatch(enqueueToast({ severity: 'warn', summary: 'Uyari', detail: 'Malzeme grubu kullanimda, silinemez.' }));
+              dispatch(enqueueToast({ severity: 'warn', summary: 'Uyari', detail: 'Malzeme kartı kullanımda, silinemez.' }));
             } else {
-              dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Malzeme grubu silinemedi.' }));
+              dispatch(enqueueToast({ severity: 'error', summary: 'Hata', detail: 'Malzeme kartı silinemedi.' }));
             }
           } finally {
             setMutating(false);
@@ -338,7 +338,7 @@ export default function ItemGroupsPage() {
             value={search}
             onChange={updateGlobalSearch}
             placeholder={t('common.search', 'Ara')}
-            ariaLabel={t('setup.item_groups.search', 'Malzeme gruplarinda ara')}
+            ariaLabel={t('setup.item_groups.search', 'Malzeme kartlarında ara')}
             className="w-full sm:w-auto"
             inputClassName="w-full sm:w-72"
           />
@@ -358,11 +358,11 @@ export default function ItemGroupsPage() {
           />
           <div className="sm:ml-auto">
             <Button
-              label={t('setup.item_groups.new', 'Yeni Malzeme Grubu')}
+              label={t('setup.item_groups.new', 'Yeni Malzeme Kartı')}
               icon="pi pi-plus"
               size="small"
               onClick={openCreate}
-              aria-label={t('setup.item_groups.new', 'Yeni Malzeme Grubu')}
+              aria-label={t('setup.item_groups.new', 'Yeni Malzeme Kartı')}
             />
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function ItemGroupsPage() {
             value={rowsFiltered}
             loading={loading || mutating}
             size="small"
-            emptyMessage={t('setup.item_groups.empty', 'Malzeme grubu yok.')}
+            emptyMessage={t('setup.item_groups.empty', 'Malzeme kartı yok.')}
             removableSort
             sortMode="multiple"
             filters={filters}

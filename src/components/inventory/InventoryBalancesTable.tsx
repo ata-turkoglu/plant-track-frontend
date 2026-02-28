@@ -19,8 +19,8 @@ export default function InventoryBalancesTable({ translate, rows, unitLabelResol
             rows={12}
             tableStyle={{ minWidth: '44rem' }}
           >
-            <Column field="item_code" header={translate('inventory.col.code', 'Kod')} sortable />
-            <Column field="item_name" header={translate('inventory.col.item', 'Urun')} sortable />
+            <Column field="inventory_item_code" header={translate('inventory.col.code', 'Kod')} sortable />
+            <Column field="inventory_item_name" header={translate('inventory.col.item', 'Urun')} sortable />
             <Column field="balance_qty" header={translate('inventory.col.balance', 'Bakiye')} sortable />
             <Column
               field="unit_code"
