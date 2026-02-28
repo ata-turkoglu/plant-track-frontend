@@ -660,11 +660,11 @@ export default function AssetDetailPage() {
                     setImageActionsOpen((prev) => !prev);
                   }
                 }}
-                className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-slate-100 outline-none ring-offset-2 transition hover:border-sky-300 focus-visible:ring-2 focus-visible:ring-sky-300"
+                className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-slate-100 outline-none ring-offset-2 transition hover:border-sky-300 focus-visible:ring-2 focus-visible:ring-sky-300"
                 aria-label={t('asset.image_actions', 'Resim islemleri')}
               >
                 {asset.image_url ? (
-                  <img src={asset.image_url} alt={asset.name} className="h-full w-full object-cover" />
+                  <img src={asset.image_url} alt={asset.name} className="h-full w-full object-contain" />
                 ) : (
                   <div className="grid h-full w-full place-items-center text-slate-400">
                     <i className="pi pi-image text-4xl" aria-hidden />

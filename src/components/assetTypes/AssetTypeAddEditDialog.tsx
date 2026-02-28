@@ -11,6 +11,12 @@ import { useI18n } from '../../hooks/useI18n';
 import { enqueueToast } from '../../store/uiSlice';
 import type { AppDispatch } from '../../store';
 
+function getApiErrorMessage(err: unknown): string | null {
+  const maybe = err as { response?: { status?: number; data?: { message?: unknown } } };
+  const message = maybe?.response?.data?.message;
+  return typeof message === 'string' && message.trim() ? message : null;
+}
+
 export type AssetTypeRow = {
   id: number;
   organization_id: number;
@@ -286,12 +292,17 @@ export default function AssetTypeAddEditDialog({
 
       onSaved?.(saved);
       onHide();
-    } catch {
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const message = getApiErrorMessage(err);
       dispatch(
         enqueueToast({
           severity: 'error',
           summary: t('common.error', 'Hata'),
-          detail: t('asset_types.save_failed', 'Kaydetme basarisiz. Kod benzersiz olmali.')
+          detail:
+            status === 409
+              ? t('asset_types.save_failed', 'Kaydetme basarisiz. Kod benzersiz olmali.')
+              : message ?? t('asset_types.save_failed', 'Kaydetme basarisiz. Kod benzersiz olmali.')
         })
       );
     } finally {

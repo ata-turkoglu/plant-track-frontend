@@ -27,6 +27,7 @@ export type ItemRow = {
   item_group_name?: string | null;
   code: string;
   name: string;
+  description?: string | null;
   brand?: string | null;
   model?: string | null;
   size_spec?: string | null;
@@ -71,6 +72,7 @@ type UpsertMaterialPayload = {
   organizationId: number;
   code: string;
   name: string;
+  description?: string | null;
   brand?: string | null;
   model?: string | null;
   sizeSpec?: string | null;
@@ -118,7 +120,7 @@ export const fetchMaterialsData = createAsyncThunk<MaterialsFetchResponse, numbe
 export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/createItem',
   async (
-    { organizationId, warehouseTypeId, itemGroupId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active },
+    { organizationId, warehouseTypeId, itemGroupId, code, name, description, brand, model, sizeSpec, sizeUnitId, unitId, active },
     thunkApi
   ) => {
     if (!warehouseTypeId) {
@@ -130,6 +132,7 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
         item_group_id: itemGroupId ?? undefined,
         code,
         name,
+        description: description ?? null,
         brand: brand ?? null,
         model: model ?? null,
         size_spec: sizeSpec ?? null,
@@ -147,7 +150,10 @@ export const createMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
 
 export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, { rejectValue: string }>(
   'materials/updateItem',
-  async ({ organizationId, itemId, code, name, brand, model, sizeSpec, sizeUnitId, unitId, active, itemGroupId }, thunkApi) => {
+  async (
+    { organizationId, itemId, code, name, description, brand, model, sizeSpec, sizeUnitId, unitId, active, itemGroupId },
+    thunkApi
+  ) => {
     if (!itemId) {
       return thunkApi.rejectWithValue('Kaydetme başarısız. Kayıt seçilmedi.');
     }
@@ -155,6 +161,7 @@ export const updateMaterialItem = createAsyncThunk<void, UpsertMaterialPayload, 
       await api.put(`/api/organizations/${organizationId}/items/${itemId}`, {
         code,
         name,
+        description: description ?? null,
         brand: brand ?? null,
         model: model ?? null,
         size_spec: sizeSpec ?? null,

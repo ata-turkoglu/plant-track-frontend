@@ -35,7 +35,7 @@ export default function AppDialog({ className, children, ...props }: Props) {
     <Dialog {...props} className={mergedClassName} id={htmlId ?? undefined}>
       {showDevIdBadge ? (
         <div
-          className="absolute right-0 top-0 z-50 flex -translate-y-1/2 translate-x-1/2 items-center gap-1 rounded-md bg-slate-900 px-2 py-1 font-mono text-[10px] font-semibold tracking-wide text-white shadow"
+          className="absolute -right-5 -top-5 z-50 flex items-center gap-1 rounded-md bg-slate-600 px-2 py-1 font-mono text-[10px] font-semibold tracking-wide text-white shadow"
         >
           <span className="select-text">{htmlId}</span>
           <button

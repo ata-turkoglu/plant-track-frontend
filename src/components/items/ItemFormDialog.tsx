@@ -3,6 +3,7 @@ import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
 import { useI18n } from '../../hooks/useI18n';
 import AppDialog from '../common/AppDialog';
 
@@ -11,6 +12,7 @@ export type ItemFormDraft = {
   itemGroupId: number | null;
   code: string;
   name: string;
+  description: string;
   brand: string;
   model: string;
   sizeSpec: string;
@@ -131,6 +133,16 @@ export default function ItemFormDialog({
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">{t('common.name', 'Isim')}</span>
           <InputText value={draft.name} onChange={(e) => onDraftChange({ ...draft, name: e.target.value })} className="w-full" />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-slate-700">{t('common.description', 'Aciklama')}</span>
+          <InputTextarea
+            value={draft.description}
+            onChange={(e) => onDraftChange({ ...draft, description: e.target.value })}
+            className="w-full"
+            rows={3}
+          />
         </label>
 
         <div className="grid gap-2 sm:grid-cols-2">

@@ -14,6 +14,7 @@ export type ItemTableRow = {
   item_group_name?: string | null;
   code: string;
   name: string;
+  description?: string | null;
   brand?: string | null;
   model?: string | null;
   size_spec?: string | null;
@@ -96,6 +97,20 @@ export default function ItemsTable({
         filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
         style={{ width: '10rem' }}
         body={(row: ItemTableRow) => row.brand ?? '-'}
+      />
+      <Column
+        field="description"
+        header={t('common.description', 'Aciklama')}
+        sortable
+        filter={showFilters}
+        filterPlaceholder={showFilters ? t('common.search', 'Ara') : undefined}
+        style={{ width: '16rem' }}
+        body={(row: ItemTableRow) => {
+          const text = row.description?.trim() ?? '';
+          if (!text) return '-';
+          const short = text.length > 80 ? `${text.slice(0, 77)}...` : text;
+          return <span title={text}>{short}</span>;
+        }}
       />
       <Column
         field="model"

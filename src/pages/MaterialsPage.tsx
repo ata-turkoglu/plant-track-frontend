@@ -28,6 +28,7 @@ const emptyDraft: ItemFormDraft = {
   itemGroupId: null,
   code: '',
   name: '',
+  description: '',
   brand: '',
   model: '',
   sizeSpec: '',
@@ -40,6 +41,7 @@ const initialMaterialFilters: DataTableFilterMeta = {
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   code: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  description: { value: null, matchMode: FilterMatchMode.CONTAINS },
   brand: { value: null, matchMode: FilterMatchMode.CONTAINS },
   model: { value: null, matchMode: FilterMatchMode.CONTAINS },
   size_spec: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -69,16 +71,18 @@ function MaterialsPageImpl() {
     dispatch(fetchMaterialsData(organizationId));
   }, [dispatch, organizationId]);
 
+  const orderedWarehouseTypes = useMemo(() => [...warehouseTypes].reverse(), [warehouseTypes]);
+
   useEffect(() => {
     setActiveWarehouseTypeId((prev) => {
       if (prev && warehouseTypes.some((x) => x.id === prev)) return prev;
-      return warehouseTypes[0]?.id ?? null;
+      return orderedWarehouseTypes[0]?.id ?? null;
     });
-  }, [warehouseTypes]);
+  }, [orderedWarehouseTypes, warehouseTypes]);
 
   const tabItems = useMemo<MenuItem[]>(
     () =>
-      warehouseTypes.map((wt) => ({
+      orderedWarehouseTypes.map((wt) => ({
         label: tWarehouseType(wt.code, wt.name),
         command: () => setActiveWarehouseTypeId(wt.id),
         template: (item, options) => {
@@ -104,14 +108,14 @@ function MaterialsPageImpl() {
           );
         }
       })),
-    [warehouseTypes, tWarehouseType]
+    [orderedWarehouseTypes, tWarehouseType]
   );
 
   const activeTabIndex = useMemo(() => {
     if (!activeWarehouseTypeId) return 0;
-    const idx = warehouseTypes.findIndex((w) => w.id === activeWarehouseTypeId);
+    const idx = orderedWarehouseTypes.findIndex((w) => w.id === activeWarehouseTypeId);
     return idx >= 0 ? idx : 0;
-  }, [warehouseTypes, activeWarehouseTypeId]);
+  }, [orderedWarehouseTypes, activeWarehouseTypeId]);
 
   const rows = useMemo(() => {
     if (!activeWarehouseTypeId) return [];
@@ -187,6 +191,7 @@ function MaterialsPageImpl() {
       itemGroupId: row.item_group_id ?? null,
       code: row.code,
       name: row.name,
+      description: row.description ?? '',
       brand: row.brand ?? '',
       model: row.model ?? '',
       sizeSpec: row.size_spec ?? '',
@@ -214,6 +219,7 @@ function MaterialsPageImpl() {
             itemId: editingId,
             code,
             name,
+            description: draft.description.trim() || null,
             brand: draft.brand.trim() || null,
             model: draft.model.trim() || null,
             sizeSpec: draft.sizeSpec.trim() || null,
@@ -231,6 +237,7 @@ function MaterialsPageImpl() {
             itemGroupId: draft.itemGroupId,
             code,
             name,
+            description: draft.description.trim() || null,
             brand: draft.brand.trim() || null,
             model: draft.model.trim() || null,
             sizeSpec: draft.sizeSpec.trim() || null,
@@ -268,7 +275,7 @@ function MaterialsPageImpl() {
     });
   }, [dispatch, organizationId, t]);
 
-  const globalFilterFields = useMemo(() => ['code', 'name', 'brand', 'model', 'size_spec'], []);
+  const globalFilterFields = useMemo(() => ['code', 'name', 'description', 'brand', 'model', 'size_spec'], []);
 
   if (!organizationId) {
     return <Message severity="warn" text={t('common.organization_missing', 'Organization bulunamadi. Lutfen tekrar giris yap.')} className="w-full" />;

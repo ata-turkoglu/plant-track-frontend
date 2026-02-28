@@ -16,6 +16,12 @@ import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
 import AssetTypeAddEditDialog, { type AssetTypeRow } from '../../components/assetTypes/AssetTypeAddEditDialog';
 
+function getApiErrorMessage(err: unknown): string | null {
+  const maybe = err as { response?: { data?: { message?: unknown } } };
+  const message = maybe?.response?.data?.message;
+  return typeof message === 'string' && message.trim() ? message : null;
+}
+
 const initialFilters: DataTableFilterMeta = {
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   code: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -42,8 +48,15 @@ export default function AssetTypesPage() {
     try {
       const response = await api.get(`/api/organizations/${organizationId}/asset-types`);
       setRows((response.data.assetTypes ?? []) as AssetTypeRow[]);
-    } catch {
-      dispatch(enqueueToast({ severity: 'error', summary: t('common.error', 'Hata'), detail: t('asset_types.load_failed', 'Tipler yuklenemedi.') }));
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err);
+      dispatch(
+        enqueueToast({
+          severity: 'error',
+          summary: t('common.error', 'Hata'),
+          detail: message ? `${t('asset_types.load_failed', 'Tipler yuklenemedi.')}\n${message}` : t('asset_types.load_failed', 'Tipler yuklenemedi.')
+        })
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +101,14 @@ export default function AssetTypesPage() {
               dispatch(enqueueToast({ severity: 'warn', summary: t('common.warning', 'Uyari'), detail: t('asset_types.in_use', 'Tip kullanimda, silinemez.') }));
               return;
             }
-            dispatch(enqueueToast({ severity: 'error', summary: t('common.error', 'Hata'), detail: t('asset_types.delete_failed', 'Tip silinemedi.') }));
+            const message = getApiErrorMessage(err);
+            dispatch(
+              enqueueToast({
+                severity: 'error',
+                summary: t('common.error', 'Hata'),
+                detail: message ? `${t('asset_types.delete_failed', 'Tip silinemedi.')}\n${message}` : t('asset_types.delete_failed', 'Tip silinemedi.')
+              })
+            );
           } finally {
             setMutating(false);
           }

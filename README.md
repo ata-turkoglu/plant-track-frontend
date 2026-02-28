@@ -2,6 +2,11 @@
 
 This file is for AI agents working in the frontend scope (`frontend/`).
 
+## Start Here
+
+- Cross-scope agent guide: [`../README.md`](../README.md)
+- Project overview: [`../README.md`](../README.md)
+
 ## Stack
 
 - React + Vite + TypeScript
@@ -16,6 +21,25 @@ This file is for AI agents working in the frontend scope (`frontend/`).
 - `src/services/api.ts`: API client setup
 - `src/components/AppToast.tsx`: global toast renderer
 - `src/store/uiSlice.ts`: toast queue and global success/error toast rules
+
+## Local Dev
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## State Management & Data Fetching Rule (Required)
+
+Goal: minimize network requests by using Redux state efficiently.
+
+- Keep necessary data in state so pages never require a manual refresh to reflect changes.
+- When a CRUD operation succeeds, update the existing slice state in-place (insert/update/remove) instead of refetching the full list.
+- Do not fetch data on first app load if it is not needed for the initial view; fetch on-demand when a feature/page needs it.
+- Once fetched, write data to the store and reuse it from there (selectors) to avoid duplicate requests across pages.
+- Only refetch when there is a clear invalidation reason (e.g. server-side computed fields, pagination/filter changes, explicit “Refresh”).
+- Prefer predictable slice shapes for collections (`byId` + `allIds` or similar) to make updates cheap and consistent.
 
 ## Toast Message Rule (Required)
 
