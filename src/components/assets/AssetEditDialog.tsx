@@ -18,7 +18,7 @@ type AssetRow = {
   organization_id: number;
   location_id: number | null;
   parent_asset_id: number | null;
-  asset_type_id: number | null;
+  asset_card_id: number | null;
   code: string | null;
   name: string;
   image_url: string | null;
@@ -26,19 +26,19 @@ type AssetRow = {
   attributes_json: unknown | null;
 };
 
-type AssetTypeRow = {
+type AssetCardRow = {
   id: number;
   organization_id: number;
   code: string;
   name: string;
   active: boolean;
-  fields: AssetTypeFieldRow[];
+  fields: AssetCardFieldRow[];
 };
 
-type AssetTypeFieldRow = {
+type AssetCardFieldRow = {
   id: number;
   organization_id: number;
-  asset_type_id: number;
+  asset_card_id: number;
   name: string;
   label: string;
   data_type: SchemaFieldType;
@@ -193,7 +193,7 @@ function normalizeUnitId(value: unknown): number | null {
   return n;
 }
 
-function parseAssetTypeFields(fields: AssetTypeFieldRow[] | null | undefined): SchemaFieldRow[] {
+function parseAssetTypeFields(fields: AssetCardFieldRow[] | null | undefined): SchemaFieldRow[] {
   if (!Array.isArray(fields)) return [];
 
   return [...fields]
@@ -328,7 +328,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
   const { locations } = useSelector((s: RootState) => s.setup);
 
   const [assets, setAssets] = useState<AssetRow[]>([]);
-  const [assetTypes, setAssetTypes] = useState<AssetTypeRow[]>([]);
+  const [assetCards, setAssetCards] = useState<AssetCardRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
@@ -338,7 +338,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [parentAssetId, setParentAssetId] = useState<number | null>(null);
-  const [assetTypeId, setAssetTypeId] = useState<number | null>(null);
+  const [assetCardId, setAssetCardId] = useState<number | null>(null);
   const [active, setActive] = useState(true);
   const [attributes, setAttributes] = useState<AttributeEntry[]>([]);
 
@@ -349,10 +349,10 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
 
   const locationOptions = useMemo(() => locations.map((l) => ({ label: l.name, value: l.id })), [locations]);
-  const assetTypeOptions = useMemo(() => assetTypes.map((at) => ({ label: `${at.name} (${at.code})`, value: at.id })), [assetTypes]);
-  const selectedAssetType = useMemo(() => assetTypes.find((at) => at.id === assetTypeId) ?? null, [assetTypeId, assetTypes]);
+  const assetCardOptions = useMemo(() => assetCards.map((at) => ({ label: `${at.name} (${at.code})`, value: at.id })), [assetCards]);
+  const selectedAssetCard = useMemo(() => assetCards.find((at) => at.id === assetCardId) ?? null, [assetCardId, assetCards]);
 
-  const schemaRows = useMemo(() => parseAssetTypeFields(selectedAssetType?.fields ?? null), [selectedAssetType]);
+  const schemaRows = useMemo(() => parseAssetTypeFields(selectedAssetCard?.fields ?? null), [selectedAssetCard]);
   const schemaMode = schemaRows.length > 0;
   const booleanOptions = useMemo(
     () => [
@@ -404,7 +404,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
       setImageUrl(asset.image_url ?? null);
       setLocationId(asset.location_id ?? null);
       setParentAssetId(asset.parent_asset_id ?? null);
-      setAssetTypeId(asset.asset_type_id ?? null);
+      setAssetCardId(asset.asset_card_id ?? null);
       setActive(Boolean(asset.active));
       setAttributes(attributesToEntries(asset.attributes_json ?? null));
     } else {
@@ -413,7 +413,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
       setImageUrl(null);
       setLocationId(null);
       setParentAssetId(null);
-      setAssetTypeId(null);
+      setAssetCardId(null);
       setActive(true);
       setAttributes([]);
     }
@@ -466,14 +466,14 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
 
     beginLoad();
     void api
-      .get(`/api/organizations/${organizationId}/asset-types`)
+      .get(`/api/organizations/${organizationId}/asset-cards`)
       .then((assetTypesRes) => {
         if (!mounted) return;
-        setAssetTypes((assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[]);
+        setAssetCards((assetTypesRes.data.assetCards ?? []) as AssetCardRow[]);
       })
       .catch(() => {
         if (!mounted) return;
-        setAssetTypes([]);
+        setAssetCards([]);
       })
       .finally(() => {
         if (!mounted) return;
@@ -555,11 +555,11 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
     }
   };
 
-  const refreshAssetTypes = async (nextSelectedId?: number) => {
+  const refreshAssetCards = async (nextSelectedId?: number) => {
     try {
-      const response = await api.get(`/api/organizations/${organizationId}/asset-types`);
-      setAssetTypes((response.data.assetTypes ?? []) as AssetTypeRow[]);
-      if (nextSelectedId) setAssetTypeId(nextSelectedId);
+      const response = await api.get(`/api/organizations/${organizationId}/asset-cards`);
+      setAssetCards((response.data.assetCards ?? []) as AssetCardRow[]);
+      if (nextSelectedId) setAssetCardId(nextSelectedId);
     } catch {
       // ignore
     }
@@ -568,12 +568,12 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
   const submit = async () => {
     if (!name.trim()) return;
 
-    if (!assetTypeId) {
+    if (!assetCardId) {
       dispatch(
         enqueueToast({
           severity: 'warn',
           summary: t('common.validation', 'Kontrol'),
-          detail: t('asset.type_required', 'Makine tipi seçilmelidir.')
+          detail: t('asset.type_required', 'Makine kartı seçilmelidir.')
         })
       );
       return;
@@ -637,7 +637,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
         const res = await api.post(`/api/organizations/${organizationId}/assets`, {
           location_id: desiredLocationId,
           parent_asset_id: parentAssetId,
-          asset_type_id: assetTypeId,
+          asset_card_id: assetCardId,
           code: code.trim() || null,
           name: name.trim(),
           image_url: imageUrl,
@@ -661,7 +661,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
         if (!asset?.id) return;
         await api.put(`/api/organizations/${organizationId}/assets/${asset.id}`, {
           parent_asset_id: parentAssetId,
-          asset_type_id: assetTypeId,
+          asset_card_id: assetCardId,
           code: code.trim() || null,
           name: name.trim(),
           image_url: imageUrl,
@@ -810,7 +810,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
                 <label className="grid gap-1.5">
                   <span className="text-sm font-medium text-slate-700">{t('asset.type', 'Tip')}</span>
                   <div className="flex items-center gap-2">
-                    <Dropdown value={assetTypeId} onChange={(e) => setAssetTypeId(e.value)} options={assetTypeOptions} className="w-full p-inputtext-sm" />
+                    <Dropdown value={assetCardId} onChange={(e) => setAssetCardId(e.value)} options={assetCardOptions} className="w-full p-inputtext-sm" />
                     <Button
                       icon="pi pi-plus"
                       size="small"
@@ -819,14 +819,14 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
                       type="button"
                       className="h-[1.95rem] w-[1.95rem] p-0 text-slate-500 hover:text-slate-700"
                       onClick={() => setAssetTypeDialogOpen(true)}
-                      aria-label={t('asset_types.new', 'Yeni Tip')}
+                      aria-label={t('asset_types.new', 'Yeni Kart')}
                     />
                   </div>
                 </label>
               </div>
             </div>
 
-            {assetTypeId ? (
+            {assetCardId ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="grid gap-1.5">
                   <span className="text-sm font-medium text-slate-700">{t('asset.attr.brand', 'Marka')}</span>
@@ -1075,7 +1075,7 @@ export default function AssetEditDialog({ organizationId, mode, asset, visible, 
         visible={assetTypeDialogOpen}
         onHide={() => setAssetTypeDialogOpen(false)}
         editing={null}
-        onSaved={(saved) => void refreshAssetTypes((saved as { id?: number }).id)}
+        onSaved={(saved) => void refreshAssetCards((saved as { id?: number }).id)}
       />
     </>
   );

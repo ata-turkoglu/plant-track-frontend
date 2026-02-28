@@ -27,9 +27,9 @@ export default function SetupLayout() {
         command: () => navigate('/setup/inventory-item-cards')
       },
       {
-        label: t('setup.tab.asset_types', 'Asset Types'),
+        label: t('setup.tab.asset_types', 'Asset Cards'),
         icon: 'pi pi-tags',
-        command: () => navigate('/setup/asset-types')
+        command: () => navigate('/setup/asset-cards')
       },
       {
         label: t('setup.tab.translations', 'Translations'),
@@ -49,7 +49,7 @@ export default function SetupLayout() {
     if (location.pathname.startsWith('/setup/organization')) return 0;
     if (location.pathname.startsWith('/setup/warehouses')) return 1;
     if (location.pathname.startsWith('/setup/inventory-item-cards')) return 2;
-    if (location.pathname.startsWith('/setup/asset-types')) return 3;
+    if (location.pathname.startsWith('/setup/asset-cards')) return 3;
     if (location.pathname.startsWith('/setup/translations')) return 4;
     if (location.pathname.startsWith('/setup/units')) return 5;
     return 0;

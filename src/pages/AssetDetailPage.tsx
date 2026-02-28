@@ -26,7 +26,7 @@ type AssetRow = {
   organization_id: number;
   location_id: number | null;
   parent_asset_id: number | null;
-  asset_type_id: number | null;
+  asset_card_id: number | null;
   code: string | null;
   name: string;
   image_url: string | null;
@@ -314,12 +314,12 @@ export default function AssetDetailPage() {
     const [assetRes, bomRes, assetTypesRes] = await Promise.all([
       api.get(`/api/organizations/${organizationId}/assets/${targetAssetId}`),
       api.get(`/api/organizations/${organizationId}/assets/${targetAssetId}/bom`),
-      api.get(`/api/organizations/${organizationId}/asset-types`)
+      api.get(`/api/organizations/${organizationId}/asset-cards`)
     ]);
 
     const resolvedAsset = assetRes.data.asset as AssetRow;
-    const assetTypes = (assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[];
-    const selectedType = assetTypes.find((row) => row.id === resolvedAsset.asset_type_id) ?? null;
+    const assetTypes = (assetTypesRes.data.assetCards ?? []) as AssetTypeRow[];
+    const selectedType = assetTypes.find((row) => row.id === resolvedAsset.asset_card_id) ?? null;
 
     try {
       const [parentRes, childrenRes] = await Promise.all([
@@ -403,7 +403,7 @@ export default function AssetDetailPage() {
     try {
       await api.put(`/api/organizations/${organizationId}/assets/${asset.id}`, {
         parent_asset_id: asset.parent_asset_id,
-        asset_type_id: asset.asset_type_id,
+        asset_card_id: asset.asset_card_id,
         code: asset.code,
         name: asset.name,
         image_url: nextImageUrl,

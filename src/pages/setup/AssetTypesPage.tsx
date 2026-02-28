@@ -14,7 +14,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { api } from '../../services/api';
 import type { AppDispatch, RootState } from '../../store';
 import { enqueueToast } from '../../store/uiSlice';
-import AssetTypeAddEditDialog, { type AssetTypeRow } from '../../components/assetTypes/AssetTypeAddEditDialog';
+import AssetTypeAddEditDialog, { type AssetCardRow } from '../../components/assetTypes/AssetTypeAddEditDialog';
 
 function getApiErrorMessage(err: unknown): string | null {
   const maybe = err as { response?: { data?: { message?: unknown } } };
@@ -33,21 +33,21 @@ export default function AssetTypesPage() {
   const { t } = useI18n();
   const organizationId = useSelector((s: RootState) => s.user.organizationId);
 
-  const [rows, setRows] = useState<AssetTypeRow[]>([]);
+  const [rows, setRows] = useState<AssetCardRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
 
   const { search, filters, updateGlobalSearch, applyTableFilters } = useGlobalTableFilter(initialFilters);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<AssetTypeRow | null>(null);
+  const [editing, setEditing] = useState<AssetCardRow | null>(null);
 
   const fetchRows = async () => {
     if (!organizationId) return;
     setLoading(true);
     try {
-      const response = await api.get(`/api/organizations/${organizationId}/asset-types`);
-      setRows((response.data.assetTypes ?? []) as AssetTypeRow[]);
+      const response = await api.get(`/api/organizations/${organizationId}/asset-cards`);
+      setRows((response.data.assetCards ?? []) as AssetCardRow[]);
     } catch (err: unknown) {
       const message = getApiErrorMessage(err);
       dispatch(
@@ -72,13 +72,13 @@ export default function AssetTypesPage() {
     setDialogOpen(true);
   }, []);
 
-  const openEdit = useCallback((row: AssetTypeRow) => {
+  const openEdit = useCallback((row: AssetCardRow) => {
     setEditing(row);
     setDialogOpen(true);
   }, []);
 
   const onDelete = useCallback(
-    (row: AssetTypeRow) => {
+    (row: AssetCardRow) => {
       if (!organizationId) return;
 
       confirmDialog({
@@ -92,7 +92,7 @@ export default function AssetTypesPage() {
         accept: async () => {
           setMutating(true);
           try {
-            await api.delete(`/api/organizations/${organizationId}/asset-types/${row.id}`);
+            await api.delete(`/api/organizations/${organizationId}/asset-cards/${row.id}`);
             dispatch(enqueueToast({ severity: 'success', summary: t('common.success', 'Basarili'), detail: t('asset_types.deleted', 'Tip silindi.') }));
             await fetchRows();
           } catch (err: unknown) {
@@ -118,7 +118,7 @@ export default function AssetTypesPage() {
     [dispatch, organizationId, t]
   );
 
-  const actionsBody = (row: AssetTypeRow) => {
+  const actionsBody = (row: AssetCardRow) => {
     return (
       <div className="flex items-center justify-end gap-1">
         <Button icon="pi pi-pencil" size="small" text rounded onClick={() => openEdit(row)} aria-label={t('inventory.action.edit', 'Duzenle')} />
@@ -127,7 +127,7 @@ export default function AssetTypesPage() {
     );
   };
 
-  const activeBody = (row: AssetTypeRow) => {
+  const activeBody = (row: AssetCardRow) => {
     return (
       <span className={`text-xs font-semibold ${row.active ? 'text-emerald-700' : 'text-slate-500'}`}>
         {row.active ? t('common.active', 'Aktif') : t('common.inactive', 'Pasif')}
@@ -147,10 +147,10 @@ export default function AssetTypesPage() {
             value={search}
             onChange={updateGlobalSearch}
             placeholder={t('common.search', 'Ara')}
-            ariaLabel={t('asset_types.search', 'Tiplerde ara')}
+            ariaLabel={t('asset_types.search', 'Kartlarda ara')}
             inputClassName="w-full p-inputtext-sm sm:w-72"
           />
-          <Button label={t('asset_types.new', 'Yeni Tip')} icon="pi pi-plus" size="small" onClick={openCreate} aria-label={t('asset_types.new', 'Yeni Tip')} />
+          <Button label={t('asset_types.new', 'Yeni Kart')} icon="pi pi-plus" size="small" onClick={openCreate} aria-label={t('asset_types.new', 'Yeni Kart')} />
         </div>
 
         <div className="overflow-x-auto">
@@ -158,7 +158,7 @@ export default function AssetTypesPage() {
             value={rows}
             loading={loading || mutating}
             size="small"
-            emptyMessage={t('asset_types.empty', 'Tip yok.')}
+            emptyMessage={t('asset_types.empty', 'Kart yok.')}
             removableSort
             sortMode="multiple"
             filters={filters}

@@ -26,7 +26,7 @@ type AssetRow = {
   organization_id: number;
   location_id: number | null;
   parent_asset_id: number | null;
-  asset_type_id: number | null;
+  asset_card_id: number | null;
   code: string | null;
   name: string;
   image_url: string | null;
@@ -51,7 +51,7 @@ type AssetTypeRow = {
 type AssetTypeFieldRow = {
   id: number;
   organization_id: number;
-  asset_type_id: number;
+  asset_card_id: number;
   name: string;
   label: string;
   data_type: SchemaFieldType;
@@ -431,11 +431,11 @@ export default function AssetsPage() {
     try {
       const [assetsRes, assetTypesRes, unitsRes] = await Promise.all([
         api.get(`/api/organizations/${organizationId}/assets`),
-        api.get(`/api/organizations/${organizationId}/asset-types`),
+        api.get(`/api/organizations/${organizationId}/asset-cards`),
         api.get(`/api/organizations/${organizationId}/units`)
       ]);
       setAssets((assetsRes.data.assets ?? []) as AssetRow[]);
-      setAssetTypes((assetTypesRes.data.assetTypes ?? []) as AssetTypeRow[]);
+      setAssetTypes((assetTypesRes.data.assetCards ?? []) as AssetTypeRow[]);
       setUnits((unitsRes.data.units ?? []) as UnitRow[]);
     } catch {
       dispatch(
@@ -453,8 +453,8 @@ export default function AssetsPage() {
   const refreshAssetTypes = async (nextSelectedId?: number) => {
     if (!organizationId) return;
     try {
-      const response = await api.get(`/api/organizations/${organizationId}/asset-types`);
-      setAssetTypes((response.data.assetTypes ?? []) as AssetTypeRow[]);
+      const response = await api.get(`/api/organizations/${organizationId}/asset-cards`);
+      setAssetTypes((response.data.assetCards ?? []) as AssetTypeRow[]);
       if (nextSelectedId) setAssetTypeId(nextSelectedId);
     } catch {
       // ignore: asset types are not critical for loading assets list
@@ -497,7 +497,7 @@ export default function AssetsPage() {
     setImagePreviewOpen(false);
     setLocationId(row.location_id ?? null);
     setParentAssetId(row.parent_asset_id ?? null);
-    setAssetTypeId(row.asset_type_id ?? null);
+    setAssetTypeId(row.asset_card_id ?? null);
     setActive(row.active);
     setAttributes(attributesToEntries(row.attributes_json ?? null));
     setCreateEditOpen(true);
@@ -615,7 +615,7 @@ export default function AssetsPage() {
         const res = await api.post(`/api/organizations/${organizationId}/assets`, {
           location_id: locationId,
           parent_asset_id: parentAssetId,
-          asset_type_id: assetTypeId,
+          asset_card_id: assetTypeId,
           code: code.trim() || null,
           name: name.trim(),
           image_url: imageUrl,
@@ -636,7 +636,7 @@ export default function AssetsPage() {
       } else if (editingId) {
         await api.put(`/api/organizations/${organizationId}/assets/${editingId}`, {
           parent_asset_id: parentAssetId,
-          asset_type_id: assetTypeId,
+          asset_card_id: assetTypeId,
           code: code.trim() || null,
           name: name.trim(),
           image_url: imageUrl,

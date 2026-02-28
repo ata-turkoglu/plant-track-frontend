@@ -17,21 +17,21 @@ function getApiErrorMessage(err: unknown): string | null {
   return typeof message === 'string' && message.trim() ? message : null;
 }
 
-export type AssetTypeRow = {
+export type AssetCardRow = {
   id: number;
   organization_id: number;
   code: string;
   name: string;
   active: boolean;
-  fields: AssetTypeFieldRow[];
+  fields: AssetCardFieldRow[];
 };
 
 type FieldType = 'text' | 'number' | 'boolean' | 'date';
 
-type AssetTypeFieldRow = {
+type AssetCardFieldRow = {
   id: number;
   organization_id: number;
-  asset_type_id: number;
+  asset_card_id: number;
   name: string;
   label: string;
   is_default?: boolean;
@@ -110,7 +110,7 @@ function slugifyFieldName(text: string): string {
     .replace(/^_+|_+$/g, '');
 }
 
-function parseSchemaRows(fields: AssetTypeFieldRow[] | null | undefined): SchemaFieldRow[] {
+function parseSchemaRows(fields: AssetCardFieldRow[] | null | undefined): SchemaFieldRow[] {
   if (!Array.isArray(fields)) return [];
 
   return [...fields]
@@ -165,8 +165,8 @@ type AssetTypeAddEditDialogProps = {
   organizationId: number;
   visible: boolean;
   onHide: () => void;
-  editing?: AssetTypeRow | null;
-  onSaved?: (row: AssetTypeRow) => void;
+  editing?: AssetCardRow | null;
+  onSaved?: (row: AssetCardRow) => void;
 };
 
 export default function AssetTypeAddEditDialog({
@@ -277,16 +277,16 @@ export default function AssetTypeAddEditDialog({
       };
 
       const response = editing
-        ? await api.put(`/api/organizations/${organizationId}/asset-types/${editing.id}`, payload)
-        : await api.post(`/api/organizations/${organizationId}/asset-types`, payload);
+        ? await api.put(`/api/organizations/${organizationId}/asset-cards/${editing.id}`, payload)
+        : await api.post(`/api/organizations/${organizationId}/asset-cards`, payload);
 
-      const saved = (response.data.assetType ?? response.data.asset_type ?? response.data) as AssetTypeRow;
+      const saved = (response.data.assetCard ?? response.data.asset_card ?? response.data) as AssetCardRow;
 
       dispatch(
         enqueueToast({
           severity: 'success',
           summary: t('common.success', 'Basarili'),
-          detail: editing ? t('asset_types.updated', 'Makine tipi guncellendi.') : t('asset_types.created', 'Makine tipi olusturuldu.')
+          detail: editing ? t('asset_types.updated', 'Makine kartı guncellendi.') : t('asset_types.created', 'Makine kartı olusturuldu.')
         })
       );
 
@@ -313,7 +313,7 @@ export default function AssetTypeAddEditDialog({
   return (
     <AppDialog
       id="asset-type-add-edit"
-      header={editing ? t('asset_types.edit', 'Tip Duzenle') : t('asset_types.new', 'Yeni Tip')}
+      header={editing ? t('asset_types.edit', 'Kart Duzenle') : t('asset_types.new', 'Yeni Kart')}
       visible={visible}
       onHide={onHide}
       className="asset-type-dialog w-full max-w-4xl"

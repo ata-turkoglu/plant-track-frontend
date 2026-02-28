@@ -36,7 +36,7 @@ export default function AppHeader() {
     if (path === '/setup') return t('nav.settings', 'Settings');
     if (path.startsWith('/setup/organization')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.organization', 'Organization')}`;
     if (path.startsWith('/setup/warehouses')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.warehouses', 'Warehouses')}`;
-    if (path.startsWith('/setup/asset-types')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.asset_types', 'Asset Types')}`;
+    if (path.startsWith('/setup/asset-cards')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.asset_types', 'Asset Cards')}`;
     if (path.startsWith('/setup/translations')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.translations', 'Translations')}`;
     if (path.startsWith('/setup/units')) return `${t('nav.settings', 'Settings')} / ${t('setup.tab.units', 'Units')}`;
     if (path.startsWith('/setup')) return t('nav.settings', 'Settings');

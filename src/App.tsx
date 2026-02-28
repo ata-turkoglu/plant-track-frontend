@@ -84,7 +84,7 @@ export default function App() {
               <Route path="organization" element={<OrganizationPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
               <Route path="inventory-item-cards" element={<ItemGroupsPage />} />
-              <Route path="asset-types" element={<AssetTypesPage />} />
+              <Route path="asset-cards" element={<AssetTypesPage />} />
               <Route path="translations" element={<TranslationsPage />} />
               <Route path="units" element={<UnitsPage />} />
             </Route>
