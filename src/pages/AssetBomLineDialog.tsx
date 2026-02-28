@@ -10,6 +10,7 @@ type ItemGroupRow = {
   id: number;
   code: string;
   name: string;
+  type_spec?: string | null;
   size_spec: string | null;
 };
 
@@ -51,7 +52,7 @@ export default function AssetBomLineDialog({
             value={bomItemGroupId}
             onChange={(e) => setBomItemGroupId(e.value ?? null)}
             options={itemGroups.map((g) => ({
-              label: `${g.name} (${g.code})${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
+              label: `${g.name} (${g.code})${g.type_spec?.trim() ? ` · ${g.type_spec.trim()}` : ''}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
               value: g.id
             }))}
             filter

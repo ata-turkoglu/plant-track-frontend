@@ -30,6 +30,12 @@ npm install
 npm run dev
 ```
 
+Env config:
+- Create `frontend/.env` (not committed). See `../docs/ENV.md`.
+
+Contract docs:
+- If API usage changes, update `../docs/contracts/API.md`.
+
 ## State Management & Data Fetching Rule (Required)
 
 Goal: minimize network requests by using Redux state efficiently.

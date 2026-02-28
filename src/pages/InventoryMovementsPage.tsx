@@ -308,7 +308,7 @@ export default function InventoryMovementsPage() {
       .filter((g) => g.active || g.id === itemDraft.itemGroupId)
       .filter((g) => (targetWarehouseTypeId ? g.warehouse_type_id === targetWarehouseTypeId : true))
       .map((g) => ({
-        label: `${g.code} - ${g.name}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
+        label: `${g.code} - ${g.name}${g.type_spec?.trim() ? ` · ${g.type_spec.trim()}` : ''}${g.size_spec?.trim() ? ` · ${g.size_spec.trim()}` : ''}`,
         value: g.id,
         amount_unit_id: g.amount_unit_id,
         size_spec: g.size_spec,

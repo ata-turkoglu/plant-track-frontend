@@ -23,6 +23,8 @@ type Props = {
   setCode: (value: string) => void;
   name: string;
   setName: (value: string) => void;
+  typeSpec: string;
+  setTypeSpec: (value: string) => void;
   sizeSpec: string;
   setSizeSpec: (value: string) => void;
   sizeUnitId: number | null;
@@ -46,6 +48,8 @@ export default function ItemGroupAddEditDialog({
   setCode,
   name,
   setName,
+  typeSpec,
+  setTypeSpec,
   sizeSpec,
   setSizeSpec,
   sizeUnitId,
@@ -91,6 +95,16 @@ export default function ItemGroupAddEditDialog({
             <InputText value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
           </label>
         </div>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-slate-700">{t('setup.item_groups.col.type_spec', 'Tip')}</span>
+          <InputText
+            value={typeSpec}
+            onChange={(e) => setTypeSpec(e.target.value)}
+            className="w-full"
+            placeholder={t('setup.item_groups.type_spec.placeholder', 'Orn: Derin oluk bilyali, Triger')}
+          />
+        </label>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-2">

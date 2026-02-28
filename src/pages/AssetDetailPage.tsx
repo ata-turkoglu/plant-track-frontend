@@ -7,6 +7,7 @@ import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import { Message } from 'primereact/message';
 
+import NoteTooltipIcon, { NoteTooltipBinder } from '../components/common/NoteTooltipIcon';
 import { api } from '../services/api';
 import { useI18n } from '../hooks/useI18n';
 import { enqueueToast } from '../store/uiSlice';
@@ -61,6 +62,7 @@ type ItemGroupRow = {
   amount_unit_id: number;
   code: string;
   name: string;
+  type_spec: string | null;
   size_spec: string | null;
   size_unit_id: number | null;
   active: boolean;
@@ -642,6 +644,7 @@ export default function AssetDetailPage() {
 
   return (
     <div className="grid gap-4">
+      <NoteTooltipBinder />
 
       {loading && !asset ? (
         <Message severity="info" text={t('common.loading', 'Yukleniyor...')} className="w-full" />
@@ -900,7 +903,12 @@ export default function AssetDetailPage() {
 	                      </span>
 	                    )}
 	                  />
-	                  <Column field="note" header={t('common.note', 'Not')} />
+	                  <Column
+                      field="note"
+                      header={t('common.note', 'Not')}
+                      style={{ width: '6rem' }}
+                      body={(row: BomLineRow) => <NoteTooltipIcon text={row.note} ariaLabel={t('common.note', 'Not')} />}
+                    />
 	                  <Column
 	                    header=""
 	                    style={{ width: '6rem' }}
@@ -974,7 +982,12 @@ export default function AssetDetailPage() {
                           );
                         }}
                       />
-                      <Column field="note" header={t('common.note', 'Not')} />
+                      <Column
+                        field="note"
+                        header={t('common.note', 'Not')}
+                        style={{ width: '6rem' }}
+                        body={(row: AssetEventRow) => <NoteTooltipIcon text={row.note} ariaLabel={t('common.note', 'Not')} />}
+                      />
                     </DataTable>
                   </div>
                 )

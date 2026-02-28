@@ -43,6 +43,7 @@ export type ItemGroupRow = {
   amount_unit_id: number;
   code: string;
   name: string;
+  type_spec: string | null;
   size_spec: string | null;
   size_unit_id: number | null;
   active: boolean;

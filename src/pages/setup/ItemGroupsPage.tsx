@@ -43,6 +43,7 @@ type ItemGroupRow = {
   amount_unit_id: number;
   code: string;
   name: string;
+  type_spec: string | null;
   size_spec: string | null;
   size_unit_id: number | null;
   active: boolean;
@@ -60,6 +61,7 @@ const initialFilters: DataTableFilterMeta = {
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   code: { value: null, matchMode: FilterMatchMode.CONTAINS },
   name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  type_spec: { value: null, matchMode: FilterMatchMode.CONTAINS },
   size_spec: { value: null, matchMode: FilterMatchMode.CONTAINS }
 };
 
@@ -82,6 +84,7 @@ export default function ItemGroupsPage() {
   const [unitId, setUnitId] = useState<number | null>(null);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [typeSpec, setTypeSpec] = useState('');
   const [sizeSpec, setSizeSpec] = useState('');
   const [sizeUnitId, setSizeUnitId] = useState<number | null>(null);
   const [warehouseTypeFilterIds, setWarehouseTypeFilterIds] = useState<number[] | null>(null);
@@ -167,6 +170,7 @@ export default function ItemGroupsPage() {
     setUnitId(unitOptions[0]?.value ?? null);
     setCode('');
     setName('');
+    setTypeSpec('');
     setSizeSpec('');
     setSizeUnitId(null);
   };
@@ -182,6 +186,7 @@ export default function ItemGroupsPage() {
     setUnitId(row.amount_unit_id ?? null);
     setCode(row.code ?? '');
     setName(row.name ?? '');
+    setTypeSpec(row.type_spec ?? '');
     setSizeSpec(row.size_spec ?? '');
     setSizeUnitId(row.size_unit_id ?? null);
     setDialogOpen(true);
@@ -196,6 +201,7 @@ export default function ItemGroupsPage() {
       amount_unit_id: unitId,
       code: code.trim(),
       name: name.trim(),
+      type_spec: typeSpec.trim() || null,
       size_spec: sizeSpec.trim() || null,
       size_unit_id: sizeUnitId ?? null
     };
@@ -371,7 +377,7 @@ export default function ItemGroupsPage() {
             sortMode="multiple"
             filters={filters}
             onFilter={applyTableFilters}
-            globalFilterFields={['code', 'name', 'size_spec', 'warehouse_type_label']}
+            globalFilterFields={['code', 'name', 'type_spec', 'size_spec', 'warehouse_type_label']}
             tableStyle={{ minWidth: '60rem' }}
           >
             <Column
@@ -383,6 +389,7 @@ export default function ItemGroupsPage() {
             />
             <Column field="name" header={t('setup.item_groups.col.name', 'Ad')} sortable filter filterPlaceholder={t('common.search', 'Ara')} />
             <Column field="code" header={t('setup.item_groups.col.code', 'Kod')} sortable filter filterPlaceholder={t('common.search', 'Ara')} style={{ width: '12rem' }} />
+            <Column field="type_spec" header={t('setup.item_groups.col.type_spec', 'Tip')} sortable filter filterPlaceholder={t('common.search', 'Ara')} style={{ width: '14rem' }} />
             <Column header={t('setup.item_groups.col.unit', 'Stok Birimi')} body={amountUnitBody} sortable sortField="amount_unit_id" style={{ width: '14rem' }} />
             <Column field="size_spec" header={t('setup.item_groups.col.spec', 'Ölçü')} body={sizeBody} sortable style={{ width: '14rem' }} />
             <Column header={t('setup.item_groups.col.spec_unit', 'Ölçü Birimi')} body={sizeUnitBody} sortable sortField="size_unit_id" style={{ width: '14rem' }} />
@@ -406,6 +413,8 @@ export default function ItemGroupsPage() {
         setCode={setCode}
         name={name}
         setName={setName}
+        typeSpec={typeSpec}
+        setTypeSpec={setTypeSpec}
         sizeSpec={sizeSpec}
         setSizeSpec={setSizeSpec}
         sizeUnitId={sizeUnitId}
